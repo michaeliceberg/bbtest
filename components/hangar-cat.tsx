@@ -170,7 +170,8 @@ function Cardboard({ p }: { p: Place }) {
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/hangar/life/cat-cardboard.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
-            style={placeStyle(p)} />
+            // в тон соседнего хлама у стены: темнее и чуть менее рыжая
+            style={{ ...placeStyle(p), filter: 'sepia(0.35) brightness(0.62) saturate(0.95) contrast(0.95)' }} />
     )
 }
 
@@ -525,7 +526,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
                 <motion.div className="pointer-events-none absolute" style={{ zIndex: stroll.walking ? Math.max(catZ, depthZIndex(stroll.y)) : depthZIndex(stroll.y) }}
-                    initial={false}
+                    // старт прогулки — от коробки (раньше initial={false}: котик сразу оказывался в точке прогулки, «телепортировался»)
+                    initial={box('walk-1', { x: BED.x, y: BED.y, k: kAt(BED.y) })}
                     animate={box(stroll.walking ? 'walk-1' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
                     transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}>
                     <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-4%', '0%'] : '0%' }} transition={{ duration: 0.34, repeat: stroll.walking ? Infinity : 0 }}>

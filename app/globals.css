@@ -1136,6 +1136,13 @@ body {
 .hangar-banner-wave { animation: hangar-banner-wave 1.1s ease-in-out infinite; }
 @keyframes hangar-prop { to { transform: scaleY(0.15); } }
 .hangar-prop { animation: hangar-prop 0.08s linear infinite alternate; }
+/* ночью: красный проблесковый огонь кукурузника, звезда и окошки МГУ на горизонте */
+@keyframes hangar-beacon { 0%, 12% { opacity: 1; } 18%, 100% { opacity: 0.08; } }
+.hangar-beacon { animation: hangar-beacon 1.3s linear infinite; }
+@keyframes hangar-mgu-star { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+.hangar-mgu-star { animation: hangar-mgu-star 3s ease-in-out infinite; }
+@keyframes hangar-window-blink { 0%, 70% { opacity: 1; } 75%, 100% { opacity: 0.1; } }
+.hangar-window-blink { animation: hangar-window-blink 9s steps(1) infinite; }
 @keyframes hangar-spider-run {
   /* петляет левее крепления вентилятора (центр паучка от x≈256 до ≈430 из 1024 — крепление на 490–534):
      бежит, замирает, на месте плавно разворачивается к следующей точке, rotate = направление движения */

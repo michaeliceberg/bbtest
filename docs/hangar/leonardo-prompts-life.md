@@ -240,3 +240,21 @@ Avoid: `outline, black outline, dark contour, line art, stroke, border, sticker,
 | `cloud-puffy.png` | single fluffy cartoon cumulus cloud shaped like a big round cauliflower, four soft puffs on top, flat bottom, cream-white top with soft grey-blue shading underneath, side view |
 | `cloud-wisp.png` | single long thin cartoon cloud stretched horizontally, wispy and soft, three small puffs in a row, pale cream with light lavender shading underneath, side view |
 | `cloud-little.png` | two tiny round cartoon cloud puffs drifting together, one slightly bigger, cream-white with pale blue shading, side view |
+
+## Пульт под ангаром: стрелки и кнопка «к ракете» (2026-11-01)
+
+Сейчас под ангаром на телефоне три кнопки из доски: ← · 🚀 · →. Нужен технологичный «гаражный» пульт вместо деревяшек:
+металл, заклёпки, лампочки, но в том же мультяшном стиле, что ангар. Генерировать ТРИ отдельные кнопки (одним
+изображением с тремя кнопками ряд не годится — разрежу криво). Модель FLUX.1 Kontext, образец стиля — `docs/hangar/bg-empty.jpg`.
+Стрелку рисуем только одну (вправо) — влево отражу кодом. **Иконку на кнопке не просим** (её рисую сверху кодом: шеврон,
+ракета) — так кнопки одинаковые по стилю и иконка чёткая.
+
+| файл | промпт (+ общий хвост стиля выше) |
+|---|---|
+| `panel-arrow.png` | A wide horizontal arrow-shaped control button pointing RIGHT, made of riveted dark-olive steel plate with a worn brushed-metal face, bolted brass rivets along the edge, a thin glowing amber LED strip along the top edge, scratches and oil smudges, chunky sci-fi garage control panel style, front view, empty center area (no icon, no symbol) |
+| `panel-square.png` | A square chunky control button for a garage machine panel: riveted dark-olive steel frame with four brass corner bolts, a recessed slightly convex face of worn grey metal, a small amber indicator lamp in the top-left corner, scratches and oil smudges, sci-fi garage control panel style, front view, empty center (no icon, no symbol) |
+
+Avoid (в конце каждого): `text, letters, numbers, icon, symbol, arrow drawn on the face, rocket, watermark, background scenery, multiple objects, perspective view, cropped, blurry, photo, 3D render, glossy plastic`.
+
+Что сделаю после: вырежу фон, положу в `public/hangar/life/panel-*.webp`, нажатие — по стандарту (тень-грань исчезает),
+нерабочая стрелка у края — лампочка гаснет.

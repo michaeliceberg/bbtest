@@ -505,7 +505,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const section = egeSectionOf(activeCourse.title, unit.title)
               const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
               return (
-              <div key={unit.id} className='mb-3' data-learn-unit-id={unit.id}>
+              <div key={unit.id} className='mb-3' data-learn-unit-id={unit.id} data-learn-task-num={unitNum(unit.title) ?? undefined}>
                 {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} pro={section === 'part2' && !hasProFor(userProgress)} />}
                 <LearnUnitFold
                   id={unit.id}

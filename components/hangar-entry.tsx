@@ -7,6 +7,8 @@
 // подсвечивать предметы и чинить, как в «Моём пути».
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { openLearnUnit } from '@/components/learn-unit-fold'
 import { createPortal } from 'react-dom'
 import { Warehouse } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
@@ -16,6 +18,15 @@ import type { LayoutOverrides } from '@/lib/hangarModel'
 export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, openOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; openOnLoad?: boolean }) {
     // /learn?hangar=1 (ссылка из оповещения «кто-то мяучит») — ангар открывается сразу
     const [open, setOpen] = useState(openOnLoad)
+    const router = useRouter()
+    // «Перейти в раздел N»: мы уже в задачнике — закрываем окно ангара и раскрываем раздел этого задания
+    const goTask = (num: number) => {
+        setOpen(false)
+        const node = document.querySelector<HTMLElement>(`[data-learn-task-num="${num}"]`)
+        const id = Number(node?.dataset.learnUnitId)
+        if (id) setTimeout(() => openLearnUnit(id), 60)
+        else router.push(`/learn?task=${num}`)
+    }
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
     const fixed = items.filter((i) => i.state === 'fixed').length
@@ -56,8 +67,8 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
                         className="pointer-events-none fixed inset-0 h-full w-full scale-125 object-cover"
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
-                    <div className="relative mx-auto w-full max-w-xl px-4 pb-10 pt-4 lg:max-w-[1180px] lg:pb-4">
-<HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} onClose={() => setOpen(false)} />
+                    <div className="relative mx-auto w-full max-w-xl px-4 pb-4 pt-4 lg:max-w-[1180px] lg:pb-4">
+<HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} onClose={() => setOpen(false)} onGoTask={goTask} />
                     </div>
                 </div>,
                 document.body,

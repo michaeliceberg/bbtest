@@ -11,7 +11,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, KeyRound, LogOut, Wrench, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, KeyRound, LogOut, Rocket, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
@@ -85,8 +85,10 @@ function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: n
     )
 }
 
-/** Подсветка предмета, который починится: золотой контур по форме картинки (drop-shadow) и чуть ярче. */
-const HIGHLIGHT = 'drop-shadow(0 0 2px #FFF4C2) drop-shadow(0 0 6px #F2C35B) drop-shadow(0 0 14px #F2C35B) brightness(1.15)'
+/** Подсветка предмета, который починится: яркий золотой контур по форме картинки (drop-shadow) и заметно светлее.
+ *  Вечером и ночью подсвеченный предмет ещё и поднимается над затемнением (litZ) — иначе его почти не видно. */
+const HIGHLIGHT = 'drop-shadow(0 0 2px #FFFBE6) drop-shadow(0 0 5px #FFE58A) drop-shadow(0 0 12px #FFD84D) drop-shadow(0 0 24px #F2C35B) brightness(1.4) saturate(1.15)'
+const LIT_Z = 1104 // выше затемнения времени суток (1100), ниже звёзд и луны (1105)
 
 export type HangarTime = Time
 
@@ -94,12 +96,14 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, catStage = 0, catFridgeFixed = false, catName = null, onCatHome }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome }: {
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
     /** Крестик в шапке (окно ангара на /learn). */
     onClose?: () => void
+    /** «Перейти в раздел N» внутри задачника: закрыть окно ангара и раскрыть раздел (иначе — ссылка на /learn?task=N). */
+    onGoTask?: (num: number) => void
     /** Котик: 0 нет, 1 мяукает у ворот, 2 живёт на картонке (user_progress.cat_stage). */
     catStage?: number
     /** Холодильник котика починен. */
@@ -193,7 +197,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             // ширину берём у внешнего блока (рамка на компьютере сужается под квадрат) минус рамка 2+2 px
             const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : Math.min(w, Math.max(360, window.innerHeight - 40))
+            // телефон: ангар во всю высоту экрана, снизу остаётся место только под кнопки (влево · к ракете · вправо)
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - 104, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
@@ -219,9 +224,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // своя плавная прокрутка (разгон-торможение) + страховка в конце: scroll-behavior smooth не везде срабатывает
     const slide = (dir: -1 | 1) => {
         const el = frameRef.current
+        if (el) scrollToX(el.scrollLeft + dir * (frame ? frame.w * 0.6 : 200))
+    }
+    // кнопка с ракетой: встать ракетой в центр экрана
+    const centerRocket = () => { if (frame) scrollToX((R.x / 1024) * frame.s - frame.w / 2) }
+    const scrollToX = (x: number) => {
+        const el = frameRef.current
         if (!el) return
         const from = el.scrollLeft
-        const to = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, from + dir * (frame ? frame.w * 0.6 : 200)))
+        const to = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, x))
         const t0 = performance.now()
         const D = 420
         const step = (now: number) => {
@@ -256,6 +267,11 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         const el = frameRef.current
         if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     }
+    // подсветка + вечером/ночью подъём над затемнением
+    const litStyle = (on: boolean): React.CSSProperties => ({
+        filter: on ? HIGHLIGHT : undefined, transition: 'filter .25s',
+        ...(on && time !== 'day' ? { zIndex: LIT_Z } : {}),
+    })
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
@@ -307,7 +323,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <img key={sl.src} src={sl.src} alt={d.label} draggable={false} className={`absolute select-none ${!decorDone && PORTRAIT_NUM !== null ? 'cursor-pointer' : ''}`}
                             onClick={() => { if (!decorDone && PORTRAIT_NUM !== null) openTask(PORTRAIT_NUM) }}
                             onMouseEnter={() => { if (!decorDone && PORTRAIT_NUM !== null) setHover(PORTRAIT_NUM) }} onMouseLeave={() => setHover(null)}
-                            style={{ ...placeStyle(p), filter: PORTRAIT_NUM !== null && !decorDone && lit(PORTRAIT_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s' }} />
+                            style={{ ...placeStyle(p), ...litStyle(PORTRAIT_NUM !== null && !decorDone && lit(PORTRAIT_NUM)) }} />
                     )
                 })}
                 {decorDone && (
@@ -320,9 +336,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${nextRocket ? 'cursor-pointer' : ''}`}
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
-                    style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                    style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
-                {nextRocket && !bare && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
+                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.17 : 0.3)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const id = itemOf(i.num) // картинка предмета этого задания
@@ -341,7 +357,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num)), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
@@ -355,9 +371,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     )
                 })}
                 {fan && (
-                    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 900, filter: fan.state !== 'fixed' && lit(FAN_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === FAN_NUM ? 'hangar-pop .6s ease-out' : undefined }}>
+                    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 900, ...litStyle(fan.state !== 'fixed' && lit(FAN_NUM)), animation: justFixed === FAN_NUM ? 'hangar-pop .6s ease-out' : undefined }}>
                         <HangarFan broken={fan.state !== 'fixed'} />
                     </div>
+                )}
+                {fan && fan.state !== 'fixed' && !bare && (
+                    // сломанный вентилятор — тоже можно навести и нажать (сам слой вентилятора нажатия пропускает)
+                    <button type="button" aria-label="Задание №11" className="absolute cursor-pointer"
+                        style={{ left: pct(FAN.x - FAN.bladesD / 2), top: pct(FAN.top), width: pct(FAN.bladesD), height: pct(FAN.motorH + 70), zIndex: 905 }}
+                        onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
                 {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
@@ -377,7 +399,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 // большие деревянные стрелки-указатели: подсказка, что ангар листается вбок (и сами листают)
                 <div className="mt-3 flex items-center justify-between gap-2">
                     <PlankArrow dir={-1} disabled={!edge.l} onClick={() => slide(-1)} />
-                    <span className="text-center text-sm font-black leading-tight text-[#C9B48C]">Листай<br />ангар</span>
+                    <CenterButton onClick={centerRocket} />
                     <PlankArrow dir={1} disabled={!edge.r} onClick={() => slide(1)} />
                 </div>
             )}
@@ -402,6 +424,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             </button>
                         ) : null}
                         <Link href={`/learn?task=${panelItem.num}`}
+                            onClick={(e) => { if (onGoTask) { e.preventDefault(); setOpenNum(null); onGoTask(panelItem.num) } }}
                             className="flex flex-1 items-center justify-center rounded-xl border-b-4 px-3 py-2.5 text-center text-sm font-black text-[#0F171B] active:border-b-0"
                             style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
                             Перейти в раздел {panelItem.num}
@@ -454,6 +477,20 @@ function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJo
                 <span className="mt-1 block text-[10px] font-bold text-[#7FA48B]">{znSource(joke)}</span>
             </button>
         </div>
+    )
+}
+
+// Квадратная кнопка между стрелками: ракета — встать ею в центр экрана.
+function CenterButton({ onClick }: { onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick} aria-label="К ракете"
+            className="shrink-0 transition-transform active:translate-y-[4px] active:[filter:none]"
+            style={{ filter: 'drop-shadow(0 4px 0 #2A190B) drop-shadow(0 6px 8px rgba(0,0,0,0.4))' }}>
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl"
+                style={{ background: 'url(/hangar/life/sign-plank.webp) center / 380% 100%' }}>
+                <Rocket className="h-7 w-7 text-[#FFF1D6]" strokeWidth={2.6} style={{ filter: 'drop-shadow(0 2px 0 #3B2412)' }} />
+            </span>
+        </button>
     )
 }
 
