@@ -25,11 +25,11 @@ import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
-type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
+type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
 const CAT_PX: Record<Pose, [number, number]> = {
-    peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
+    peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], jump: [750, 715], land: [825, 671], sun: [892, 581], 'sun-wink': [891, 640], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
     sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
 }
 // Ходьба — 3 кадра Leonardo (docs/hangar/leonardo/cat-walk2-*): лапа вперёд → широкий шаг → лапы собраны.
@@ -338,7 +338,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [step, setStep] = useState(0)
     // ky — по какой глубине пола считать размер (котик на бочке стоит выше пола, но размер — как у бочки),
     // perch — сидит на бочке и греется, jump — сейчас прыгает (вверх на бочку или вниз)
-    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; perch?: boolean; jump?: boolean } | null>(null)
+    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; perch?: boolean; jump?: boolean; crouch?: boolean; land?: boolean } | null>(null)
+    const [wink, setWink] = useState(false)
     const strollingRef = useRef(false)
     // стол — через ref: объект desk новый на каждой перерисовке ангара, в зависимостях эффекта прогулки он сбрасывал
     // таймеры, и котик оставался в позе ходьбы («ходил на месте»)
@@ -436,6 +437,14 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         return () => clearTimeout(t)
     }, [react])
 
+    // греется на бочке — изредка подмигивает
+    const basking = !!stroll?.perch && !stroll.jump && !stroll.land
+    useEffect(() => {
+        if (!basking) { setWink(false); return }
+        const t = setInterval(() => { setWink(true); setTimeout(() => setWink(false), 700) }, 5200)
+        return () => clearInterval(t)
+    }, [basking])
+
     const blink = useBlink(phase === 'home' && !react && !night)
 
     // прогулка днём: { куда, идёт ли сейчас, смотрит ли влево, сколько секунд идти }
@@ -454,14 +463,21 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 const top = { x: Math.round(br.x + br.w * 0.22), y: Math.round(br.y - br.h * 0.92) } // на верху бочки
                 const d1 = durTo(BED, floor)
                 const flip = floor.x < BED.x
+                // подошёл → присел (собрал лапы) → прыжок дугой → приземлился стоя → лёг греться (иногда подмигивает)
                 setStroll({ ...floor, walking: true, flip, dur: d1 })
-                later(d1 * 1000, () => setStroll({ ...top, walking: false, flip, dur: 0.5, ky: br.y, perch: true, jump: true }))
-                later(d1 * 1000 + 700, () => { setStroll((st) => st && { ...st, jump: false }); doReact('happy') })
+                const t0 = d1 * 1000
+                later(t0, () => setStroll({ ...floor, walking: false, flip, dur: 0, crouch: true }))
+                later(t0 + 350, () => setStroll({ ...top, walking: false, flip, dur: 0.5, ky: br.y, perch: true, jump: true }))
+                later(t0 + 850, () => setStroll((st) => st && { ...st, jump: false, land: true }))
+                later(t0 + 1150, () => { setStroll((st) => st && { ...st, land: false }); doReact('happy') })
                 const stay = 16000 + Math.random() * 10000
-                later(d1 * 1000 + 700 + stay / 2, () => doReact('happy'))
-                later(d1 * 1000 + stay, () => setStroll({ ...floor, walking: false, flip: !flip, dur: 0.45, jump: true }))
-                later(d1 * 1000 + stay + 550, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: !flip, dur: d1 }))
-                later(d1 * 2000 + stay + 550, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
+                later(t0 + 1150 + stay / 2, () => doReact('happy'))
+                const t1 = t0 + 1150 + stay
+                later(t1, () => setStroll((st) => st && { ...st, land: true, flip: !flip }))
+                later(t1 + 250, () => setStroll({ ...floor, walking: false, flip: !flip, dur: 0.45, jump: true }))
+                later(t1 + 700, () => setStroll({ ...floor, walking: false, flip: !flip, dur: 0, land: true }))
+                later(t1 + 950, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: !flip, dur: d1 }))
+                later(t1 + 950 + d1 * 1000, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
                 return
             }
             // любимое место — под столом с компьютером (лежит там подольше)
@@ -576,8 +592,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const pose: Pose = night ? 'sleep' : react ?? blink
     // где говорит котик: над коробкой или над точкой прогулки (верх его картинки)
     // поза на прогулке: идёт / прыгает (кадр широкого шага) / лежит под столом / греется на бочке / сидит
-    const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.jump ? 'walk-2' : stroll.under ? 'sleep' : stroll.perch ? 'happy' : 'sit-shy'
-    const strollBox: Pose = !stroll ? 'sit' : stroll.walking || stroll.jump ? 'walk-1' : strollPose
+    const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.crouch ? 'walk-3' : stroll.jump ? 'jump' : stroll.land ? 'land'
+        : stroll.under ? 'sleep' : stroll.perch ? (wink ? 'sun-wink' : 'sun') : 'sit-shy'
+    const strollBox: Pose = !stroll ? 'sit' : stroll.walking ? 'walk-1' : strollPose
     const strollK = stroll ? kAt(stroll.ky ?? stroll.y) : BED_K
     const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[strollBox][1] * strollK - 6 } : { x: BED.x, y: BED.y - 96 }
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
@@ -606,7 +623,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     <motion.div className="absolute inset-0"
                         animate={{ y: stroll.walking ? ['0%', '-1.5%', '0%'] : stroll.jump ? ['0%', '-45%', '0%'] : '0%' }}
                         transition={stroll.jump ? { duration: stroll.dur, ease: 'easeOut' } : { duration: 0.3, repeat: stroll.walking ? Infinity : 0 }}>
-                        <CatImg pose={strollPose} poses={[...WALK_FRAMES, 'sit-shy', 'sleep', 'happy']} flip={stroll.flip} />
+                        <CatImg pose={strollPose} poses={[...WALK_FRAMES, 'jump', 'land', 'sun', 'sun-wink', 'sit-shy', 'sleep']} flip={stroll.flip} />
                     </motion.div>
                 </motion.div>
             ) : (
