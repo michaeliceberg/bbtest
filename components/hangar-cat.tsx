@@ -19,6 +19,7 @@ import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { CatFridgeModal } from '@/components/cat-fridge-modal'
+import { reportAchievement } from '@/lib/achievementsClient'
 import type { CatFoodStock } from '@/lib/catFood'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
@@ -308,6 +309,30 @@ function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pend
     )
 }
 
+/** Коробка Шрёдингера (Leonardo: docs/hangar/leonardo/cat-sbox-*): три кадра выровнены по коробке — открытая пустая,
+ *  закрытая (котик внутри) и с выглядывающим котиком. Закрывается/открывается с отскоком. */
+function SchrodingerBox({ p, state, onOpen }: { p: Place; state: 'idle' | 'closed' | 'peek' | 'sleep'; onOpen?: () => void }) {
+    const src = state === 'closed' ? 'closed' : state === 'peek' ? 'peek' : 'open'
+    return (
+        <button type="button" disabled={!onOpen} onClick={onOpen} aria-label={onOpen ? 'Открыть коробку' : 'Коробка'}
+            className={`absolute select-none ${onOpen ? 'cursor-pointer' : 'pointer-events-none'}`}
+            // поверх хлама на полу (штаны, банки), как и сам котик
+            style={{ ...placeStyle(p), zIndex: CAT_TOP_Z - 5 }}>
+            {(['open', 'closed', 'peek'] as const).map((k) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <motion.img key={k} src={`/hangar/life/cat-sbox-${k}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full"
+                    style={{ filter: 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))', transformOrigin: '50% 100%' }}
+                    animate={{ opacity: src === k ? 1 : 0, scaleY: src === k ? [0.86, 1.06, 1] : 1 }}
+                    transition={{ opacity: { duration: 0.08 }, scaleY: { duration: 0.35 } }} />
+            ))}
+            {onOpen && (
+                // мигающий «?» — коробку можно открыть
+                <span className="absolute left-1/2 top-[8%] -translate-x-1/2 animate-pulse rounded-full bg-[#FFE58A] px-[0.8cqw] text-[2.4cqw] font-black text-[#3A2A08] shadow">?</span>
+            )}
+        </button>
+    )
+}
+
 /** Колбаска (Leonardo, cat-sausage). */
 const Sausage = ({ size = 9 }: { size?: number }) => (
     // eslint-disable-next-line @next/next/no-img-element
@@ -316,8 +341,8 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
 
 export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo }: {
     stage: number
-    /** Тестовая страница /test-cat-barrel: котик сразу и по кругу запрыгивает на бочку. */
-    demo?: 'barrel'
+    /** Тестовые страницы: котик сразу и по кругу запрыгивает на бочку (/test-cat-barrel) или в коробку Шрёдингера (/test-cat-sbox). */
+    demo?: 'barrel' | 'sbox'
     /** Лежащая бочка (№13, пока не починена) — любимое место: котик запрыгивает на неё и греется на солнце. */
     barrel?: Place | null
     /** Еда в холодильнике (user_progress.cat_milk / cat_sausage). */
@@ -352,6 +377,12 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const barrelRef = useRef(barrel)
     barrelRef.current = barrel
     const bedRef = useRef<{ x: number; y: number; k: number; floorY: number } | null>(null)
+    // Коробка Шрёдингера: idle — открыта и пуста; closed — котик внутри, закрыта («жив или спит?»);
+    // peek — открыли, котик выглядывает; sleep — открыли, котик спит внутри (Zzz), потом выглядывает.
+    const [sbox, setSbox] = useState<'idle' | 'closed' | 'peek' | 'sleep'>('idle')
+    const [sboxSay, setSboxSay] = useState<string | null>(null)
+    const sboxRef = useRef<Place | null>(null)
+    const sboxResume = useRef<(() => void) | null>(null) // продолжение прогулки после открытия: выпрыгнуть и домой
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
@@ -370,8 +401,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const st = fridgeOk ? 'a' : 'b'
     const boxP = place(layout, st, 'cat-box', CAT_DECOR[1][st])
     const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
+    const sbP = place(layout, 'a', 'cat-sbox', CAT_DECOR[2].a)
     const BED = bedOf(boxP)
     bedRef.current = { ...BED, floorY: boxP.y }
+    sboxRef.current = sbP
     const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
     // реакция + фраза одним махом; голодный котик (холодильник сломан) иногда просит молока
     const doReact = (r: 'pet' | 'meow' | 'happy') => {
@@ -451,11 +484,24 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         return () => clearInterval(t)
     }, [basking])
 
+    // Открыть коробку: пополам — котик выглядывает («Жив!») или спит внутри («тоже жив, просто спит»), потом выпрыгивает.
+    const openSboxRef = useRef<((self?: boolean) => void) | null>(null)
+    openSboxRef.current = (self = false) => {
+        if (sbox !== 'closed') return
+        if (!self) { playJustClick(); if (!onHome) reportAchievement('schrodinger') }
+        const asleep = !self && Math.random() < 0.5
+        setSbox(asleep ? 'sleep' : 'peek')
+        setSboxSay(asleep ? 'Тоже жив — просто спит 😴' : self ? 'Мяу! Надоело ждать 😼' : 'Мяу! Жив! 😺')
+        const wait = asleep ? 3200 : 2600
+        if (asleep) setTimeout(() => { setSbox((v) => (v === 'sleep' ? 'peek' : v)); setSboxSay('Мяу? Уже утро? 😺') }, 2400)
+        setTimeout(() => sboxResume.current?.(), wait + (asleep ? 1600 : 0))
+    }
+
     const blink = useBlink(phase === 'home' && !react && !night)
 
     // прогулка днём: { куда, идёт ли сейчас, смотрит ли влево, сколько секунд идти }
     useEffect(() => {
-        if (phase !== 'home' || bare || night) { setStroll(null); return }
+        if (phase !== 'home' || bare || night) { setStroll(null); setSbox('idle'); sboxResume.current = null; return }
         let alive = true
         const timers: ReturnType<typeof setTimeout>[] = []
         const later = (ms: number, f: () => void) => timers.push(setTimeout(() => alive && f(), ms))
@@ -491,6 +537,28 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, go) })
             }
 
+            // коробка Шрёдингера: запрыгнул внутрь → коробка закрылась → ждём, пока откроют (или сам через минуту)
+            const sb = sboxRef.current
+            if (sb && demo !== 'barrel' && (demo === 'sbox' || Math.random() < 0.25)) {
+                const front = { x: Math.round(sb.x + sb.w * 0.42), y: Math.round(sb.y + 8) } // на полу справа-спереди
+                const top = { x: Math.round(sb.x), y: Math.round(sb.y - sb.h * 0.55) } // над открытой коробкой
+                leaveBox(front)
+                walk(boxFloor, front)
+                jump(front, top, front.x > top.x, {}, { ky: sb.y })
+                at(() => { setStroll(null); setSbox('closed'); setSboxSay('Котик жив или спит? 🤔') })
+                const opened = t
+                // продолжение: котик выглядывает, выпрыгивает и идёт домой
+                sboxResume.current = () => {
+                    sboxResume.current = null
+                    t = 0
+                    at(() => { setSbox('idle'); setSboxSay(null) })
+                    jump(top, front, false, { ky: sb.y }, {})
+                    comeHome(front)
+                }
+                // никто не открыл за минуту — котику надоело, выглядывает сам
+                later(opened + (demo ? 15000 : 60000), () => { if (sboxResume.current) openSboxRef.current?.(true) })
+                return
+            }
             // самое любимое днём — лежащая бочка: запрыгивает, греется на солнце и мурчит, потом спрыгивает
             const br = barrelRef.current
             if (br && (demo === 'barrel' || Math.random() < 0.45)) {
@@ -641,6 +709,18 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard p={boxP} />
+            <SchrodingerBox p={sbP} state={sbox} onOpen={!bare && sbox === 'closed' ? () => openSboxRef.current?.() : undefined} />
+            {!bare && sboxSay && <Bubble x={sbP.x} y={sbP.y - sbP.h * (sbox === 'peek' ? 0.98 : 0.86)}>{sboxSay}</Bubble>}
+            {!bare && sbox === 'closed' && (
+                <div className="pointer-events-none absolute w-[34%] -translate-x-1/2 rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4]/95 px-2 py-1 text-center text-[2.1cqw] font-bold leading-tight text-[#5A3A22] shadow-md sm:text-[1.7cqw]"
+                    style={{ left: pct(Math.min(Math.max(sbP.x, 180), 844)), top: pct(sbP.y + 8), zIndex: 1160 }}>
+                    Пока коробка закрыта, котик для нас и жив, и спит сразу — это суперпозиция 🤓 Нажми, чтобы узнать!
+                </div>
+            )}
+            {sbox === 'sleep' && (
+                <motion.span className="pointer-events-none absolute font-black text-[#5A6ACF]" style={{ left: pct(sbP.x + 10), top: pct(sbP.y - sbP.h * 0.8), zIndex: 1160, fontSize: '2.6cqw' }}
+                    animate={{ y: ['0cqw', '-2.5cqw'], opacity: [0, 1, 0] }} transition={{ duration: 1.6, repeat: Infinity }}>Zzz</motion.span>
+            )}
             {/* гуляет: слой по глубине точки, где сидит (что стоит ниже на полу — перед ним); пока идёт — не ниже своей коробки */}
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам; под столом — лежит.
@@ -662,7 +742,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                         <CatImg pose={strollPose} poses={[...WALK_FRAMES, 'jump', 'land', 'sun', 'sun-wink', 'sit-shy', 'sleep']} flip={stroll.flip} />
                     </motion.div>
                 </motion.div>
-            ) : (
+            ) : sbox !== 'idle' ? null : (
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: catZ }}

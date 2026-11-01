@@ -105,7 +105,7 @@ export type HangarTime = Time
  */
 export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo }: {
     catFood?: CatFoodStock
-    catDemo?: 'barrel'
+    catDemo?: 'barrel' | 'sbox'
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean

@@ -119,6 +119,7 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'dict_all', group: 'krupitsy', emoji: '📚', title: 'Ходячий словарь «За науку»', desc: 'Разгадал все слова словаря физтеха' },
 	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
 	{ key: 'fridge_sg', group: 'start', emoji: '⚖️', title: 'Сол Гудман был здесь!', desc: 'Нашёл надпись, нацарапанную в холодильнике котика' },
+	{ key: 'schrodinger', group: 'start', emoji: '📦', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, жив котик или спит' },
 	{ key: 'cat_home', group: 'start', emoji: '🐱', iconSrc: '/hangar/life/cat-pet.webp', title: 'Кот в ангаре', desc: 'Приютил рыжего котика — теперь он живёт на картонке в ангаре' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
@@ -200,6 +201,7 @@ export const REWARDS: Record<string, AchievementReward> = {
 	dict_all: { kind: 'pizza', amount: 1 },
 	cat_home: { kind: 'coins', amount: 50 },
 	fridge_sg: { kind: 'pizza', amount: 1 },
+	schrodinger: { kind: 'coins', amount: 50 },
 };
 
 export const rewardText = (r: AchievementReward) =>
@@ -210,5 +212,5 @@ export type AchievementDTO = { key: string; title: string; desc: string; emoji: 
 export const toDTO = (a: AchievementDef): AchievementDTO => ({ key: a.key, title: a.title, desc: a.desc, emoji: a.emoji, iconSrc: a.iconSrc, group: a.group });
 
 // События, о которых может сообщить браузер (остальные ачивки выдаются только сервером).
-export const CLIENT_EVENT_KEYS = ['first_mistake', 'mistakes_3', 'combo_8', 'review_ok', 'review_first', 'reference_open', 'fridge_sg'] as const;
+export const CLIENT_EVENT_KEYS = ['first_mistake', 'mistakes_3', 'combo_8', 'review_ok', 'review_first', 'reference_open', 'fridge_sg', 'schrodinger'] as const;
 export type ClientEventKey = (typeof CLIENT_EVENT_KEYS)[number];

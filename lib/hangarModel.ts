@@ -68,6 +68,10 @@ export const CAT_DECOR: Decor[] = [
     { key: 'cat-box', label: 'Коробка котика',
         a: { src: '/hangar/life/cat-cardboard.webp', x: 554, y: 904, w: 150, h: 108 },
         b: { src: '/hangar/life/cat-cardboard.webp', x: 554, y: 904, w: 150, h: 108 } },
+    // коробка Шрёдингера (components/hangar-cat.tsx): котик иногда запрыгивает в неё, коробка закрывается — жив или спит?
+    { key: 'cat-sbox', label: 'Коробка Шрёдингера',
+        a: { src: '/hangar/life/cat-sbox-open.webp', x: 420, y: 905, w: 130, h: 133 },
+        b: { src: '/hangar/life/cat-sbox-open.webp', x: 420, y: 905, w: 130, h: 133 } },
 ]
 
 // Слой — АВТОМАТИЧЕСКИ по глубине: что стоит ниже на полу (больше y нижнего края), то ближе и рисуется сверху.
