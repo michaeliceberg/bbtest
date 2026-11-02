@@ -106,7 +106,7 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
  *  Замок — тренажёры не пройдены, галочка — сделано, звезда — золото ждёт кейс. */
 const TRAY_SOCKETS: [number, number][] = [[11.32, 18.98], [22.98, 30.72], [35.15, 42.89], [47.06, 54.81], [58.98, 66.72], [70.81, 78.55], [82.55, 90.21]]
 const TRAY_SOCKET_Y: [number, number] = [39.42, 65.26]
-function RocketTray({ parts, lit, onHover, onPick }: { parts: SceneItem[]; lit: (n: number) => boolean; onHover: (n: number | null) => void; onPick: (n: number) => void }) {
+function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem[]; lit: (n: number) => boolean; onHover: (n: number | null) => void; onPick: (n: number) => void; onClose: () => void }) {
     return (
         <div className="relative mx-auto w-full max-w-[560px] select-none" style={{ aspectRatio: '1175 / 449', containerType: 'inline-size' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -118,6 +118,12 @@ function RocketTray({ parts, lit, onHover, onPick }: { parts: SceneItem[]; lit: 
                 style={{ left: '32%', width: '34.8%', top: '10.7%', height: '9.4%', fontSize: '2.7cqw', letterSpacing: '0.08em', whiteSpace: 'nowrap', textShadow: '0 1px 0 rgba(255,255,255,.55)' }}>
                 Вторая часть ЕГЭ
             </span>
+            {/* «Убрать» — на самой плашке справа от таблички (кнопка в углу ангара перекрывала кнопку 20) */}
+            <button type="button" onClick={onClose} aria-label="Убрать лоток"
+                className="absolute flex items-center justify-center gap-[0.6cqw] rounded-[1cqw] border-b-4 border-[#1E2629] bg-[#2A3338] font-black leading-none text-[#E6EDF1] active:border-b-0"
+                style={{ left: '71%', width: '17%', top: '8.5%', height: '13%', fontSize: '2.6cqw' }}>
+                <X className="h-[1em] w-[1em]" strokeWidth={3} />Убрать
+            </button>
             {parts.slice(0, 7).map((i, k) => {
                 const [l, r] = TRAY_SOCKETS[k]
                 const done = i.state === 'fixed'
@@ -540,13 +546,13 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
             </div>
             </div>
-            {!bare && !scrollMode && !openItem && (
+            {!bare && !scrollMode && !openItem && !trayOpen && (
                 // компьютер: пульта нет — отдельная кнопка в правом нижнем углу открывает лоток 14–20 (нажатие на ракету тоже работает)
                 <button type="button" onClick={toggleTray}
                     className="absolute bottom-3 right-3 flex items-center gap-2 rounded-xl border-2 border-b-4 border-[#1E2629] bg-[#3A454B] px-3 py-2 text-sm font-black text-[#E6EDF1] shadow-lg active:border-b-0"
                     style={{ zIndex: 1260 }}>
                     <Rocket className="h-4 w-4 text-[#FF6B5E]" />
-                    {trayOpen ? 'Убрать' : 'Вторая часть'}
+                    Вторая часть
                 </button>
             )}
             {!bare && (
@@ -556,7 +562,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     <motion.div className={trayOpen && !openItem ? 'pointer-events-auto' : ''} initial={false}
                         animate={{ y: trayOpen && !openItem ? '26%' : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
                         <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
-                            onPick={(n) => { setTrayOpen(false); setHover(null); openTask(n) }} />
+                            onPick={(n) => { setTrayOpen(false); setHover(null); openTask(n) }} onClose={toggleTray} />
                     </motion.div>
                 </div>
             )}
