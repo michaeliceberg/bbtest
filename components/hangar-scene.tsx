@@ -12,12 +12,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Check, Dumbbell, Star, KeyRound, ListChecks, Lock, LogOut, Rocket, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, Star, Lock, LogOut, Rocket, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
@@ -51,7 +51,7 @@ const ITEM_JOKE: Record<number, string> = {
     3: 'Ящик — прямоугольный параллелепипед. Разложишь инструменты — и стереометрия не страшна 🧰',
     4: 'Робот без батарейки. Включится он или нет — вопрос вероятности. Посчитаем шансы — и он оживёт 🤖',
     5: 'Спутанные провода — как дерево исходов. Распутаем по веточкам — и вероятность посчитается 🔌',
-    6: 'Ключи разного размера: какой подойдёт с первой попытки? Мат. ожидание подскажет 🔧',
+    6: 'Какие шансы, что мы подберём нужный ключ? 🔧 Подскажет Мат. ожидание',
     7: 'Без компа Команданте не может решить даже простейшее уравнение. Почини — и икс найдётся 💻',
     8: 'Фейнман считал в уме быстрее калькулятора и взламывал сейфы. Включи свет — посчитаем так же 🔐',
     9: 'Обороты шуруповёрта — это скорость, а скорость — производная координаты. Зарядим и закрутим 🪛',
@@ -91,17 +91,10 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
-                className={`relative flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : locked ? 'hangar-badge-peek' : ''}`}
+                className={`relative flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
                 style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
                     boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
                 {n}
-                {/* под брезентом: номер такой же яркий (на него хочется нажать), замочек — маленьким значком в углу,
-                    плашка раз в несколько секунд покачивается — «загляни, что там?» */}
-                {locked && (
-                    <span className="absolute -right-[0.55em] -top-[0.55em] flex h-[1.25em] w-[1.25em] items-center justify-center rounded-full border-2 border-[#F2C35B] bg-[#2A3338] text-[#F2E3C2]" style={{ fontSize: '0.8em' }}>
-                        <Lock className="h-[0.7em] w-[0.7em]" strokeWidth={3} />
-                    </span>
-                )}
             </button>
         </span>
     )
@@ -142,11 +135,6 @@ function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem
                         className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default`}
                         style={{ ...look, left: `${l + padX}%`, width: `${r - l - 2 * padX}%`, top: `${TRAY_SOCKET_Y[0] + padY}%`, height: `${TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0] - 2 * padY}%`,
                             fontSize: '3.6cqw', boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
-                        {i.locked && !done && (
-                            <span className="absolute right-[6%] top-[6%] flex h-[1.1em] w-[1.1em] items-center justify-center rounded-full bg-[#2A3338] text-[#F2E3C2]" style={{ fontSize: '0.6em' }}>
-                                <Lock className="h-[0.7em] w-[0.7em]" strokeWidth={3} />
-                            </span>
-                        )}
                         {done && !gold && <Check className="h-[0.8em] w-[0.8em]" strokeWidth={3.5} />}
                         {gold && <Star className="h-[0.8em] w-[0.8em]" fill="#3A2A08" />}
                         {i.num}
@@ -599,7 +587,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     style={scrollMode ? { zIndex: 1300 } : panelX !== null ? { left: panelX } : undefined}>
                 <div className={`${scrollMode ? '' : 'mt-3'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full`} style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
-                        <KeyRound className="mt-1 h-5 w-5 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={hangarItemPic(panelItem.num, panelItem.state === 'fixed')} alt="" aria-hidden draggable={false} className="h-9 w-9 shrink-0 object-contain" />
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
@@ -787,8 +776,8 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
     )
     const goTasks = (
         <Link href={`/learn?task=${item.num}`} onClick={(e) => { if (onGo) { e.preventDefault(); onGo() } }}
-            className={`${btn} text-[#0F171B]`} style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
-            <ListChecks className="h-4 w-4 shrink-0" />К задачам
+            className={`${btn.replace("gap-1", "gap-2")} text-[#0F171B]`} style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
+            <TaskChain filled={tasks.target > 0 ? Math.round((Math.min(tasks.solved, tasks.target) / tasks.target) * 3) : 0} />Го к задачам
         </Link>
     )
     return (
@@ -832,6 +821,21 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
             </button>
         )}
         </>
+    )
+}
+
+// Цепочка кружочков, как уроки в задачнике: сколько залито — столько задач до починки уже решено (из трёх частей).
+function TaskChain({ filled }: { filled: number }) {
+    return (
+        <span className="flex shrink-0 items-center" aria-hidden>
+            {[0, 1, 2].map((k) => (
+                <span key={k} className="flex items-center">
+                    {k > 0 && <span className="h-1 w-2.5" style={{ background: k <= filled ? '#F2F7FB' : '#1F4F72' }} />}
+                    <span className="h-5 w-5 rounded-full border-2 border-b-[3px]"
+                        style={k < filled ? { background: '#F2F7FB', borderColor: '#F2F7FB', borderBottomColor: '#9FB4C2' } : { background: '#2F6E9C', borderColor: '#1F4F72', borderBottomColor: '#173C57' }} />
+                </span>
+            ))}
+        </span>
     )
 }
 
