@@ -90,8 +90,8 @@ export function MiptSilhouette({ night = false }: { night?: boolean }) {
             <rect x="8" y="27" width="20" height="5" fill={fill} /><rect x="72" y="27" width="20" height="5" fill={fill} />
             {/* аттик над аркой, над ним крупные буквы на фоне неба */}
             <rect x="26" y="22" width="48" height="10" fill={fill} />
-            <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={400} fontSize="16" letterSpacing="3"
-                fill={fill}>МФТИ</text>
+            <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={500} fontSize="16" letterSpacing="3"
+                fill={night ? '#323E62' : '#40686F'}>МФТИ</text>
             {night && (
                 <g fill="#FFD27A" opacity={0.85}>
                     {[[14, 44], [22, 52], [78, 46], [86, 54], [16, 62], [82, 64]].map(([x, y], i) => (
