@@ -717,18 +717,9 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
 
 // Брезент поверх предмета, к которому ещё не пройдены тренажёры: картинки Leonardo (public/hangar/tarp-*.webp,
 // исходники docs/hangar/leonardo/tarp-*), у каждого предмета свой по форме (TARP_OF_ITEM), растянут по размеру предмета.
-// Поверх кодом — трафаретная красная звезда Команданте на передней стороне ткани (замок — только у номера задания).
-// star — левый верхний угол и размер звезды в долях картинки + наклон вдоль края стороны; lock — центр замка.
+// Красная трафаретная звезда запечена в картинки (docs/hangar/tools/bake_tarp_stars.py, без звезды — docs/hangar/tarp-nostar/):
+// раньше рисовалась SVG-фильтром feTurbulence, и на iPhone приближение к предмету подвешивало страницу. Замок — только у номера.
 type TarpKind = 'square' | 'cube' | 'tall' | 'wide-rope' | 'wide-straps' | 'hang-tall' | 'hang-square'
-const TARPS: Record<TarpKind, { star: { l: number; t: number; w: number; h: number; skew: number }; lock: { l: number; t: number } }> = {
-    square: { star: { l: 50, t: 24, w: 28, h: 36, skew: -13 }, lock: { l: 27, t: 52 } },
-    cube: { star: { l: 58, t: 34, w: 22, h: 27, skew: -10 }, lock: { l: 27, t: 55 } },
-    tall: { star: { l: 34, t: 22, w: 40, h: 24, skew: 0 }, lock: { l: 50, t: 66 } },
-    'wide-rope': { star: { l: 46, t: 35, w: 18, h: 38, skew: -8 }, lock: { l: 17, t: 52 } },
-    'wide-straps': { star: { l: 46, t: 36, w: 18, h: 37, skew: -6 }, lock: { l: 15, t: 52 } },
-    'hang-tall': { star: { l: 35, t: 26, w: 30, h: 23, skew: 0 }, lock: { l: 50, t: 72 } },
-    'hang-square': { star: { l: 36, t: 27, w: 28, h: 25, skew: 0 }, lock: { l: 50, t: 74 } },
-}
 // id картинки предмета → форма брезента
 const TARP_OF_ITEM: Record<number, TarpKind> = {
     1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
@@ -737,27 +728,12 @@ const TARP_OF_ITEM: Record<number, TarpKind> = {
 function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     const kind = TARP_OF_ITEM[item] ?? 'square'
-    const { star } = TARPS[kind]
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
             className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: FLOOR_SHADOW }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
-            {/* звезда по трафарету: краска местами стёрлась (шум-маска) */}
-            <svg viewBox="0 0 100 100" className="pointer-events-none absolute" preserveAspectRatio="none"
-                style={{ left: `${star.l}%`, top: `${star.t}%`, width: `${star.w}%`, height: `${star.h}%`, transform: star.skew ? `skewY(${star.skew}deg)` : undefined, opacity: 0.85 }} aria-hidden>
-                <defs>
-                    <filter id="tarp-worn" x="0" y="0" width="100%" height="100%">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n" />
-                        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.6" result="m" />
-                        <feComposite in="SourceGraphic" in2="m" operator="in" />
-                    </filter>
-                </defs>
-                <g filter="url(#tarp-worn)">
-                    <path d="M50 4 L61 37 L96 37 L68 58 L79 92 L50 71 L21 92 L32 58 L4 37 L39 37 Z" fill="#D8352C" />
-                </g>
-            </svg>
         </button>
     )
 }
