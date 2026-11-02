@@ -793,7 +793,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {stroll?.perch && !stroll.jump && (
                 // котик на бочке греется: тёплое пятно солнца на нём
                 <div className="pointer-events-none absolute rounded-full" style={{ left: pct(stroll.x - 70), top: pct(stroll.y - 120), width: pct(140), height: pct(150),
-                    background: 'radial-gradient(closest-side, rgba(255,214,120,0.55), rgba(255,200,90,0.18) 60%, transparent)', mixBlendMode: 'screen', zIndex: CAT_TOP_Z + 1, animation: 'cat-sun 4s ease-in-out infinite' }}>
+                    background: 'radial-gradient(closest-side, rgba(255,214,120,0.35), rgba(255,200,90,0.1) 60%, transparent)', zIndex: CAT_TOP_Z + 1, animation: 'cat-sun 4s ease-in-out infinite' }}>
                     <style>{`@keyframes cat-sun{0%,100%{opacity:.75}50%{opacity:1}}`}</style>
                 </div>
             )}

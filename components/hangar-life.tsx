@@ -185,8 +185,6 @@ function PlaneWithBanner({ night = false }: { night?: boolean }) {
                 {night && (
                     <defs>
                         {/* ночью кукурузник приглушён, транспарант чуть светлее — его подсвечивает лампочка */}
-                        <filter id="hangar-night-plane"><feColorMatrix type="matrix" values="0.5 0 0 0 0  0 0.52 0 0 0  0 0 0.62 0 0  0 0 0 1 0" /></filter>
-                        <filter id="hangar-night-banner"><feColorMatrix type="matrix" values="0.78 0 0 0 0  0 0.74 0 0 0  0 0 0.66 0 0  0 0 0 1 0" /></filter>
                         <radialGradient id="hangar-lamp-glow"><stop offset="0" stopColor="#FFE38A" stopOpacity="0.75" /><stop offset="1" stopColor="#FFD060" stopOpacity="0" /></radialGradient>
                         <radialGradient id="hangar-beacon-glow"><stop offset="0" stopColor="#FF4A3A" stopOpacity="0.9" /><stop offset="1" stopColor="#FF2A1A" stopOpacity="0" /></radialGradient>
                     </defs>
@@ -210,7 +208,7 @@ function PlaneLeg({ toLeft, text, night = false }: { toLeft: boolean; text: stri
             <path d={`M${hook.x} ${hook.y} Q${(hook.x + bannerEnd) / 2} ${hook.y + 8} ${bannerEnd} 23`} fill="none" stroke="#5A4A33" strokeWidth={1.3} />
             {/* транспарант на тросе — колышется */}
             <g className="hangar-banner-wave" style={{ transformOrigin: `${bannerEnd}px 23px` }}>
-                <g filter={night ? 'url(#hangar-night-banner)' : undefined}>
+                <g opacity={night ? 0.72 : 1}>
                 <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#5A4A33" strokeWidth={1.6} />
                 <path d={`M${bx + 3} 12 Q${bx + 52} 8 ${bx + 103} 12 T${bx + 203} 12`} fill="none" stroke="#C0392B" strokeWidth={1.2} opacity={0.6} />
                 <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
@@ -220,7 +218,7 @@ function PlaneLeg({ toLeft, text, night = false }: { toLeft: boolean; text: stri
                     const lx = toLeft ? bx + 206 : bx
                     return (
                         <>
-                            <ellipse cx={toLeft ? lx - 70 : lx + 70} cy={23} rx={95} ry={26} fill="url(#hangar-lamp-glow)" style={{ mixBlendMode: 'screen' }} />
+                            <ellipse cx={toLeft ? lx - 70 : lx + 70} cy={23} rx={95} ry={26} fill="url(#hangar-lamp-glow)" />
                             <rect x={lx - 1.5} y={4} width={3} height={6} rx={1} fill="#3A3226" />
                             <circle cx={lx} cy={11.5} r={3.2} fill="#FFE58A" />
                             <circle cx={lx} cy={11.5} r={9} fill="url(#hangar-lamp-glow)" />
@@ -234,7 +232,7 @@ function PlaneLeg({ toLeft, text, night = false }: { toLeft: boolean; text: stri
                 <g className="hangar-prop">
                     <rect x={PLANE.w * 0.955 - 0.8} y={PLANE.h * 0.44 - PLANE.h * 0.33} width={1.6} height={PLANE.h * 0.66} rx={0.8} fill="#6B4A2E" />
                 </g>
-                <image href="/hangar/life/biplane-noprop.webp" width={PLANE.w} height={PLANE.h} filter={night ? 'url(#hangar-night-plane)' : undefined} />
+                <image href="/hangar/life/biplane-noprop.webp" width={PLANE.w} height={PLANE.h} opacity={night ? 0.6 : 1} />
                 {night && (
                     // красный проблесковый огонь на хвосте — как у настоящих самолётов
                     <g className="hangar-beacon">
@@ -258,7 +256,8 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
             {/* солнце: днём высоко слева, вечером низко у горизонта и краснее; ночью вместо него месяц (HangarMoon) */}
             {time !== 'night' && (
                 <div className="absolute" style={{ left: cq(time === 'day' ? 80 : 110), top: cq(time === 'day' ? 30 : 150), width: cq(time === 'day' ? 78 : 88),
-                    filter: time === 'evening' ? 'saturate(1.5) hue-rotate(-22deg) brightness(1.05)' : undefined }}>
+                    // вечером солнце просто приглушено (фильтр на вращающемся солнце пересчитывался каждый кадр — тяжело для iPhone)
+                    opacity: time === 'evening' ? 0.85 : 1 }}>
                     <div className="hangar-sun">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/hangar/life/sun.webp" alt="" draggable={false} className="block w-full select-none" />
@@ -357,7 +356,7 @@ export function ComputerFlicker({ style }: { style: React.CSSProperties }) {
     return (
         <div className="pointer-events-none absolute" aria-hidden style={{ ...style, zIndex: (Number(style.zIndex) || 0) + 1 }}>
             <div className="hangar-crt absolute rounded-[12%]"
-                style={{ left: '31%', top: '5%', width: '44%', height: '38%', rotate: '-4deg', mixBlendMode: 'screen',
+                style={{ left: '31%', top: '5%', width: '44%', height: '38%', rotate: '-4deg',
                     background: 'radial-gradient(closest-side, rgba(140,255,200,0.85), rgba(70,220,160,0.45) 60%, rgba(40,180,130,0) 100%)' }} />
         </div>
     )
@@ -482,7 +481,7 @@ export function HangarMoon({ cutout }: { cutout?: { src: string; x: number; y: n
             {/* облака и кукурузник — ближе луны; слой поверх ночного затемнения, поэтому приглушаем их сами */}
             <MguSilhouette night />
             <MiptSilhouette night />
-            <div className="absolute inset-0" style={{ filter: 'brightness(0.55) saturate(0.8) hue-rotate(-10deg)', ...HORIZON_FADE }}>
+            <div className="absolute inset-0" style={{ opacity: 0.45, ...HORIZON_FADE }}>
                 <SkyClouds />
             </div>
             <PlaneWithBanner night />

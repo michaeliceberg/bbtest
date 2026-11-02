@@ -75,8 +75,10 @@ const pct = (v: number) => `${(v / 1024) * 100}%`
 type Time = 'day' | 'evening' | 'night'
 const TIME_TINT: Record<Time, string> = {
     day: 'transparent',
-    evening: 'linear-gradient(180deg, rgba(255,120,60,0.28), rgba(120,40,80,0.25))',
-    night: 'linear-gradient(180deg, rgba(10,20,60,0.6), rgba(10,15,40,0.5))',
+    // обычная прозрачная заливка, а не mix-blend multiply: смешивание поверх всей сцены с живыми анимациями
+    // заставляло iPhone пересчитывать весь ангар каждый кадр и подвешивало страницу
+    evening: 'linear-gradient(180deg, rgba(190,85,45,0.2), rgba(90,30,70,0.22))',
+    night: 'linear-gradient(180deg, rgba(8,14,42,0.55), rgba(6,10,30,0.48))',
 }
 const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 21 ? 'evening' : 'night')
 
@@ -111,9 +113,6 @@ function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem
         <div className="relative mx-auto w-full max-w-[560px] select-none" style={{ aspectRatio: '1175 / 449', containerType: 'inline-size' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/hangar/ui/rocket-tray.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
-            {/* лампочка «живая» — мягко мигает поверх нарисованной */}
-            <span className="pointer-events-none absolute aspect-square w-[7%] -translate-x-1/2 -translate-y-1/2 rounded-full animate-glow-pulse"
-                style={{ left: '12.48%', top: '13.8%', background: 'radial-gradient(closest-side, rgba(170,255,140,.75), transparent)' }} />
             <span className="pointer-events-none absolute flex items-center justify-center font-black uppercase leading-none text-[#3B3A30]"
                 style={{ left: '32%', width: '34.8%', top: '10.7%', height: '9.4%', fontSize: '2.7cqw', letterSpacing: '0.08em', whiteSpace: 'nowrap', textShadow: '0 1px 0 rgba(255,255,255,.55)' }}>
                 Вторая часть ЕГЭ
@@ -138,7 +137,7 @@ function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem
                 return (
                     <button key={i.num} type="button" aria-label={`Задание №${i.num}`} disabled={done && !gold}
                         onClick={() => onPick(i.num)} onPointerEnter={(e) => { if (e.pointerType === 'mouse') onHover(i.num) }} onPointerLeave={() => onHover(null)}
-                        className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default ${i.state === 'ready' ? 'animate-bounce' : ''}`}
+                        className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default`}
                         style={{ ...look, left: `${l + padX}%`, width: `${r - l - 2 * padX}%`, top: `${TRAY_SOCKET_Y[0] + padY}%`, height: `${TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0] - 2 * padY}%`,
                             fontSize: '3.6cqw', boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
                         {i.locked && !done && <Lock className="h-[0.75em] w-[0.75em]" strokeWidth={3} />}
@@ -340,6 +339,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
     }, [bare, phoneReserve])
     const scrollMode = !!frame && frame.s > frame.w
+    // тени-фильтры у ~40 предметов — только на компьютере; телефону это слишком тяжело (подвисания на iPhone)
+    const floorShadow = scrollMode ? undefined : FLOOR_SHADOW
     // можно ли ещё листать влево/вправо (стрелки под ангаром гаснут у края)
     const [edge, setEdge] = useState({ l: true, r: true })
     const onFrameScroll = () => {
@@ -463,7 +464,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     return (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img key={jp.key} src={jp.src} alt="" draggable={false} className="absolute select-none transition-[opacity,transform] duration-700"
-                            style={{ ...placeStyle(p), filter: FLOOR_SHADOW, opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
+                            style={{ ...placeStyle(p), filter: floorShadow, opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
                     )
                 })}
                 {DECOR.map((d) => {
@@ -481,12 +482,12 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     // тёплый конус света от лампы на портрет
                     <div className="pointer-events-none absolute"
                         style={{ left: pct(lampP.x - lampP.w * 1.1), top: pct(lampP.y - lampP.h * 0.2), width: pct(lampP.w * 2.2), height: pct(lampP.h * 5.5), zIndex: Math.round(lampP.z * 10) + 11,
-                            background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.45), transparent 75%)', mixBlendMode: 'screen' }} />
+                            background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.32), transparent 75%)' }} />
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
                     onClick={() => { if (!bare) toggleTray() }}
-                    style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                    style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
@@ -505,9 +506,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
-                            {i.locked && !done && <Tarp item={id} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
+                            {i.locked && !done && <Tarp item={id} shadow={floorShadow} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
@@ -535,10 +536,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
                 {fan && goldWaiting(fan) && !bare && <GoldBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} onOpen={() => openTask(FAN_NUM)} />}
                 {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} locked={!!fan.locked} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
-                <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
+                <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
-                    style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
+                    style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.4), transparent)', zIndex: 1101 }} />
                 </div>
                 {openItem && (
                     // клик мимо предмета — закрыть (картинка отъезжает обратно)
@@ -559,11 +560,11 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden" style={{ zIndex: 1250 }}>
                     {/* выезжает не целиком: над краем видна только часть до гнёзд (нижние 26% с полозьями остаются внизу) */}
                     {/* без AnimatePresence (в проекте не всегда доигрывает уход) — лоток всегда в DOM, едет вверх/вниз */}
-                    <motion.div className={trayOpen && !openItem ? 'pointer-events-auto' : ''} initial={false}
-                        animate={{ y: trayOpen && !openItem ? '26%' : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
+                    <div className={trayOpen && !openItem ? 'pointer-events-auto' : ''}
+                        style={{ transform: `translateY(${trayOpen && !openItem ? '26%' : '105%'})`, transition: 'transform .32s cubic-bezier(.2,.9,.3,1.1)' }}>
                         <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
                             onPick={(n) => { setTrayOpen(false); setHover(null); openTask(n) }} onClose={toggleTray} />
-                    </motion.div>
+                    </div>
                 </div>
             )}
             </div>
@@ -731,13 +732,13 @@ const TARP_OF_ITEM: Record<number, TarpKind> = {
     1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
     8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
 }
-function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
+function Tarp({ item, style, shadow, onClick, onHover }: { item: number; style: React.CSSProperties; shadow?: string; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     const kind = TARP_OF_ITEM[item] ?? 'square'
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
-            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: FLOOR_SHADOW }}>
+            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: shadow }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
         </button>
