@@ -91,13 +91,17 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
-                className={`flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
-                style={locked
-                    ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428',
-                        boxShadow: active ? '0 2px 0 #4E5A60, 0 0 0 2px #E2EAF0, 0 0 10px 2px rgba(226,234,240,.6)' : '0 2px 0 #4E5A60, 0 2px 6px rgba(0,0,0,.45)' }
-                    : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
-                        boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
-                {locked && <Lock className="mr-0.5 h-[0.8em] w-[0.8em]" strokeWidth={3} />}{n}
+                className={`relative flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : locked ? 'hangar-badge-peek' : ''}`}
+                style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
+                    boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
+                {n}
+                {/* под брезентом: номер такой же яркий (на него хочется нажать), замочек — маленьким значком в углу,
+                    плашка раз в несколько секунд покачивается — «загляни, что там?» */}
+                {locked && (
+                    <span className="absolute -right-[0.55em] -top-[0.55em] flex h-[1.25em] w-[1.25em] items-center justify-center rounded-full border-2 border-[#F2C35B] bg-[#2A3338] text-[#F2E3C2]" style={{ fontSize: '0.8em' }}>
+                        <Lock className="h-[0.7em] w-[0.7em]" strokeWidth={3} />
+                    </span>
+                )}
             </button>
         </span>
     )
@@ -129,9 +133,7 @@ function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem
                 const gold = done && !!i.mastered && !i.goldClaimed
                 const look = done
                     ? { background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', borderBottomColor: '#3E7A2E' }
-                    : i.locked
-                        ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428', borderBottomColor: '#4E5A60' }
-                        : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', borderBottomColor: '#B8862E' }
+                    : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', borderBottomColor: '#B8862E' }
                 const padX = (r - l) * 0.12
                 const padY = (TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0]) * 0.1
                 return (
@@ -140,7 +142,11 @@ function RocketTray({ parts, lit, onHover, onPick, onClose }: { parts: SceneItem
                         className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default`}
                         style={{ ...look, left: `${l + padX}%`, width: `${r - l - 2 * padX}%`, top: `${TRAY_SOCKET_Y[0] + padY}%`, height: `${TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0] - 2 * padY}%`,
                             fontSize: '3.6cqw', boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
-                        {i.locked && !done && <Lock className="h-[0.75em] w-[0.75em]" strokeWidth={3} />}
+                        {i.locked && !done && (
+                            <span className="absolute right-[6%] top-[6%] flex h-[1.1em] w-[1.1em] items-center justify-center rounded-full bg-[#2A3338] text-[#F2E3C2]" style={{ fontSize: '0.6em' }}>
+                                <Lock className="h-[0.7em] w-[0.7em]" strokeWidth={3} />
+                            </span>
+                        )}
                         {done && !gold && <Check className="h-[0.8em] w-[0.8em]" strokeWidth={3.5} />}
                         {gold && <Star className="h-[0.8em] w-[0.8em]" fill="#3A2A08" />}
                         {i.num}
@@ -413,8 +419,19 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // keepZ — подсветить, но не поднимать над затемнением: предмет стоит за вещами котика (генератор №10 за холодильником)
     // и, поднявшись, оказался бы перед ними
     const catDecorP = catStage >= 2 ? [place(layout, catFridgeFixed ? 'a' : 'b', 'cat-fridge', CAT_DECOR[0][catFridgeFixed ? 'a' : 'b']), place(layout, 'a', 'cat-box', CAT_DECOR[1].a)] : []
-    const behindCatDecor = (p: { x: number; y: number; w: number; h: number; z: number }) => catDecorP.some((d) =>
-        d.z > p.z && Math.abs(d.x - p.x) < (d.w + p.w) / 2 && p.y > d.y - d.h && p.y - p.h < d.y)
+    // всё, что стоит на полу: предметы заданий в текущем состоянии, ракета, вещи котика. Подсвеченный предмет вечером/ночью
+    // не поднимаем над затемнением, если перед ним (z больше) что-то стоит и перекрывает его — иначе он вылезет поверх
+    // (бочка №13 поверх предмета №10)
+    const occluders = [
+        ...catDecorP, R,
+        ...room.filter((i) => i.num !== FAN_NUM).map((i) => {
+            const st = i.state === 'fixed' ? 'a' : 'b'
+            const id = itemOf(i.num)
+            return place(layout, st, `${id}`, L[id][st])
+        }),
+    ]
+    const behindCatDecor = (p: { x: number; y: number; w: number; h: number; z: number }) => occluders.some((d) =>
+        d !== p && d.z > p.z && Math.abs(d.x - p.x) < (d.w + p.w) / 2 && p.y > d.y - d.h && p.y - p.h < d.y)
     const litStyle = (on: boolean, keepZ = false): React.CSSProperties => ({
         ...(on ? { filter: HIGHLIGHT } : {}), transition: 'filter .25s',
         ...(on && time !== 'day' && !keepZ ? { zIndex: LIT_Z } : {}),
@@ -506,7 +523,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
                             {i.locked && !done && <Tarp item={id} shadow={floorShadow} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
@@ -740,7 +757,8 @@ function Tarp({ item, style, shadow, onClick, onHover }: { item: number; style: 
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
             className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: shadow }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
+            <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="hangar-tarp-rustle absolute inset-0 h-full w-full select-none"
+                style={{ objectFit: 'fill', animationDelay: `${-((item * 1.7) % 7)}s` }} />
         </button>
     )
 }

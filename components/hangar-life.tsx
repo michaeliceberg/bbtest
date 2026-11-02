@@ -75,6 +75,23 @@ export function MguSilhouette({ night = false }: { night?: boolean }) {
  * над ним крупные буквы «МФТИ» — читаются на фоне неба, но в той же дымке, что и МГУ. Ночью буквы тепло светятся.
  */
 const MIPT = { x: 342, base: 512, w: 118 }
+/** Ночью буквы «МФТИ» — неоновая вывеска: обычно бледные, раз в ~11 с по ним слева направо пробегает ток —
+ *  буквы вспыхивают по очереди, мигают, держатся и гаснут. Свечение — та же буква толстой полупрозрачной обводкой
+ *  (без SVG/CSS-фильтров: слой внутри приближаемой сцены ангара). */
+const NEON_LETTERS: [string, number][] = [['М', 26.4], ['Ф', 43.1], ['Т', 57.8], ['И', 71.6]]
+function MiptNeon() {
+    return (
+        <g fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={500} fontSize="16" textAnchor="middle">
+            {NEON_LETTERS.map(([ch, x], i) => (
+                <g key={ch} className="hangar-neon" style={{ animationDelay: `${i * 0.13}s` }}>
+                    <text x={x} y={18} fill="none" stroke="#FF5FD2" strokeOpacity={0.35} strokeWidth={3.4} strokeLinejoin="round">{ch}</text>
+                    <text x={x} y={18} fill="#FFD6F4" stroke="#FF5FD2" strokeWidth={0.7}>{ch}</text>
+                </g>
+            ))}
+        </g>
+    )
+}
+
 export function MiptSilhouette({ night = false }: { night?: boolean }) {
     const fill = night ? '#1B2238' : '#5E8C93'
     const h = (MIPT.w * 80) / 100
@@ -92,6 +109,7 @@ export function MiptSilhouette({ night = false }: { night?: boolean }) {
             <rect x="26" y="22" width="48" height="10" fill={fill} />
             <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={500} fontSize="16" letterSpacing="3"
                 fill={night ? '#323E62' : '#40686F'}>МФТИ</text>
+            {night && <MiptNeon />}
             {night && (
                 <g fill="#FFD27A" opacity={0.85}>
                     {[[14, 44], [22, 52], [78, 46], [86, 54], [16, 62], [82, 64]].map(([x, y], i) => (

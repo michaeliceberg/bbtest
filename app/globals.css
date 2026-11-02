@@ -1273,3 +1273,14 @@ body {
 .hangar-prop-disc { animation: hangar-prop-disc 0.24s linear infinite; }
 @keyframes hangar-prop-disc { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .hangar-prop, .hangar-prop-disc { animation: none; } }
+
+/* Ангар: плашка задания под брезентом раз в несколько секунд покачивается («загляни, что там?») */
+@keyframes hangar-badge-peek { 0%, 84%, 100% { transform: rotate(0) scale(1); } 87% { transform: rotate(-12deg) scale(1.12); } 90% { transform: rotate(10deg) scale(1.12); } 93% { transform: rotate(-6deg) scale(1.06); } 96% { transform: rotate(3deg); } }
+.hangar-badge-peek { animation: hangar-badge-peek 5s ease-in-out infinite; }
+/* брезент иногда шевелится — под ним что-то есть */
+@keyframes hangar-tarp-rustle { 0%, 88%, 100% { transform: none; } 90% { transform: translateY(-1.5%) rotate(-1deg); } 92% { transform: translateY(0) rotate(0.8deg); } 94% { transform: translateY(-0.8%) rotate(-0.4deg); } 96% { transform: none; } }
+.hangar-tarp-rustle { animation: hangar-tarp-rustle 7s ease-in-out infinite; transform-origin: 50% 100%; }
+/* МФТИ ночью — неон: по буквам пробегает ток, буквы вспыхивают, держатся и гаснут, потом долгая пауза */
+@keyframes hangar-neon { 0% { opacity: 0; } 1.5% { opacity: 1; } 2.5% { opacity: 0.25; } 3.5% { opacity: 1; } 17% { opacity: 1; } 18% { opacity: 0.2; } 19% { opacity: 0.9; } 21%, 100% { opacity: 0; } }
+.hangar-neon { animation: hangar-neon 11s linear infinite; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .hangar-badge-peek, .hangar-tarp-rustle, .hangar-neon { animation: none; } }
