@@ -12,7 +12,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Check, Dumbbell, Star, Lock, LogOut, Rocket, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, Star, LogOut, Rocket, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
@@ -777,7 +777,7 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
     const goTasks = (
         <Link href={`/learn?task=${item.num}`} onClick={(e) => { if (onGo) { e.preventDefault(); onGo() } }}
             className={`${btn.replace("gap-1", "gap-2")} text-[#0F171B]`} style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
-            <TaskChain filled={tasks.target > 0 ? Math.round((Math.min(tasks.solved, tasks.target) / tasks.target) * 3) : 0} />Го к задачам
+            Го к задачам<TaskChain filled={tasks.target > 0 ? Math.round((Math.min(tasks.solved, tasks.target) / tasks.target) * 3) : 0} />
         </Link>
     )
     return (
@@ -797,9 +797,11 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
             <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
                 {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
                 {item.locked ? (
-                    <span className={`${btn} mt-auto cursor-not-allowed text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
-                        <Lock className="h-3.5 w-3.5 shrink-0" />Под брезентом
-                    </span>
+                    // брезент снимается тренажёром — кнопка ведёт в первый непройденный
+                    <Link href={nextTrainer ? `/trainer?topic=${encodeURIComponent(nextTrainer.title)}` : '/trainer'}
+                        className={`${btn} mt-auto text-[#2A2410]`} style={{ background: '#C9B27A', borderBottomColor: '#8C7746' }}>
+                        Снять брезент
+                    </Link>
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
         </div>
