@@ -2,7 +2,7 @@
 // Анимированный логотип: слои (public/logo-anim) — надпись, гусь (отдача при выстреле), монстр, вспышка.
 // Сам по себе стреляет раз в 16 с (globals.css, .logo-anim-*). Нажатие — сразу выстрел (.logo-anim-*-once),
 // наведение — золотое свечение. Только transform/opacity (свечение — filter только при наведении).
-// Статичная версия целиком — public/ggege-logo-v4.webp.
+// Статичная версия целиком — public/ggege-logo-v5.webp.
 import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 

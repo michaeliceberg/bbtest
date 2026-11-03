@@ -1012,7 +1012,7 @@ body {
 
 /* Анимированный логотип (components/animated-logo.tsx): два импульса выстрела, монстра встряхивает. */
 .logo-anim-flash {
-  transform-origin: 38.5% 31%;
+  transform-origin: 37.5% 25%;
   animation: logo-flash 16s ease-out infinite;
 }
 .logo-anim-monster {
@@ -1054,7 +1054,7 @@ body {
 @media (hover: hover) {
   .logo-anim:hover { filter: drop-shadow(0 0 10px rgba(242, 195, 91, 0.55)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.35)); }
 }
-.logo-anim-flash-once { transform-origin: 38.5% 31%; opacity: 0; animation: logo-flash-once 1.4s ease-out 1 forwards; }
+.logo-anim-flash-once { transform-origin: 37.5% 25%; opacity: 0; animation: logo-flash-once 1.4s ease-out 1 forwards; }
 .logo-anim-monster-once { transform-origin: 79% 64%; animation: logo-monster-once 1.4s ease-in-out 1 forwards; }
 @keyframes logo-flash-once {
   0% { opacity: 0; transform: scale(0.6); }
