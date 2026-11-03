@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { AnimatedLogo } from '@/components/animated-logo'
 
 const VARIANTS = [
+    { dir: '/logo-test/v2', title: 'НОВЫЙ: гусь и монстр из Leonardo, чёрная + мягкая тень' },
     { dir: '/logo-anim', title: 'Сейчас: белая обводка у всего' },
     { dir: '/logo-test/none', title: '1. Без обводки вообще' },
     { dir: '/logo-test/white-text', title: '2. Белая только у GGEGE' },

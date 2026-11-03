@@ -68,23 +68,24 @@ def shadow(a, dy=5, blur=4, alpha=0.6):
     out[..., :3] = a[..., :3] * k
     return out
 
-WHITE, BLACK, PURPLE = (255, 255, 255), (6, 9, 11), (124, 58, 237)
-core = {n: peel(n) for n in LAYERS}
-V = {
-    'none': lambda n, a: a,
-    'white-text': lambda n, a: ring(a, WHITE, 4) if n == 'base' else a,
-    'black': lambda n, a: ring(a, BLACK, 5),
-    'black-thin': lambda n, a: ring(a, BLACK, 3),
-    'white-text-black': lambda n, a: ring(a, WHITE, 4) if n == 'base' else ring(a, BLACK, 4),
-    'shadow': lambda n, a: shadow(a),
-    'black-shadow': lambda n, a: shadow(ring(a, BLACK, 4)),
-    'purple-text': lambda n, a: ring(a, PURPLE, 4) if n == 'base' else ring(a, BLACK, 3),
-    'monster-purple': lambda n, a: ring(a, (167, 139, 250), 3) if n == 'monster' else a,
-}
-for name, fn in V.items():
-    d = f'{OUT}/{name}'
-    os.makedirs(d, exist_ok=True)
-    for n in LAYERS:
-        Image.fromarray(fn(n, core[n]).clip(0, 255).astype('uint8'), 'RGBA').save(f'{d}/{n}.webp', quality=90)
-    shutil.copy(f'{SRC}/flash.webp', f'{d}/flash.webp')
-print(list(V))
+if __name__ == '__main__':
+    WHITE, BLACK, PURPLE = (255, 255, 255), (6, 9, 11), (124, 58, 237)
+    core = {n: peel(n) for n in LAYERS}
+    V = {
+        'none': lambda n, a: a,
+        'white-text': lambda n, a: ring(a, WHITE, 4) if n == 'base' else a,
+        'black': lambda n, a: ring(a, BLACK, 5),
+        'black-thin': lambda n, a: ring(a, BLACK, 3),
+        'white-text-black': lambda n, a: ring(a, WHITE, 4) if n == 'base' else ring(a, BLACK, 4),
+        'shadow': lambda n, a: shadow(a),
+        'black-shadow': lambda n, a: shadow(ring(a, BLACK, 4)),
+        'purple-text': lambda n, a: ring(a, PURPLE, 4) if n == 'base' else ring(a, BLACK, 3),
+        'monster-purple': lambda n, a: ring(a, (167, 139, 250), 3) if n == 'monster' else a,
+    }
+    for name, fn in V.items():
+        d = f'{OUT}/{name}'
+        os.makedirs(d, exist_ok=True)
+        for n in LAYERS:
+            Image.fromarray(fn(n, core[n]).clip(0, 255).astype('uint8'), 'RGBA').save(f'{d}/{n}.webp', quality=90)
+        shutil.copy(f'{SRC}/flash.webp', f'{d}/flash.webp')
+    print(list(V))
