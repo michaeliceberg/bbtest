@@ -63,7 +63,6 @@ function Strip({ s, open, onToggle }: { s: S; open: boolean; onToggle: () => voi
 // ── Карточка сета: Команданте + тропинка из трёх блюд (рядом светло, дальше туман) ─────
 // ── Варианты оформления стикера гуся (картинка без обводки + CSS) ─────────────────────
 const GOOSE = '/miguel/miguel-megaphone-nooutline.webp'
-const BLACK_RING = 'drop-shadow(3px 0 0 #05080A) drop-shadow(-3px 0 0 #05080A) drop-shadow(0 3px 0 #05080A) drop-shadow(0 -3px 0 #05080A)'
 const GOOSE_STYLES: { id: string; title: string }[] = [
     { id: 'plain', title: 'Без обводки' },
     { id: 'shadow', title: 'Тень под ногами' },
@@ -73,22 +72,34 @@ const GOOSE_STYLES: { id: string; title: string }[] = [
     { id: 'pop3d', title: '3D: толщина' },
     { id: 'glow', title: 'Свечение сзади' },
     { id: 'badge', title: 'Из круга' },
+    { id: 'badge+shadow', title: 'Из круга + тень' },
+    { id: 'drop+shadow', title: 'Мягкая тень + тень' },
+    { id: 'black+shadow', title: 'Чёрная + тень' },
 ]
+// Чёрная обводка — готовая картинка (ровный скруглённый контур), CSS-обводка из 4 теней давала острые зубцы
+const GOOSE_BLACK = '/miguel/miguel-megaphone-black.webp'
+const FeetShadow = () => (
+    <span className="absolute bottom-[3%] left-1/2 h-[16%] w-[75%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.9), rgba(0,0,0,0))' }} />
+)
 function GooseSticker({ variant, size = 64 }: { variant: string; size?: number }) {
-    const img = (style?: React.CSSProperties, cls = '') => (
+    const img = (style?: React.CSSProperties, cls = '', src = GOOSE) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={GOOSE} alt="" draggable={false} className={`relative h-full w-full object-contain ${cls}`} style={style} />
+        <img src={src} alt="" draggable={false} className={`relative h-full w-full object-contain ${cls}`} style={style} />
     )
     const box = 'relative shrink-0'
     const sz = { width: size, height: size }
-    if (variant === 'shadow') return (
+    if (variant === 'shadow') return <span className={box} style={sz}><FeetShadow />{img()}</span>
+    if (variant === 'drop') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
+    if (variant === 'black') return <span className={box} style={sz}>{img(undefined, '', GOOSE_BLACK)}</span>
+    if (variant === 'drop+shadow') return <span className={box} style={sz}><FeetShadow />{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
+    if (variant === 'black+shadow') return <span className={box} style={sz}><FeetShadow />{img(undefined, '', GOOSE_BLACK)}</span>
+    if (variant === 'badge+shadow') return (
         <span className={box} style={sz}>
-            <span className="absolute bottom-[3%] left-1/2 h-[16%] w-[75%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.9), rgba(0,0,0,0))' }} />
-            {img()}
+            <span className="absolute bottom-[-6%] left-1/2 h-[14%] w-[80%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.85), rgba(0,0,0,0))' }} />
+            <span className="absolute inset-x-[4%] bottom-0 top-[22%] rounded-full border-b-4" style={{ background: 'linear-gradient(180deg,#F2C35B,#C9971C)', borderBottomColor: '#8C6A14' }} />
+            <span className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(-40% 0 0 0 round 0 0 999px 999px)' }}>{img({ transform: 'translateY(-6%) scale(1.05)', filter: 'drop-shadow(0 4px 3px rgba(0,0,0,.45))' })}</span>
         </span>
     )
-    if (variant === 'drop') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
-    if (variant === 'black') return <span className={box} style={sz}>{img({ filter: BLACK_RING })}</span>
     if (variant === 'thinwhite') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)' })}</span>
     if (variant === 'pop3d') return (
         <span className={box} style={{ ...sz, transform: 'rotate(-4deg)' }}>
