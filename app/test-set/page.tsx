@@ -61,7 +61,56 @@ function Strip({ s, open, onToggle }: { s: S; open: boolean; onToggle: () => voi
 }
 
 // ── Карточка сета: Команданте + тропинка из трёх блюд (рядом светло, дальше туман) ─────
-function SetCard({ s, onStep }: { s: S; onStep: () => void }) {
+// ── Варианты оформления стикера гуся (картинка без обводки + CSS) ─────────────────────
+const GOOSE = '/miguel/miguel-megaphone-nooutline.webp'
+const BLACK_RING = 'drop-shadow(3px 0 0 #05080A) drop-shadow(-3px 0 0 #05080A) drop-shadow(0 3px 0 #05080A) drop-shadow(0 -3px 0 #05080A)'
+const GOOSE_STYLES: { id: string; title: string }[] = [
+    { id: 'plain', title: 'Без обводки' },
+    { id: 'shadow', title: 'Тень под ногами' },
+    { id: 'drop', title: 'Мягкая тень' },
+    { id: 'black', title: 'Чёрная обводка' },
+    { id: 'thinwhite', title: 'Тонкая белая' },
+    { id: 'pop3d', title: '3D: толщина' },
+    { id: 'glow', title: 'Свечение сзади' },
+    { id: 'badge', title: 'Из круга' },
+]
+function GooseSticker({ variant, size = 64 }: { variant: string; size?: number }) {
+    const img = (style?: React.CSSProperties, cls = '') => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={GOOSE} alt="" draggable={false} className={`relative h-full w-full object-contain ${cls}`} style={style} />
+    )
+    const box = 'relative shrink-0'
+    const sz = { width: size, height: size }
+    if (variant === 'shadow') return (
+        <span className={box} style={sz}>
+            <span className="absolute bottom-[3%] left-1/2 h-[16%] w-[75%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.9), rgba(0,0,0,0))' }} />
+            {img()}
+        </span>
+    )
+    if (variant === 'drop') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
+    if (variant === 'black') return <span className={box} style={sz}>{img({ filter: BLACK_RING })}</span>
+    if (variant === 'thinwhite') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)' })}</span>
+    if (variant === 'pop3d') return (
+        <span className={box} style={{ ...sz, transform: 'rotate(-4deg)' }}>
+            {img({ filter: 'drop-shadow(1px 1.5px 0 #6B5A3A) drop-shadow(1px 1.5px 0 #5A4A2E) drop-shadow(1px 1.5px 0 #4A3C24) drop-shadow(1px 1.5px 0 #3A2E1A) drop-shadow(0 8px 6px rgba(0,0,0,.6))' })}
+        </span>
+    )
+    if (variant === 'glow') return (
+        <span className={box} style={sz}>
+            <span className="absolute inset-[-14%] rounded-full" style={{ background: 'radial-gradient(closest-side, rgba(242,195,91,.45), rgba(242,195,91,0))' }} />
+            {img()}
+        </span>
+    )
+    if (variant === 'badge') return (
+        <span className={box} style={sz}>
+            <span className="absolute inset-x-[4%] bottom-0 top-[22%] rounded-full border-b-4" style={{ background: 'linear-gradient(180deg,#F2C35B,#C9971C)', borderBottomColor: '#8C6A14' }} />
+            <span className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(-40% 0 0 0 round 0 0 999px 999px)' }}>{img({ transform: 'translateY(-6%) scale(1.05)' })}</span>
+        </span>
+    )
+    return <span className={box} style={sz}>{img()}</span>
+}
+
+function SetCard({ s, onStep, goose = 'plain' }: { s: S; onStep: () => void; goose?: string }) {
     const d = dishIndex(s)
     const tile = (i: number) => {
         const ok = i < d
@@ -77,8 +126,7 @@ function SetCard({ s, onStep }: { s: S; onStep: () => void }) {
     return (
         <div className="rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5">
             <div className="flex items-start gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/miguel/miguel-megaphone-nooutline.webp" alt="" className="h-16 w-16 shrink-0 object-contain" />
+                <GooseSticker variant={goose} />
                 <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-black uppercase tracking-wider text-[#F2C35B]">Сет дня · задание №{SET.task}</p>
                     <p className="text-lg font-black leading-tight text-[#F2F7FB]">{SET.taskTitle}</p>
@@ -194,6 +242,7 @@ export default function TestSetPage() {
     const [s, setS] = useState<S>({ starterDone: false, solved: 0 })
     const [open, setOpen] = useState(true)
     const [full, setFull] = useState(false)
+    const [goose, setGoose] = useState('plain')
     const step = () => {
         const d = dishIndex(s)
         if (d === 0) setS({ ...s, starterDone: true })
@@ -205,7 +254,17 @@ export default function TestSetPage() {
             <div className="mx-auto flex w-full max-w-md flex-col gap-3">
                 <p className="text-sm font-bold text-[#9AA7B0]">Макет: полоска висит сверху на /trainer и в задачнике. Жми зелёную кнопку — как будто прошёл шаг.</p>
                 <Strip s={s} open={open} onToggle={() => setOpen((o) => !o)} />
-                {open && <SetCard s={s} onStep={step} />}
+                {open && <SetCard s={s} onStep={step} goose={goose} />}
+                <p className="mt-4 font-black text-[#F2F7FB]">Стикер гуся — выбери вариант (нажми, и он встанет в карточку):</p>
+                <div className="grid grid-cols-2 gap-2">
+                    {GOOSE_STYLES.map((g) => (
+                        <button key={g.id} onClick={() => setGoose(g.id)}
+                            className={`flex items-center gap-2 rounded-2xl border-2 bg-[#151F23] p-2.5 text-left ${goose === g.id ? 'border-[#F2C35B]' : 'border-[#2A363C]'}`}>
+                            <GooseSticker variant={g.id} size={84} />
+                            <span className="min-w-0 text-xs font-black leading-tight text-[#C9D3D9]">{g.title}</span>
+                        </button>
+                    ))}
+                </div>
                 <button onClick={() => { setS({ starterDone: false, solved: 0 }); setFull(false); setOpen(true) }}
                     className="flex items-center justify-center gap-2 self-center rounded-xl border-b-4 border-[#1B252A] bg-[#26333B] px-4 py-2 text-sm font-black text-[#C9D3D9] active:border-b-0">
                     <RotateCcw className="h-4 w-4" />Сначала
