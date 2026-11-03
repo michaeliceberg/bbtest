@@ -124,7 +124,7 @@ function GooseSticker({ variant, size = 64 }: { variant: string; size?: number }
     )
 }
 
-function SetCard({ s, onStep, goose = 'plain' }: { s: S; onStep: () => void; goose?: string }) {
+function SetCard({ s, onStep, goose = 'drop+shadow' }: { s: S; onStep: () => void; goose?: string }) {
     const d = dishIndex(s)
     const tile = (i: number) => {
         const ok = i < d
@@ -256,7 +256,7 @@ export default function TestSetPage() {
     const [s, setS] = useState<S>({ starterDone: false, solved: 0 })
     const [open, setOpen] = useState(true)
     const [full, setFull] = useState(false)
-    const [goose, setGoose] = useState('plain')
+    const [goose, setGoose] = useState('drop+shadow')
     const step = () => {
         const d = dishIndex(s)
         if (d === 0) setS({ ...s, starterDone: true })
