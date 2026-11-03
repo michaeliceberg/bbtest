@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils'
 
 const SHOT_MS = 1400
 
-export const AnimatedLogo = ({ className }: { className?: string }) => {
+// dir — папка со слоями: другие варианты логотипа (тестовая страница /test-logo)
+export const AnimatedLogo = ({ className, dir = '/logo-anim' }: { className?: string; dir?: string }) => {
     const [shot, setShot] = useState(0)
     // После выстрела по нажатию цикл начинается заново — сдвигаем его, чтобы сам он не выстрелил ещё раз через секунду.
     const [clicked, setClicked] = useState(false)
@@ -27,17 +28,17 @@ export const AnimatedLogo = ({ className }: { className?: string }) => {
             role="img" aria-label="ggege" onPointerDown={fire}
         >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-anim/base.webp" alt="" className="absolute inset-0 w-full h-full" draggable={false} />
+            <img src={`${dir}/base.webp`} alt="" className="absolute inset-0 w-full h-full" draggable={false} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img key={`g${shot}`} src="/logo-anim/goose.webp" alt="" draggable={false} style={loopStyle}
+            <img key={`g${shot}`} src={`${dir}/goose.webp`} alt="" draggable={false} style={loopStyle}
                 className={cn('absolute inset-0 w-full h-full', once ? 'logo-anim-goose-once' : 'logo-anim-goose')} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img key={`m${shot}`} src="/logo-anim/monster.webp" alt="" draggable={false} style={loopStyle}
+            <img key={`m${shot}`} src={`${dir}/monster.webp`} alt="" draggable={false} style={loopStyle}
                 className={cn('absolute inset-0 w-full h-full', once ? 'logo-anim-monster-once' : 'logo-anim-monster')} />
             {/* Вспышка в обёртке с той же отдачей, что у гуся — остаётся у дула, когда гуся отбрасывает. */}
             <span key={`fw${shot}`} style={loopStyle} className={cn('absolute inset-0', once ? 'logo-anim-goose-once' : 'logo-anim-goose')}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img key={`f${shot}`} src="/logo-anim/flash.webp" alt="" draggable={false} style={loopStyle}
+                <img key={`f${shot}`} src={`${dir}/flash.webp`} alt="" draggable={false} style={loopStyle}
                     className={cn('absolute inset-0 w-full h-full', once ? 'logo-anim-flash-once' : 'logo-anim-flash')} />
             </span>
         </span>
