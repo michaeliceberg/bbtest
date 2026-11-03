@@ -274,3 +274,11 @@ Voice ID `HIGUfNOdjuWQwwapnTRW` — тот же, что купили для Gara
 
 ## Стикеры v2 (2026-11-04)
 Все стикеры `public/miguel/` без белой обводки, с мягкой тенью и тенью под ногами, запечёнными в картинку: `python3 docs/miguel/tools/make_sticker_v2.py вход.jpg public/miguel/miguel-<имя>.webp`. Старые с белой обводкой — `docs/miguel/white-outline/`.
+
+## Логотип: промпты Leonardo для чистой вырезки (2026-11-04)
+Модель FLUX.1 Kontext, Image Guidance с рефом (сила 0.4–0.5), 1:1. Фон — сплошной ядовитый цвет, а не белый: белый гусь с белого фона вырезается плохо.
+Рефы: гусь — `docs/miguel/leonardo/logo-goose-bazooka.jpg`, монстр — `docs/miguel/leonardo/logo-monster-ref.png`.
+
+Гусь: Same cartoon goose character as the reference, same pose: side view, running to the right, firing a bazooka aimed to the right and slightly up, both feet visible, black cap with red star, olive jacket, red bandana, pencil in the beak with the pink eraser end sticking out. Keep the thick clean black contour line around the whole character, closed and unbroken. NO white outline, no sticker border, no die-cut edge. No muzzle flash, no smoke, no ground, no shadow. Full body, nothing cropped. Flat solid pure magenta background #FF00FF, the same magenta everywhere. Avoid: white border, white halo, sticker outline, gradient background, shadow, text, watermark.
+
+Монстр: Same cartoon blocky monster as the reference, same pose: dark purple cube body, arms raised with fists, small purple horns, yellow X eyes, purple letters EGE on the chest. Keep the thick clean black contour line around the whole character, closed and unbroken. NO white outline, no sticker border, no die-cut edge. No ground, no shadow. Full body, nothing cropped. Flat solid pure bright green background #00FF00, the same green everywhere. Avoid: white border, white halo, sticker outline, gradient background, shadow, watermark, extra text.
