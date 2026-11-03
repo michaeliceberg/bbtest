@@ -71,54 +71,57 @@ const GOOSE_STYLES: { id: string; title: string }[] = [
     { id: 'thinwhite', title: 'Тонкая белая' },
     { id: 'pop3d', title: '3D: толщина' },
     { id: 'glow', title: 'Свечение сзади' },
-    { id: 'badge', title: 'Из круга' },
-    { id: 'badge+shadow', title: 'Из круга + тень' },
-    { id: 'drop+shadow', title: 'Мягкая тень + тень' },
+    { id: 'drop+shadow', title: 'Мягкая + тень' },
     { id: 'black+shadow', title: 'Чёрная + тень' },
+    { id: 'black+drop+shadow', title: 'Чёрная + мягкая + тень' },
+    { id: 'badge', title: 'Из круга' },
+    { id: 'badge+shadow', title: 'Круг + тень' },
+    { id: 'badge+drop', title: 'Круг + мягкая' },
+    { id: 'badge+drop+shadow', title: 'Круг + мягкая + тень' },
+    { id: 'badge+black', title: 'Круг + чёрная' },
+    { id: 'badge+black+shadow', title: 'Круг + чёрная + тень' },
+    { id: 'badge+black+drop+shadow', title: 'Круг + чёрная + мягкая + тень' },
 ]
 // Чёрная обводка — готовая картинка (ровный скруглённый контур), CSS-обводка из 4 теней давала острые зубцы
 const GOOSE_BLACK = '/miguel/miguel-megaphone-black.webp'
-const FeetShadow = () => (
-    <span className="absolute bottom-[3%] left-1/2 h-[16%] w-[75%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.9), rgba(0,0,0,0))' }} />
+const DROP = 'drop-shadow(0 6px 6px rgba(0,0,0,.6))'
+const FeetShadow = ({ strong = false }: { strong?: boolean }) => (
+    <span className="absolute bottom-[3%] left-1/2 h-[16%] w-[75%] -translate-x-1/2 rounded-[50%]"
+        style={{ background: `radial-gradient(closest-side, rgba(0,0,0,${strong ? 0.75 : 0.9}), rgba(0,0,0,0))` }} />
 )
+// Вариант — набор флагов через «+»: badge (золотой круг), black (чёрная обводка), drop (мягкая тень), shadow (тень под ногами).
+// Порядок слоёв: круг → тень под ногами (на круге) → гусь.
 function GooseSticker({ variant, size = 64 }: { variant: string; size?: number }) {
-    const img = (style?: React.CSSProperties, cls = '', src = GOOSE) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" draggable={false} className={`relative h-full w-full object-contain ${cls}`} style={style} />
-    )
-    const box = 'relative shrink-0'
+    const f = new Set(variant.split('+'))
+    const src = f.has('black') ? GOOSE_BLACK : GOOSE
     const sz = { width: size, height: size }
-    if (variant === 'shadow') return <span className={box} style={sz}><FeetShadow />{img()}</span>
-    if (variant === 'drop') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
-    if (variant === 'black') return <span className={box} style={sz}>{img(undefined, '', GOOSE_BLACK)}</span>
-    if (variant === 'drop+shadow') return <span className={box} style={sz}><FeetShadow />{img({ filter: 'drop-shadow(0 6px 6px rgba(0,0,0,.6))' })}</span>
-    if (variant === 'black+shadow') return <span className={box} style={sz}><FeetShadow />{img(undefined, '', GOOSE_BLACK)}</span>
-    if (variant === 'badge+shadow') return (
-        <span className={box} style={sz}>
-            <span className="absolute bottom-[-6%] left-1/2 h-[14%] w-[80%] -translate-x-1/2 rounded-[50%]" style={{ background: 'radial-gradient(closest-side, rgba(0,0,0,.85), rgba(0,0,0,0))' }} />
-            <span className="absolute inset-x-[4%] bottom-0 top-[22%] rounded-full border-b-4" style={{ background: 'linear-gradient(180deg,#F2C35B,#C9971C)', borderBottomColor: '#8C6A14' }} />
-            <span className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(-40% 0 0 0 round 0 0 999px 999px)' }}>{img({ transform: 'translateY(-6%) scale(1.05)', filter: 'drop-shadow(0 4px 3px rgba(0,0,0,.45))' })}</span>
+    if (f.has('thinwhite')) return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <span className="relative shrink-0" style={sz}><img src={GOOSE} alt="" className="h-full w-full object-contain" style={{ filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)' }} /></span>
+    )
+    if (f.has('pop3d')) return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <span className="relative shrink-0" style={{ ...sz, transform: 'rotate(-4deg)' }}><img src={GOOSE} alt="" className="h-full w-full object-contain" style={{ filter: 'drop-shadow(1px 1.5px 0 #6B5A3A) drop-shadow(1px 1.5px 0 #5A4A2E) drop-shadow(1px 1.5px 0 #4A3C24) drop-shadow(1px 1.5px 0 #3A2E1A) drop-shadow(0 8px 6px rgba(0,0,0,.6))' }} /></span>
+    )
+    const goose = (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" draggable={false} className="relative h-full w-full object-contain"
+            style={{ filter: f.has('drop') ? DROP : undefined, transform: f.has('badge') ? 'translateY(-6%) scale(1.05)' : undefined }} />
+    )
+    return (
+        <span className="relative shrink-0" style={sz}>
+            {f.has('glow') && <span className="absolute inset-[-14%] rounded-full" style={{ background: 'radial-gradient(closest-side, rgba(242,195,91,.45), rgba(242,195,91,0))' }} />}
+            {f.has('badge') && <span className="absolute inset-x-[4%] bottom-0 top-[22%] rounded-full border-b-4" style={{ background: 'linear-gradient(180deg,#F2C35B,#C9971C)', borderBottomColor: '#8C6A14' }} />}
+            {f.has('badge') ? (
+                <span className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(-40% 0 0 0 round 0 0 999px 999px)' }}>
+                    {f.has('shadow') && <FeetShadow strong />}
+                    {goose}
+                </span>
+            ) : (
+                <>{f.has('shadow') && <FeetShadow />}{goose}</>
+            )}
         </span>
     )
-    if (variant === 'thinwhite') return <span className={box} style={sz}>{img({ filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)' })}</span>
-    if (variant === 'pop3d') return (
-        <span className={box} style={{ ...sz, transform: 'rotate(-4deg)' }}>
-            {img({ filter: 'drop-shadow(1px 1.5px 0 #6B5A3A) drop-shadow(1px 1.5px 0 #5A4A2E) drop-shadow(1px 1.5px 0 #4A3C24) drop-shadow(1px 1.5px 0 #3A2E1A) drop-shadow(0 8px 6px rgba(0,0,0,.6))' })}
-        </span>
-    )
-    if (variant === 'glow') return (
-        <span className={box} style={sz}>
-            <span className="absolute inset-[-14%] rounded-full" style={{ background: 'radial-gradient(closest-side, rgba(242,195,91,.45), rgba(242,195,91,0))' }} />
-            {img()}
-        </span>
-    )
-    if (variant === 'badge') return (
-        <span className={box} style={sz}>
-            <span className="absolute inset-x-[4%] bottom-0 top-[22%] rounded-full border-b-4" style={{ background: 'linear-gradient(180deg,#F2C35B,#C9971C)', borderBottomColor: '#8C6A14' }} />
-            <span className="absolute inset-0 overflow-hidden" style={{ clipPath: 'inset(-40% 0 0 0 round 0 0 999px 999px)' }}>{img({ transform: 'translateY(-6%) scale(1.05)' })}</span>
-        </span>
-    )
-    return <span className={box} style={sz}>{img()}</span>
 }
 
 function SetCard({ s, onStep, goose = 'plain' }: { s: S; onStep: () => void; goose?: string }) {
