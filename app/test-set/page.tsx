@@ -78,7 +78,7 @@ function SetCard({ s, onStep }: { s: S; onStep: () => void }) {
         <div className="rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5">
             <div className="flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/miguel/miguel-megaphone.webp" alt="" className="h-16 w-16 shrink-0 object-contain" />
+                <img src="/miguel/miguel-megaphone-nooutline.webp" alt="" className="h-16 w-16 shrink-0 object-contain" />
                 <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-black uppercase tracking-wider text-[#F2C35B]">Сет дня · задание №{SET.task}</p>
                     <p className="text-lg font-black leading-tight text-[#F2F7FB]">{SET.taskTitle}</p>
