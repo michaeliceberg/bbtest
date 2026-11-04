@@ -135,33 +135,14 @@ const TermView = ({ t }: { t: Term }) => (
         {t.sign && <span className="mx-1.5 text-[#8FA3AE]">{t.sign}</span>}
         {(t.c !== 1 || t.n === 0) && <span>{t.c}</span>}
         {t.n > 0 && <span className="italic">t</span>}
-        {t.n > 1 && <span className="inline-block text-[0.55em] -translate-y-[0.8em]" style={{ color: EXP }}>{t.n}</span>}
+        {t.n > 1 && <sup className="ml-0.5" style={{ color: EXP, fontSize: '0.6em', verticalAlign: '0.75em', lineHeight: 0 }}>{t.n}</sup>}
     </span>
 )
 type PolyStep = { term: Term; options: string[]; correct: string; hint: string; result: Term | null }
 export const PolyDerivative = ({ steps, onDone }: { steps: PolyStep[]; onDone: () => void }) => {
-    const boxRef = useRef<HTMLDivElement>(null)
-    const termRefs = useRef<(HTMLSpanElement | null)[]>([])
-    const [rects, setRects] = useState<{ left: number; width: number }[]>([])
     const [i, setI] = useState(0)
     const [wrong, setWrong] = useState<string[]>([])
-    const [done, setDone] = useState<Term[]>([])
-    const [zero, setZero] = useState(false)
     const finished = i >= steps.length
-    useLayoutEffect(() => {
-        const measure = () => {
-            const box = boxRef.current?.getBoundingClientRect()
-            if (!box) return
-            setRects(termRefs.current.map((el) => {
-                const r = el?.getBoundingClientRect()
-                return r ? { left: r.left - box.left, width: r.width } : { left: 0, width: 0 }
-            }))
-        }
-        measure()
-        const ro = new ResizeObserver(measure)
-        if (boxRef.current) ro.observe(boxRef.current)
-        return () => ro.disconnect()
-    }, [])
     useEffect(() => {
         if (!finished) return
         const t = setTimeout(onDone, 1600)
@@ -173,46 +154,54 @@ export const PolyDerivative = ({ steps, onDone }: { steps: PolyStep[]; onDone: (
         const s = steps[i]
         if (o === s.correct) {
             playJustClick(); showAnswerMeme(true)
-            if (s.result) setDone((d) => [...d, s.result!])
-            else setZero(true)
             setWrong([]); setI(i + 1)
         } else { setWrong((w) => [...w, o]); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false) }
     }
-    const r = rects[Math.min(i, steps.length - 1)]
+    // Каждое слагаемое — свой столбик: сверху слагаемое, под ним скобка (если сейчас оно), ещё ниже — его производная.
     return (
         <div className="w-full flex flex-col items-center gap-3">
             <div className="w-full overflow-x-auto overflow-y-hidden">
-                <div ref={boxRef} className="relative mx-auto w-max pb-10 pt-1 font-black text-[22px] md:text-3xl text-[#F2F7FB]">
-                    <span className="mr-1">(</span>
-                    {steps.map((s, k) => (
-                        <span key={k} ref={(el) => { termRefs.current[k] = el }}
-                            className="transition-opacity duration-300" style={{ opacity: finished || k === i ? 1 : k < i ? 0.4 : 0.75 }}>
-                            <TermView t={s.term} />
-                        </span>
-                    ))}
-                    <span className="ml-1">)′</span>
-                    {r && !finished && (
-                        <svg className="absolute bottom-1 h-8 overflow-visible transition-[left,width] duration-500 ease-out" style={{ left: r.left, width: r.width }}
-                            viewBox="0 0 100 30" preserveAspectRatio="none">
-                            <path d="M 2 2 Q 2 12 14 12 L 40 12 Q 50 12 50 26 Q 50 12 60 12 L 86 12 Q 98 12 98 2" fill="none" stroke="#F2C35B" strokeWidth={3} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
-                        </svg>
-                    )}
+                <div className="mx-auto w-max flex items-start pt-1 font-black text-[22px] md:text-3xl text-[#F2F7FB]">
+                    <div className="flex flex-col items-center">
+                        <span className="mr-1 h-[1.6em] leading-[1.6em]">(</span>
+                        <span className="h-8" />
+                        <span className="mr-1 h-[1.6em] leading-[1.6em] text-[#8FA3AE]">=</span>
+                    </div>
+                    {steps.map((s, k) => {
+                        const res = k < i ? s.result : undefined
+                        const isZero = k < i && !s.result
+                        return (
+                            <div key={k} className="flex flex-col items-center">
+                                <span className="h-[1.6em] leading-[1.6em] transition-opacity duration-300"
+                                    style={{ opacity: finished || k === i ? 1 : k < i ? 0.4 : 0.75 }}>
+                                    <TermView t={s.term} />
+                                </span>
+                                <span className="h-8 w-full">
+                                    {k === i && !finished && (
+                                        <svg className="h-8 w-full overflow-visible" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                            <path d="M 2 2 Q 2 12 14 12 L 40 12 Q 50 12 50 26 Q 50 12 60 12 L 86 12 Q 98 12 98 2" fill="none" stroke="#F2C35B" strokeWidth={3} vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                                        </svg>
+                                    )}
+                                </span>
+                                <span className="h-[1.6em] leading-[1.6em]">
+                                    {res && (
+                                        <motion.span className="inline-block" initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}
+                                            style={{ color: finished ? OK : '#F2F7FB' }}>
+                                            <TermView t={k === 0 && res.sign === '+' ? { ...res, sign: '' } : res} />
+                                        </motion.span>
+                                    )}
+                                    {isZero && (
+                                        <motion.span initial={{ opacity: 1 }} animate={{ opacity: finished ? 0.25 : 1 }} transition={{ delay: 0.6 }}
+                                            className={cn('inline-block', finished && 'line-through')}><span className="mx-1.5 text-[#8FA3AE]">+</span>0</motion.span>
+                                    )}
+                                </span>
+                            </div>
+                        )
+                    })}
+                    <div className="flex flex-col items-center">
+                        <span className="ml-1 h-[1.6em] leading-[1.6em]">)′</span>
+                    </div>
                 </div>
-            </div>
-            {/* Собираемый ответ */}
-            <div className="flex min-h-[48px] items-baseline justify-center flex-wrap font-black text-[24px] md:text-3xl text-[#F2F7FB]">
-                <span className="mr-2 text-[#8FA3AE]">=</span>
-                {done.length === 0 && !zero && <span className="text-[#5C6B73]">…</span>}
-                {done.map((t, k) => (
-                    <motion.span key={k} initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}
-                        style={{ color: finished ? OK : '#F2F7FB' }}>
-                        <TermView t={k === 0 && t.sign === '+' ? { ...t, sign: '' } : t} />
-                    </motion.span>
-                ))}
-                {zero && (
-                    <motion.span initial={{ opacity: 1 }} animate={{ opacity: finished ? 0.25 : 1 }} transition={{ delay: 0.6 }}
-                        className={cn('ml-1.5', finished && 'line-through')}>+ 0</motion.span>
-                )}
             </div>
             {!finished && (
                 <>
