@@ -110,8 +110,8 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
                 className="absolute inset-x-0 mx-auto max-w-md px-3" style={{ top }}>
                 <div className="rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl">
                     <div className="flex items-start gap-3">
-                        {/* Мигель по пояс, как на карте тренажёра: крупно, видно лицо и мегафон */}
-                        <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src="/miguel/miguel-megaphone.webp" size={132} width={108} /></div>
+                        {/* Мигель по пояс, как на карте тренажёра: с клошем и подносом блюд, на десерте — с сундуком на подносе */}
+                        <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src={dish === 2 ? '/miguel/miguel-tray-chest.webp' : '/miguel/miguel-cloche.webp'} size={132} width={108} /></div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-black uppercase tracking-wider text-[#F2C35B]">
                                 {d.taskNum ? `Задание ЕГЭ №${d.taskNum}` : 'От Команданте'}
