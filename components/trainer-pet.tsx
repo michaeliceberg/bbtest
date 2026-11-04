@@ -15,6 +15,7 @@ type Props = {
     firstName?: string | null
     dayKey: number // день месяца с сервера — чтобы SSR и клиент выбирали одно и то же
     compact?: boolean // маленькая версия для дорожки: питомец стоит у текущей точки
+    row?: boolean // вместе с compact: облачко сбоку от гуся (когда слева от кружка нет места)
     cheer?: { src: string; text: string } | null // после урока: утка/гусь с подбадривающей фразой
     // Прогулка после урока: Мигель маршем идёт к следующему уроку, фраза — когда дошёл
     walking?: boolean
@@ -77,7 +78,7 @@ const RISK_HOUR = 20
 
 type Mood = { src: string; text: string }
 
-export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, cheer = null, walking, arrived = true, flip = false }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false }: Props) => {
     // Час сверяем только после монтирования (часовой пояс браузера).
     const [late, setLate] = useState(false)
     useEffect(() => setLate(new Date().getHours() >= RISK_HOUR), [])
@@ -94,16 +95,28 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     if (compact && cheer && walking !== undefined) {
         // Мигель идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу
         return (
-            <div className="flex flex-col items-center gap-1 w-[156px]">
+            <div className="flex flex-col items-center gap-1 w-[170px]">
                 <div className="min-h-[36px] flex items-end">
                     {arrived && !walking && (
-                        <motion.div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-1.5 text-[13px] font-extrabold text-[#F2F7FB] leading-tight text-center"
+                        <motion.div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-1.5 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center"
                             initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.5 }}>
                             {cheer.text}
                         </motion.div>
                     )}
                 </div>
-                <GooseWalker walking={walking} flip={flip} className="w-24 h-24" />
+                <GooseWalker walking={walking} flip={flip} className="w-32 h-32" />
+            </div>
+        )
+    }
+
+    if (compact && row) {
+        return (
+            <div className="flex items-center gap-1">
+                <div className="w-[122px] rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2 py-1.5 text-[14px] font-extrabold text-[#F2F7FB] leading-tight text-center">
+                    {mood.text}
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={mood.src} alt="" draggable={false} className="h-24 w-24 object-contain select-none" />
             </div>
         )
     }
@@ -111,8 +124,8 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     if (compact) {
         // узкий: стоит слева от кружка урока (справа — название урока)
         return (
-            <div className="flex flex-col items-center gap-1 w-[112px]">
-                <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2 py-1.5 text-[12px] font-extrabold text-[#F2F7FB] leading-tight text-center">
+            <div className="flex flex-col items-center gap-1 w-[150px]">
+                <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-2 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
                 <motion.img
@@ -120,7 +133,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                     src={mood.src}
                     alt=""
                     draggable={false}
-                    className="w-20 h-20 object-contain select-none"
+                    className="w-36 h-36 object-contain select-none"
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                 />

@@ -374,6 +374,7 @@ const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
 // заданы в долях холста PATH_W×H (проценты) — дорожка одинаково выглядит
 // на любой ширине экрана. Reveal-анимация «только что прошёл» здесь не играет.
 const PATH_W = 320;
+const PET_MIN_X = 205; // левее кружок оставляет гусю слишком мало места слева
 const PATH_ROW = 140;
 const PATH_PAD = 52;
 
@@ -387,13 +388,14 @@ const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
-    revealId = null, revealWalk = false, revealRef, cheerPet,
+    revealId = null, revealWalk = false, revealRef, cheerPet, petRow,
 }: {
     cheerPet?: (cheer: { src: string; text: string }, walk: { walking: boolean; arrived: boolean; flip: boolean }) => React.ReactNode;
     // Только что пройденный этап: гусь «идёт» от него к следующему (следы появляются по очереди).
     revealId?: number | null;
     revealWalk?: boolean;
     revealRef?: React.Ref<HTMLDivElement>;
+    petRow?: React.ReactNode;
     topic: SkillTopic;
     accent: GroupAccent;
     cozy: boolean;
@@ -442,6 +444,9 @@ const StagePath = ({
     const petIdx = frontierIdx < 0 ? -1 : [frontierIdx - 1, frontierIdx, frontierIdx + 1]
         .filter((k) => k >= 0 && k < n)
         .reduce((best, k) => (pts[k].x > pts[best].x + 6 ? k : best), frontierIdx);
+    // Хватает ли места слева от кружка на большого гуся (иначе он наезжает на кружок)
+    const petRoom = petIdx >= 0 && pts[petIdx].x >= PET_MIN_X;
+    const petBandY = petIdx < 0 ? 0 : petIdx < n - 1 ? (pts[petIdx].y + pts[petIdx + 1].y) / 2 : pts[petIdx].y + 70;
     // Контрольные точки каждого отрезка со своим «перекосом» — получаются петли и восьмёрки, а не одна и та же S-кривая.
     const segs = pts.slice(0, -1).map((a, i) => {
         const b = pts[i + 1];
@@ -667,17 +672,23 @@ const StagePath = ({
                             </div>
                         </div>
                         {i === petIdx && pet && !cheer && (
-                            <div
-                                className="absolute z-10"
-                                style={{
-                                    top: pct(pt.y, H),
-                                    // слева от кружка: справа от каждого кружка — название урока, там гусь с облачком давал кашу
-                                    left: -10,
-                                    transform: 'translateY(-50%)',
-                                }}
-                            >
-                                {pet}
-                            </div>
+                            petRoom ? (
+                                <div data-trainer-pet className="absolute z-10"
+                                    style={{
+                                        top: pct(pt.y, H),
+                                        // слева от кружка: справа от каждого кружка — название урока, там гусь с облачком давал кашу
+                                        left: -10,
+                                        transform: 'translateY(-50%)',
+                                    }}>
+                                    {pet}
+                                </div>
+                            ) : (
+                                // кружок у левого края — слева места нет: гусь поменьше, лёжа вдоль полосы между рядами, справа
+                                <div data-trainer-pet className="absolute z-10"
+                                    style={{ top: pct(petBandY, H), right: -6, transform: 'translateY(-50%)' }}>
+                                    {petRow}
+                                </div>
+                            )
                         )}
                     </React.Fragment>
                 );
@@ -1002,6 +1013,17 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
         return () => clearTimeout(t);
     }, [topicParam, topics, activeGroupKey]);
 
+    // Открыли карту — сразу показываем Мигеля у текущего урока. После урока его ведёт прогулка (reveal),
+    // при переходе к разделу (?topic=) — своя прокрутка: тогда не трогаем.
+    useEffect(() => {
+        if (!simple || topicParam) return;
+        const t = setTimeout(() => {
+            document.querySelector('[data-trainer-pet]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 400);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Карточка одной темы — вынесена в функцию (не отдельный компонент:
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
@@ -1147,6 +1169,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                         doneBorder={doneBorder}
                                         doneGlow={doneGlow}
                                         pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
+                                        petRow={petHere && petProps ? <TrainerPet {...petProps} compact row /> : null}
                                         cheerPet={petProps ? (c, w) => <TrainerPet {...petProps} compact cheer={c} walking={w.walking} arrived={w.arrived} flip={w.flip} /> : undefined}
                                         revealId={pendingRevealId}
                                         revealWalk={connectorRevealed}
