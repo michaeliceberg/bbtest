@@ -16,14 +16,14 @@ import type { SetBarData } from '@/lib/setBar'
 import { startEgeMove } from '@/actions/ege-move'
 import { useSetBarStore } from '@/store/use-set-bar-store'
 import { SET_BELL_SOUND, playSound, preloadSound } from '@/lib/sound'
+import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL } from '@/lib/caseRewards'
 
-const CHEST = '/chests/rare0001.svg'
 const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 
 export const setDishOf = (d: SetBarData): number =>
-    d.step === 'trainer' ? 0 : d.step === 'tasks' ? 1 : d.step === 'done' && !d.caseClaimed ? 2 : 3
+    d.step === 'trainer' ? 0 : d.step === 'tasks' || d.step === 'trainer2' ? 1 : d.step === 'done' && !d.caseClaimed ? 2 : 3
 
 export function SetDots({ dish, size = 10 }: { dish: number; size?: number }) {
     const cur = Math.min(dish, 2)
@@ -40,15 +40,25 @@ export function SetDots({ dish, size = 10 }: { dish: number; size?: number }) {
     )
 }
 
+const tierLabel = (d: SetBarData) => LESSON_CASE_TIER_LABEL[d.tier].toLowerCase()
+
 function shout(d: SetBarData, dish: number) {
-    if (dish === 0) return `Сет от Команданте, компаньеро! Три блюда — и сундук твой 🍽`
+    if (dish === 0) return `Сет от Команданте, компаньеро! Три блюда — и ${tierLabel(d)} сундук твой 🍽`
     if (dish === 1) {
+        if (d.tLessonId2) return 'Закуска съедена! Основное — ещё один урок тренажёра 🔥'
         const left = d.tasksTotal - d.tasksDone
         if (left === 1) return 'Последняя задача — и десерт твой! 🔥'
         return `Закуска съедена! Теперь основное: ${left} ${left < 5 ? 'задачи' : 'задач'} задания №${d.taskNum} 🔥`
     }
-    if (dish === 2) return 'Сет съеден! Забирай сундук 🎁'
+    if (dish === 2) return `Сет съеден! Забирай ${tierLabel(d)} сундук 🎁`
     return 'Новый сет готов — Команданте уже накрыл на стол 😋'
+}
+
+// Чем больше сетов за день, тем лучше сундук: подсказка, что даст следующий сет
+function nextTierHint(d: SetBarData) {
+    if (d.setNumber >= 3) return 'Сегодня каждый сет — мифический сундук 🔥'
+    const next = d.setNumber === 1 ? 'редкий' : 'мифический'
+    return `Сет №${d.setNumber} за сегодня · следующий — ${next} сундук`
 }
 
 function useBell(d: SetBarData, dish: number) {
@@ -70,6 +80,7 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
     const go = async () => {
         if (busy) return
         if (dish === 0 && d.tLessonId && d.moveId) router.push(`/t-lesson/${d.tLessonId}?move=${d.moveId}`)
+        else if (dish === 1 && d.moveId && d.tLessonId2) router.push(`/t-lesson/${d.tLessonId2}?move=${d.moveId}`)
         else if (dish === 1 && d.moveId) router.push(`/move/${d.moveId}/tasks`)
         else if (dish === 2 && d.moveId) router.push(`/move/${d.moveId}`)
         else {
@@ -83,12 +94,12 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
         onClose()
     }
     const label = dish === 0 ? `Закуска: ${d.trainerTitle ?? 'урок тренажёра'}`
-        : dish === 1 ? `Задачи: ${d.tasksDone} из ${d.tasksTotal}`
-            : dish === 2 ? 'Забрать сундук 🎁' : busy ? 'Накрываем на стол…' : 'Начать новый сет'
+        : dish === 1 ? (d.tLessonId2 ? `Основное: ${d.trainer2Title ?? 'урок тренажёра'}` : `Задачи: ${d.tasksDone} из ${d.tasksTotal}`)
+            : dish === 2 ? `Забрать ${tierLabel(d)} сундук 🎁` : busy ? 'Накрываем на стол…' : 'Начать новый сет'
 
     const tiles = [
         { what: d.hasTrainer ? (d.trainerTitle ? `Тренажёр: ${d.trainerTitle}` : 'Тренажёр') : 'Без закуски' },
-        { what: d.tasksTotal ? `Задачи №${d.taskNum}: ${d.tasksDone}/${d.tasksTotal}` : 'Без задач' },
+        { what: d.tLessonId2 ? `Тренажёр: ${d.trainer2Title ?? 'урок'}` : d.tasksTotal ? `Задачи №${d.taskNum}: ${d.tasksDone}/${d.tasksTotal}` : 'Без задач' },
         { what: '' },
     ]
     return createPortal(
@@ -106,6 +117,7 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
                             </p>
                             <p className="text-lg font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Новый сет'}</p>
                             <p className="mt-1 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
+                            <p className="mt-1 text-[11px] font-black text-[#9AA7B0]">{nextTierHint(d)}</p>
                         </div>
                         <button onClick={onClose} className="-mr-1 -mt-1 p-1 text-[#6B7A83]" aria-label="Закрыть"><X className="h-5 w-5" /></button>
                     </div>
@@ -126,7 +138,7 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
                                                 <span className="text-[11px] font-bold leading-tight text-[#C9D3D9]">{tiles[i].what}</span>
                                             ) : (
                                                 // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={CHEST} alt="" className={`h-9 w-9 ${cur ? 'animate-bounce' : far ? 'grayscale' : ''}`} />
+                                                <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-9 w-9 ${cur ? 'animate-bounce' : far ? 'grayscale' : ''}`} />
                                             )}
                                             {ok && <Check className="mt-auto h-4 w-4 text-[#9EE8B0]" strokeWidth={3.5} />}
                                             {far && i < 2 && <Lock className="mt-auto h-3.5 w-3.5 text-[#6B7A83]" />}
@@ -160,13 +172,13 @@ function BarButton({ d, dish, onClick }: { d: SetBarData; dish: number; onClick:
                 <span className="absolute inset-0 animate-ping rounded-full border-2 border-[#78C93C] opacity-40" />
             </span>
             <span className="min-w-0 flex-1 truncate text-left text-[13px] font-black text-[#F2F7FB]">
-                {dish < 2 ? <>Сет · №{d.taskNum} · <span className="text-[#F2C35B]">{dish === 0 ? 'закуска' : `задачи ${d.tasksDone}/${d.tasksTotal}`}</span></>
+                {dish < 2 ? <>Сет · №{d.taskNum} · <span className="text-[#F2C35B]">{dish === 0 ? 'закуска' : d.tLessonId2 ? 'основное' : `задачи ${d.tasksDone}/${d.tasksTotal}`}</span></>
                     : dish === 2 ? <span className="text-[#FFE58A]">Сет съеден! Забрать сундук</span>
                         : 'Новый сет готов 🍽'}
             </span>
             {dish < 3 && <SetDots dish={dish} />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={CHEST} alt="" className={`h-7 w-7 shrink-0 ${eaten ? 'animate-bounce' : ''}`} />
+            <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-7 w-7 shrink-0 ${eaten ? 'animate-bounce' : ''}`} />
         </button>
     )
 }
@@ -182,9 +194,9 @@ export function SetBar({ data }: { data: SetBarData }) {
 
     // мини-значок в шапке телефона знает, какое блюдо и как открыть карточку
     useEffect(() => {
-        setStore({ dish, open: () => setSheet(true) })
+        setStore({ dish, chest: LESSON_CASE_TIER_ICON[data.tier], open: () => setSheet(true) })
         return () => setStore({ dish: null, open: null, compact: false })
-    }, [dish, setStore])
+    }, [dish, data.tier, setStore])
 
     useEffect(() => {
         const onScroll = () => {

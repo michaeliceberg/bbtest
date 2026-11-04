@@ -1,7 +1,8 @@
 'use client'
 
 // components/ege-move-screen.tsx — экран «хода» по башне ЕГЭ (app/move/[id]).
-// Шаги хода: урок тренажёра → задачи задачника → финал (прирост копилки + редкий кейс).
+// Шаги сета: урок тренажёра → (второй урок тренажёра, пока задачи под брезентом) → задачи задачника → финал
+// (прирост копилки + кейс; редкость растёт с номером сета за день — lib/egeMove.ts setTierOf).
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -10,7 +11,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Check, Dumbbell, Lock, Swords, Gift } from 'lucide-react'
 import { CaseReel } from '@/components/CaseReel'
 import { claimEgeMoveCase, startEgeMove } from '@/actions/ege-move'
-import { getLessonCasePool } from '@/lib/caseRewards'
+import { getLessonCasePool, LESSON_CASE_TIER_LABEL, type LessonCaseTier } from '@/lib/caseRewards'
 import { primaryToTest } from '@/lib/egeScale'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { declensionRu } from '@/usefulFunctions'
@@ -20,10 +21,14 @@ export type MoveScreenData = {
     id: number
     taskNum: number
     taskTitle: string
-    step: 'trainer' | 'tasks' | 'done'
+    step: 'trainer' | 'trainer2' | 'tasks' | 'done'
     tLessonId: number | null
     trainerTitle: string | null
     trainerUnit: string | null
+    tLessonId2: number | null
+    trainer2Title: string | null
+    trainer2Unit: string | null
+    tier: LessonCaseTier
     tasksTotal: number
     tasksDone: number
     caseClaimed: boolean
@@ -76,7 +81,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
         return (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-[#131D22]">
                 <div className="mx-auto max-w-xl">
-                    <CaseReel theme={theme} isMega tier="rare" pool={getLessonCasePool('rare')}
+                    <CaseReel theme={theme} isMega tier={move.tier} pool={getLessonCasePool(move.tier)}
                         spinAction={() => claimEgeMoveCase(move.id)}
                         onDone={() => { setCaseOpen(false); setClaimed(true); router.refresh() }} />
                 </div>
@@ -85,6 +90,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
     }
 
     const trainerState: StepState = move.step === 'trainer' ? 'current' : 'done'
+    const trainer2State: StepState = move.step === 'trainer2' ? 'current' : move.step === 'trainer' ? 'locked' : 'done'
     const tasksState: StepState = move.step === 'tasks' ? 'current' : move.step === 'done' ? 'done' : 'locked'
     const gain = Math.max(0, move.nowPrimary - move.fromPrimary)
     const fromTest = primaryToTest(move.fromPrimary)
@@ -114,6 +120,16 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                             sub={[move.trainerUnit, move.trainerTitle].filter(Boolean).join(' · ')}
                             state={trainerState}
                             href={`/t-lesson/${move.tLessonId}?move=${move.id}`}
+                            action="Начать"
+                        />
+                    )}
+                    {move.tLessonId2 && (
+                        <StepRow
+                            icon={<Dumbbell className="h-5 w-5 text-[#A1D151]" />}
+                            title="Ещё урок тренажёра"
+                            sub={[move.trainer2Unit, move.trainer2Title].filter(Boolean).join(' · ')}
+                            state={trainer2State}
+                            href={`/t-lesson/${move.tLessonId2}?move=${move.id}`}
                             action="Начать"
                         />
                     )}
@@ -155,7 +171,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                             <button type="button" onClick={() => setCaseOpen(true)}
                                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-base font-black uppercase tracking-wide text-[#151F24]"
                                 style={{ backgroundColor: '#00C5FF', boxShadow: '0 5px 0 #0089B3' }}>
-                                <Gift className="h-5 w-5" /> Открыть редкий кейс
+                                <Gift className="h-5 w-5" /> Открыть {LESSON_CASE_TIER_LABEL[move.tier].toLowerCase()} кейс
                             </button>
                         ) : (
                             <button type="button" onClick={nextMove} disabled={pending}

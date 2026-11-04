@@ -81,7 +81,7 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 					aria-hidden={!miniSet} tabIndex={miniSet ? 0 : -1} aria-label='Сет'>
 					{setBar.dish < 3 && <SetDots dish={setBar.dish} size={8} />}
 					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src='/chests/rare0001.svg' alt='' className={`h-6 w-6 shrink-0 ${setBar.dish === 2 ? 'animate-bounce' : ''}`} />
+					<img src={setBar.chest} alt='' className={`h-6 w-6 shrink-0 ${setBar.dish === 2 ? 'animate-bounce' : ''}`} />
 				</button>
 			)}
 			{!unitButton && displayTitle && (

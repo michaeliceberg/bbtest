@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
-import { addMoveReplacements, createEgeMove, getActiveEgeMove, getEgeMove, moveTaskStatus, nextStepAfter } from '@/lib/egeMove'
+import { addMoveReplacements, createEgeMove, getActiveEgeMove, getEgeMove, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf } from '@/lib/egeMove'
 import { applyCaseReward, type OpenCaseResult } from '@/lib/caseApply'
 import { getLessonCasePool } from '@/lib/caseRewards'
 
@@ -24,10 +24,12 @@ export async function startEgeMove(): Promise<{ id: number } | { error: string }
 // Шаг закончен (from = 'trainer' | 'tasks') — переходим к следующему.
 // Задачи: ход закрывается только на нужном числе ВЕРНЫХ ответов. Есть ошибки —
 // добавляем задачи-близнецы ('replaced'); близнецов нет — ошибку перерешиваем ('retry').
-export async function advanceEgeMove(id: number, from: 'trainer' | 'tasks'): Promise<'next' | 'replaced' | 'retry' | 'noop'> {
+export async function advanceEgeMove(id: number, fromArg: 'trainer' | 'trainer2' | 'tasks'): Promise<'next' | 'replaced' | 'retry' | 'noop'> {
     const session = await auth()
     if (!session?.user?.id) return 'noop'
     const m = await getEgeMove(Number(id), session.user.id)
+    // урок тренажёра в сете (TQUIZ шлёт 'trainer') — это и первый, и второй урок «2 тренажёров»
+    const from = fromArg === 'trainer' && m?.step === 'trainer2' ? 'trainer2' : fromArg
     if (!m || m.step !== from) return 'noop'
     if (from === 'tasks') {
         const st = await moveTaskStatus(m, session.user.id)
@@ -43,7 +45,7 @@ export async function advanceEgeMove(id: number, from: 'trainer' | 'tasks'): Pro
     return 'next'
 }
 
-// Бонус за законченный ход — редкий кейс, один раз.
+// Бонус за законченный сет — кейс, один раз; редкость — по номеру сета за день (setTierOf).
 export async function claimEgeMoveCase(id: number): Promise<OpenCaseResult> {
     const session = await auth()
     if (!session?.user?.id) return { success: false, error: 'Не авторизован' }
@@ -52,5 +54,7 @@ export async function claimEgeMoveCase(id: number): Promise<OpenCaseResult> {
         .where(and(eq(egeMoves.id, Number(id)), eq(egeMoves.userId, session.user.id), eq(egeMoves.step, 'done'), eq(egeMoves.caseClaimed, false)))
         .returning({ id: egeMoves.id })
     if (marked.length === 0) return { success: false, error: 'Кейс уже получен' }
-    return applyCaseReward(getLessonCasePool('rare'))
+    const m = await getEgeMove(Number(id), session.user.id)
+    const tier = setTierOf(await setNumberToday(session.user.id, m))
+    return applyCaseReward(getLessonCasePool(tier))
 }

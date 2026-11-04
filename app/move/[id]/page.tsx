@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
-import { getEgeMove, moveTaskStatus } from '@/lib/egeMove'
+import { getEgeMove, moveTaskStatus, setNumberToday, setTierOf } from '@/lib/egeMove'
 import { getEgeMap } from '@/lib/egeMap'
 import { getUiTheme } from '@/lib/uiThemeServer'
 import { MoveScreen } from '@/components/ege-move-screen'
@@ -21,14 +21,19 @@ const MovePage = async ({ params }: { params: { id: string } }) => {
     const m = await getEgeMove(Number(params.id), userId)
     if (!m) redirect('/path')
 
-    const [titleRows, status, map] = await Promise.all([
+    const [titleRows, title2Rows, status, map, setNumber] = await Promise.all([
         m.tLessonId
             ? db.execute(sql`SELECT tl.title, tu.title AS unit FROM t_lessons tl JOIN t_units tu ON tu.id = tl.t_unit_id WHERE tl.id = ${m.tLessonId}`)
             : Promise.resolve([]),
+        m.tLessonId2
+            ? db.execute(sql`SELECT tl.title, tu.title AS unit FROM t_lessons tl JOIN t_units tu ON tu.id = tl.t_unit_id WHERE tl.id = ${m.tLessonId2}`)
+            : Promise.resolve([]),
         moveTaskStatus(m, userId),
         getEgeMap(userId),
+        setNumberToday(userId, m),
     ])
     const t = (titleRows as unknown as Row[])[0]
+    const t2 = (title2Rows as unknown as Row[])[0]
     const station = map.stations.find((s) => s.num === m.taskNum)
 
     return (
@@ -38,10 +43,14 @@ const MovePage = async ({ params }: { params: { id: string } }) => {
                 id: m.id,
                 taskNum: m.taskNum,
                 taskTitle: station?.title ?? '',
-                step: m.step as 'trainer' | 'tasks' | 'done',
+                step: m.step as 'trainer' | 'trainer2' | 'tasks' | 'done',
                 tLessonId: m.tLessonId,
                 trainerTitle: t ? String(t.title) : null,
                 trainerUnit: t ? String(t.unit) : null,
+                tLessonId2: m.tLessonId2,
+                trainer2Title: t2 ? String(t2.title) : null,
+                trainer2Unit: t2 ? String(t2.unit) : null,
+                tier: setTierOf(setNumber),
                 tasksTotal: status.target,
                 tasksDone: status.correct,
                 caseClaimed: m.caseClaimed,

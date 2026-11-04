@@ -11,6 +11,8 @@ import { sql, and, eq } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
 import { getEgeMap } from '@/lib/egeMap'
+import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
+import type { LessonCaseTier } from '@/lib/caseRewards'
 
 export type EgeMoveRow = typeof egeMoves.$inferSelect
 type Row = Record<string, unknown>
@@ -52,11 +54,30 @@ export async function createEgeMove(userId: string): Promise<EgeMoveRow | null> 
         if (r[0]) tLessonId = Number(r[0].id)
     }
 
-    const ids = await pickMoveTasks(userId, st.unitIds, mv.tasks?.count ?? 0, [])
+    // Задачи задания ещё под брезентом (тренажёры к нему не пройдены, задач не решено — как в ангаре, lib/hangar.ts):
+    // сет из двух уроков тренажёра — закуска и основное, без задач.
+    let tLessonId2: number | null = null
+    let ids: number[] = []
+    const keys = (await getTrainerKeysByTask(userId))[st.num] ?? []
+    const locked = keys.length > 0 && keys.filter((k) => k.percent > 0).length < keys.length && st.courseSolved === 0
+    if (locked) {
+        const unitIds = keys.map((k) => k.tUnitId)
+        const r = (await db.execute(sql`
+            SELECT tl.id FROM t_lessons tl
+            WHERE tl.t_unit_id IN ${sql.raw(`(${unitIds.join(',')})`)}
+              AND NOT EXISTS (SELECT 1 FROM t_lesson_progress p WHERE p.t_lesson_id = tl.id AND p.user_id = ${userId} AND p.training_pts > 0)
+            ORDER BY array_position(${sql.raw(`ARRAY[${unitIds.join(',')}]`)}, tl.t_unit_id), tl."order", tl.id
+            LIMIT 2`)) as unknown as Row[]
+        if (r[0]) {
+            tLessonId = Number(r[0].id)
+            tLessonId2 = r[1] ? Number(r[1].id) : null
+        }
+    }
+    if (!locked || !tLessonId) ids = await pickMoveTasks(userId, st.unitIds, mv.tasks?.count ?? 0, [])
     if (!tLessonId && ids.length === 0) return null
 
     const [row] = await db.insert(egeMoves).values({
-        userId, taskNum: st.num, tLessonId,
+        userId, taskNum: st.num, tLessonId, tLessonId2,
         challengeIds: ids.join(','),
         targetTasks: ids.length,
         step: tLessonId ? 'trainer' : 'tasks',
@@ -69,8 +90,25 @@ export async function createEgeMove(userId: string): Promise<EgeMoveRow | null> 
 }
 
 export function nextStepAfter(m: EgeMoveRow, from: string): string {
-    if (from === 'trainer') return moveChallengeIds(m).length ? 'tasks' : 'done'
+    if (from === 'trainer' && m.tLessonId2) return 'trainer2'
+    if (from === 'trainer' || from === 'trainer2') return moveChallengeIds(m).length ? 'tasks' : 'done'
     return 'done'
+}
+
+// Сундук сета растёт с числом сетов, съеденных за день (по Москве): 1-й — обычный, 2-й — редкий, 3-й и дальше — мифический.
+// finished_at пишется из приложения (UTC без часового пояса), поэтому +3 часа.
+export const SET_TIER_BY_COUNT: LessonCaseTier[] = ['common', 'rare', 'mythic']
+export const setTierOf = (n: number): LessonCaseTier => SET_TIER_BY_COUNT[Math.min(Math.max(n, 1), SET_TIER_BY_COUNT.length) - 1]
+
+/** Номер этого сета среди съеденных сегодня (для незаконченного — каким он будет, если доесть). */
+export async function setNumberToday(userId: string, m: EgeMoveRow | null): Promise<number> {
+    const rows = (await db.execute(sql`
+        SELECT count(*)::int AS n FROM ege_moves
+        WHERE user_id = ${userId} AND step = 'done' AND finished_at IS NOT NULL
+          AND (finished_at + interval '3 hours')::date = (now() AT TIME ZONE 'Europe/Moscow')::date
+          ${m && m.step === 'done' ? sql`AND id <= ${m.id}` : sql``}`)) as unknown as Row[]
+    const n = Number(rows[0]?.n ?? 0)
+    return m && m.step === 'done' ? Math.max(1, n) : n + 1
 }
 
 // Задачи хода в той же форме, что getLesson().challenges (для app/lesson/quiz.tsx),

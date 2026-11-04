@@ -384,6 +384,8 @@ export const egeMoves = pgTable('ege_moves', {
 	userId: text('user_id').notNull(),
 	taskNum: integer('task_num').notNull(),
 	tLessonId: integer('t_lesson_id'),
+	// Второй урок тренажёра («основное блюдо» сета, пока задачи задания под брезентом). Прямой SQL, 2026-11-05.
+	tLessonId2: integer('t_lesson_id2'),
 	challengeIds: text('challenge_ids').notNull().default(''),
 	// Сколько задач нужно решить ВЕРНО (неверную заменяем другой задачей того же задания).
 	// null у ходов до 2026-10-09 — тогда цель = исходное число задач.
