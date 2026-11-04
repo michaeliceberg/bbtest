@@ -43,7 +43,7 @@ type Props = {
     // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
     chainHint?: { count: number; remaining: number } | null
     // курсы с «Сетом»: вместо серии без остановки — сколько блюд осталось до сундука (actions/plan-lesson-case.ts)
-    setHint?: { title: string; text: string; chest: string } | null
+    setHint?: { title: string; text: string; chest: string; chestLabel?: string } | null
     // Стиль: игровой (по умолчанию) или тёплый «cozy» — плоские блоки с
     // толстой нижней гранью, тёплый фон, без звёзд и неона.
     theme?: UiTheme
@@ -146,7 +146,7 @@ export const TrainerLessonCompleteScreen = ({
                     initial={{ scale: 0.3, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
-                    className="relative w-56 h-56 sm:w-72 sm:h-72"
+                    className={setHint ? "relative w-40 h-40 sm:w-56 sm:h-56" : "relative w-56 h-56 sm:w-72 sm:h-72"}
                 >
                     {/* Тёплый стиль — Lottie прямо на фоне, без подложки. */}
                     {!cozy && <div className="absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }} />}
@@ -169,9 +169,24 @@ export const TrainerLessonCompleteScreen = ({
                             </h1>
                             <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
                                 {setHint.text}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={setHint.chest} alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
                             </p>
+                            {/* Награда сета — настоящий сундук крупно, а не значок в строке */}
+                            <motion.div
+                                initial={{ scale: 0.3, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                transition={{ delay: 0.8, type: 'spring', bounce: 0.55, duration: 0.7 }}
+                                className="relative mx-auto mt-2 flex w-fit flex-col items-center"
+                            >
+                                <div className="absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full animate-glow-pulse"
+                                    style={{ background: 'radial-gradient(closest-side, rgba(251,191,36,0.45), transparent)' }} />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={setHint.chest} alt="" className="relative h-20 w-20 sm:h-28 sm:w-28 object-contain animate-chest-idle-bounce" />
+                                {setHint.chestLabel && (
+                                    <span className="relative -mt-1 rounded-full border-2 border-[#B8862E] bg-[#2A2410] px-3 py-0.5 text-xs font-black uppercase tracking-wide text-[#FFE58A]">
+                                        {setHint.chestLabel}
+                                    </span>
+                                )}
+                            </motion.div>
                         </>
                     ) : chainHint ? (
                         <>

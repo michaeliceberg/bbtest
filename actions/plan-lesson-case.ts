@@ -20,7 +20,7 @@ import { getSetBarData, isSetCourse } from '@/lib/setBar';
 import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL } from '@/lib/caseRewards';
 
 // Подсказка про сет на экране итогов урока (вместо «Серия xN без остановки» в курсах с сетом).
-export type SetFinishHint = { title: string; text: string; chest: string };
+export type SetFinishHint = { title: string; text: string; chest: string; chestLabel: string };
 
 export type PlannedLessonCase = {
 	key: GrantedKey | null;
@@ -95,12 +95,13 @@ async function setFinishHint(userId: string, courseTitle?: string | null): Promi
 	if (!d) return null;
 	const tier = LESSON_CASE_TIER_LABEL[d.tier].toLowerCase();
 	const chest = LESSON_CASE_TIER_ICON[d.tier];
-	if (d.step === 'none') return { title: 'Команданте накрыл сет!', text: `Три блюда — и ${tier} сундук. Жми полоску сета сверху`, chest };
-	if (d.step === 'done') return d.caseClaimed ? null : { title: 'Сет съеден! 😋', text: `Забирай ${tier} сундук — он на полоске сета сверху`, chest };
-	if (d.step === 'trainer') return { title: `Сет №${d.setNumber} ждёт`, text: `Закуска: «${d.trainerTitle ?? 'урок тренажёра'}» — и вперёд к ${d.tier === 'common' ? 'обычному' : d.tier === 'rare' ? 'редкому' : 'мифическому'} сундуку`, chest };
-	if (d.step === 'trainer2') return { title: 'Закуска съедена! 🔥', text: `Основное — «${d.trainer2Title ?? 'урок тренажёра'}», и ${tier} сундук твой`, chest };
+	const chestLabel = `${LESSON_CASE_TIER_LABEL[d.tier]} кейс`;
+	if (d.step === 'none') return { title: 'Команданте накрыл сет!', text: `Три блюда — и ${tier} сундук. Жми полоску сета сверху`, chest, chestLabel };
+	if (d.step === 'done') return d.caseClaimed ? null : { title: 'Сет съеден! 😋', text: `Забирай ${tier} сундук — он на полоске сета сверху`, chest, chestLabel };
+	if (d.step === 'trainer') return { title: `Сет №${d.setNumber} ждёт`, text: `Закуска: «${d.trainerTitle ?? 'урок тренажёра'}» — и вперёд к ${d.tier === 'common' ? 'обычному' : d.tier === 'rare' ? 'редкому' : 'мифическому'} сундуку`, chest, chestLabel };
+	if (d.step === 'trainer2') return { title: 'Закуска съедена! 🔥', text: `Основное — «${d.trainer2Title ?? 'урок тренажёра'}», и ${tier} сундук твой`, chest, chestLabel };
 	const left = Math.max(0, d.tasksTotal - d.tasksDone);
-	return { title: 'Закуска съедена! 🔥', text: `Основное — ${left} ${left === 1 ? 'задача' : left < 5 ? 'задачи' : 'задач'} задания №${d.taskNum}, и ${tier} сундук твой`, chest };
+	return { title: 'Закуска съедена! 🔥', text: `Основное — ${left} ${left === 1 ? 'задача' : left < 5 ? 'задачи' : 'задач'} задания №${d.taskNum}, и ${tier} сундук твой`, chest, chestLabel };
 }
 
 // Угадан «горячий вопрос» → ключ редкого кейса (не чаще раза на урок в день).

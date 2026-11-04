@@ -36,7 +36,7 @@ export default function TestCompletePage() {
                     setChain((c) => !c)
                     setKey((k) => k + 1)
                 }}
-                setHint={chain ? { title: 'Закуска съедена! 🔥', text: 'Основное — 5 задач задания №7, и редкий сундук твой', chest: '/chests/rare0001.svg' } : null}
+                setHint={chain ? { title: 'Закуска съедена! 🔥', text: 'Основное — 5 задач задания №7, и редкий сундук твой', chest: '/chests/rare0001.svg', chestLabel: 'Редкий кейс' } : null}
             />
         </div>
     )

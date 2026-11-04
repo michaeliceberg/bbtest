@@ -350,7 +350,7 @@ export default function TQuiz({
   // уроков и получишь mythic" на финальном экране.
   const [chainBonusLength, setChainBonusLength] = useState<number | null>(null)
   const [chainHint, setChainHint] = useState<{ count: number; alive: boolean } | null>(null)
-  const [setHint, setSetHint] = useState<{ title: string; text: string; chest: string } | null>(null)
+  const [setHint, setSetHint] = useState<{ title: string; text: string; chest: string; chestLabel?: string } | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
 
