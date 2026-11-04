@@ -79,7 +79,7 @@ const RISK_HOUR = 20
 type Mood = { src: string; text: string }
 
 // Мигель крупно «по пояс»: картинка больше, видна верхняя ~3/4 (лицо, руки и то, что в руках), низ мягко растворяется.
-const PetBust = ({ src, size, width, bob = false }: { src: string; size: number; width: number; bob?: boolean }) => (
+export const PetBust = ({ src, size, width, bob = false }: { src: string; size: number; width: number; bob?: boolean }) => (
     <div
         className="relative overflow-hidden flex-shrink-0 select-none"
         style={{

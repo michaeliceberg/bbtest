@@ -17,6 +17,7 @@ import { startEgeMove } from '@/actions/ege-move'
 import { useSetBarStore } from '@/store/use-set-bar-store'
 import { SET_BELL_SOUND, playSound, preloadSound } from '@/lib/sound'
 import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL } from '@/lib/caseRewards'
+import { PetBust } from './trainer-pet'
 
 const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
@@ -43,22 +44,22 @@ export function SetDots({ dish, size = 10 }: { dish: number; size?: number }) {
 const tierLabel = (d: SetBarData) => LESSON_CASE_TIER_LABEL[d.tier].toLowerCase()
 
 function shout(d: SetBarData, dish: number) {
-    if (dish === 0) return `Сет от Команданте, компаньеро! Три блюда — и ${tierLabel(d)} сундук твой 🍽`
+    if (dish === 0) return `Три блюда — и ${tierLabel(d)} сундук твой, компаньеро 🍽`
     if (dish === 1) {
         if (d.tLessonId2) return 'Закуска съедена! Основное — ещё один урок тренажёра 🔥'
         const left = d.tasksTotal - d.tasksDone
         if (left === 1) return 'Последняя задача — и десерт твой! 🔥'
         return `Закуска съедена! Теперь основное: ${left} ${left < 5 ? 'задачи' : 'задач'} задания №${d.taskNum} 🔥`
     }
-    if (dish === 2) return `Сет съеден! Забирай ${tierLabel(d)} сундук 🎁`
-    return 'Новый сет готов — Команданте уже накрыл на стол 😋'
+    if (dish === 2) return `Всё съедено! Забирай ${tierLabel(d)} сундук 🎁`
+    return 'Урок тренажёра, задачи — и сундук на десерт 😋'
 }
 
 // Чем больше сетов за день, тем лучше сундук: подсказка, что даст следующий сет
 function nextTierHint(d: SetBarData) {
-    if (d.setNumber >= 3) return 'Сегодня каждый сет — мифический сундук 🔥'
-    const next = d.setNumber === 1 ? 'редкий' : 'мифический'
-    return `Сет №${d.setNumber} за сегодня · следующий — ${next} сундук`
+    if (d.setNumber >= 3) return 'Сегодня каждый следующий — с мифическим сундуком 🔥'
+    if (d.setNumber === 2) return 'Ещё один после этого — и мифический сундук'
+    return 'Чем больше за день, тем круче сундук: 2-й — редкий, 3-й — мифический'
 }
 
 function useBell(d: SetBarData, dish: number) {
@@ -95,7 +96,7 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
     }
     const label = dish === 0 ? `Закуска: ${d.trainerTitle ?? 'урок тренажёра'}`
         : dish === 1 ? (d.tLessonId2 ? `Основное: ${d.trainer2Title ?? 'урок тренажёра'}` : `Задачи: ${d.tasksDone} из ${d.tasksTotal}`)
-            : dish === 2 ? `Забрать ${tierLabel(d)} сундук 🎁` : busy ? 'Накрываем на стол…' : 'Начать новый сет'
+            : dish === 2 ? `Забрать ${tierLabel(d)} сундук 🎁` : busy ? 'Накрываем на стол…' : 'Погнали 🍽'
 
     const tiles = [
         { what: d.hasTrainer ? (d.trainerTitle ? `Тренажёр: ${d.trainerTitle}` : 'Тренажёр') : 'Без закуски' },
@@ -109,13 +110,13 @@ function SetSheet({ d, dish, top, onClose }: { d: SetBarData; dish: number; top:
                 className="absolute inset-x-0 mx-auto max-w-md px-3" style={{ top }}>
                 <div className="rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl">
                     <div className="flex items-start gap-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/miguel/miguel-megaphone.webp" alt="" className="h-16 w-16 shrink-0 object-contain" />
+                        {/* Мигель по пояс, как на карте тренажёра: крупно, видно лицо и мегафон */}
+                        <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src="/miguel/miguel-megaphone.webp" size={132} width={108} /></div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[11px] font-black uppercase tracking-wider text-[#F2C35B]">
-                                {d.taskNum ? `Сет · задание №${d.taskNum}` : 'Сет'}
+                                {d.taskNum ? `Задание ЕГЭ №${d.taskNum}` : 'От Команданте'}
                             </p>
-                            <p className="text-lg font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Новый сет'}</p>
+                            <p className="text-lg font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Обед из трёх блюд'}</p>
                             <p className="mt-1 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
                             <p className="mt-1 text-[11px] font-black text-[#9AA7B0]">{nextTierHint(d)}</p>
                         </div>

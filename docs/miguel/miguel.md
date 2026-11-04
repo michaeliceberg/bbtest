@@ -282,3 +282,29 @@ Voice ID `HIGUfNOdjuWQwwapnTRW` — тот же, что купили для Gara
 Гусь: Same cartoon goose character as the reference, same pose: side view, running to the right, firing a bazooka aimed to the right and slightly up, both feet visible, black cap with red star, olive jacket, red bandana, pencil in the beak with the pink eraser end sticking out. Keep the thick clean black contour line around the whole character, closed and unbroken. NO white outline, no sticker border, no die-cut edge. No muzzle flash, no smoke, no ground, no shadow. Full body, nothing cropped. Flat solid pure magenta background #FF00FF, the same magenta everywhere. Avoid: white border, white halo, sticker outline, gradient background, shadow, text, watermark.
 
 Монстр: Same cartoon blocky monster as the reference, same pose: dark purple cube body, arms raised with fists, small purple horns, yellow X eyes, purple letters EGE on the chest. Keep the thick clean black contour line around the whole character, closed and unbroken. NO white outline, no sticker border, no die-cut edge. No ground, no shadow. Full body, nothing cropped. Flat solid pure bright green background #00FF00, the same green everywhere. Avoid: white border, white halo, sticker outline, gradient background, shadow, watermark, extra text.
+
+## Новые стикеры для «Сета» и эмоций (промпты Leonardo, 2026-11-05)
+Как раньше: Leonardo → Image Guidance → исходник `docs/miguel/miguel-base-leonardo.jpg`, сила **0.5**, 1:1, 4 варианта.
+В начале — основа промпта (см. «Шаг 1» выше), затем поза. Фон белый (make_sticker_v2.py вырезает белый фон;
+если белые детали — тарелка, клош — слипнутся с фоном, повторить с фоном «flat solid pure magenta background #FF00FF»).
+Готовую картинку: `python3 docs/miguel/tools/make_sticker_v2.py вход.jpg public/miguel/miguel-<имя>.webp`.
+
+Негатив к сценам с едой дописывать: `real alcohol, wine, beer, knife, raw meat, messy food, gross`.
+
+| Файл | Поза |
+|---|---|
+| `miguel-cloche` (главный для сета) | proud waiter pose: one wing lifts a shiny silver restaurant cloche dome up and to the side, revealing a silver serving tray held in the other wing, on the tray three small beautiful dishes in a row — a tiny appetizer plate with a green leaf, a steaming bowl of main course, a small cupcake dessert with a cherry, golden sparkles above the food, confident smirk, looking at the viewer, napkin over the forearm |
+| `miguel-chef` | wearing a tall white chef hat over the black military cap, holding a ladle like a baton, tasting from it with a satisfied face, small chef kiss gesture |
+| `miguel-tray-chest` | carrying a silver serving tray, on the tray instead of food a small wooden treasure chest with gold trim glowing, sly proud grin (десерт сета — сундук) |
+| `miguel-bell` | pressing a shiny silver reception desk bell with one wing, «order up» moment, small sound lines around the bell, cheerful shout |
+| `miguel-full` | patting a round full belly with both wings, eyes closed in bliss, tiny crumbs on the jacket, napkin tied around the neck (экран «всё съедено») |
+| `miguel-menu` | holding an open restaurant menu card with three lines drawn on it (no readable text), pointing at it with the pencil, waiter pose |
+| `miguel-hungry` | holding an empty plate and a fork, puppy eyes, hopeful hungry look, stomach growl lines (ученик давно не заходил) |
+| `miguel-shocked` | huge shocked face, eyes wide, beak wide open, wings up, cap jumping off the head (неожиданный мифический сундук) |
+| `miguel-laugh` | laughing hard, holding the belly, tears of joy, leaning back |
+| `miguel-cool` | wearing black aviator sunglasses, arms crossed, cool smirk, leaning on a wall |
+| `miguel-love` | holding a big red heart with both wings, shy warm smile (спасибо за оценку / друг пришёл) |
+| `miguel-sad-rain` | standing under a tiny rain cloud, cap drooping, sad but still holding a small flag (серия прервалась) |
+| `miguel-detective` | holding a big magnifying glass to the eye, one eye huge through the glass, curious (ИИ-помощник разбирает фото) |
+| `miguel-scientist` | in a white lab coat over the jacket, holding a bubbling test tube, safety goggles on the cap (физика) |
+| `miguel-mathboard` | writing a formula with chalk on a green chalkboard, chalk dust, focused (математика; без читаемого текста) |
