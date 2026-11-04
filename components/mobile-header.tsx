@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
+import { useSetBarStore } from '@/store/use-set-bar-store'
+import { SetDots } from './set-bar'
 import { MobileSidebar } from './modal-sidebar'
 import type { SidebarCourse } from './sidebar'
 
@@ -41,6 +43,9 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 	// цвет юнита, при смене юнита «подпрыгивает», по нажатию открывает меню юнитов.
 	const nav = useTrainerNavStore()
 	const unitButton = (pathname?.startsWith('/trainer') || pathname?.startsWith('/learn')) && nav.title && nav.open ? nav : null
+	// Полоска «Сета» (components/set-bar.tsx) уехала под шапку при прокрутке — справа остаются точки и сундук
+	const setBar = useSetBarStore()
+	const miniSet = setBar.dish !== null && setBar.compact
 
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>
@@ -68,6 +73,16 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 					<span className='flex-1 truncate text-center pl-6'>{unitButton.title}</span>
 					<ChevronDown className='w-4 h-4 flex-shrink-0 opacity-90' />
 				</motion.button>
+			)}
+			{setBar.dish !== null && (
+				<button type='button' onClick={() => setBar.open?.()}
+					className='flex h-[38px] shrink-0 items-center gap-1.5 overflow-hidden rounded-xl bg-[#0F171B] border-[#2A363C] transition-[width,opacity,padding] duration-300'
+					style={{ marginLeft: miniSet ? 8 : 0, width: miniSet ? (setBar.dish === 3 ? 44 : 78) : 0, opacity: miniSet ? 1 : 0, paddingLeft: miniSet ? 8 : 0, paddingRight: miniSet ? 6 : 0, borderWidth: miniSet ? 2 : 0 }}
+					aria-hidden={!miniSet} tabIndex={miniSet ? 0 : -1} aria-label='Сет'>
+					{setBar.dish < 3 && <SetDots dish={setBar.dish} size={8} />}
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img src='/chests/rare0001.svg' alt='' className={`h-6 w-6 shrink-0 ${setBar.dish === 2 ? 'animate-bounce' : ''}`} />
+				</button>
 			)}
 			{!unitButton && displayTitle && (
 				<span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] truncate font-bold text-sm text-[#F2F7FB]'>

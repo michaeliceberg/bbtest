@@ -3,10 +3,13 @@
 import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
+import { SetBar } from '@/components/set-bar'
+import type { SetBarData } from '@/lib/setBar'
 
 type Props = {
 	title: string
 	cozy?: boolean
+	setBar?: SetBarData | null // полоска «Сета» (components/set-bar.tsx); на телефоне — единственное, что видно из этой шапки
 }
 
 // По прямой просьбе пользователя (2026-09-23): убрана стрелка-ссылка на
@@ -16,17 +19,19 @@ type Props = {
 // На компьютере (2026-10-07), как и на телефоне, вместо названия курса —
 // кнопка на всю ширину с юнитом, на котором сейчас прокручена страница
 // (цвет юнита, bounce при смене, по нажатию — меню юнитов).
-export const Header = ({ title, cozy = false }: Props) => {
+export const Header = ({ title, cozy = false, setBar }: Props) => {
 	const nav = useTrainerNavStore()
 	const unitButton = nav.title && nav.open ? nav : null
 
 	return (
 		<div
-			className='hidden lg:flex sticky top-0 pb-4 pt-[28px] mt-[-28px] items-center justify-center mb-3 text-neutral-400 z-50'
-			// Без сплошной плашки и линии: фон шапки — только плавное затухание цвета страницы снизу,
-			// чтобы прокручиваемый контент не наезжал на кнопку, но не было видно «другого» фона.
-			style={{ background: `linear-gradient(to bottom, ${cozy ? '#221E1A' : '#151F23'} 72%, transparent)` }}
+			className={`${setBar ? 'flex' : 'hidden lg:flex'} flex-col sticky top-[50px] lg:top-0 z-40 lg:z-50 -mt-4 mb-2 lg:pb-4 lg:pt-[28px] lg:mt-[-28px] lg:mb-3 items-center justify-center text-neutral-400`}
 		>
+			{/* Без сплошной плашки и линии: фон шапки (только на компьютере) — плавное затухание цвета страницы снизу,
+			    чтобы прокручиваемый контент не наезжал на кнопку, но не было видно «другого» фона. */}
+			<div className='hidden lg:block absolute inset-0 -z-10 pointer-events-none'
+				style={{ background: `linear-gradient(to bottom, ${cozy ? '#221E1A' : '#151F23'} 72%, transparent)` }} />
+			<div className='hidden lg:flex w-full items-center justify-center'>
 			{unitButton ? (
 				<motion.button
 					key={unitButton.title}
@@ -49,6 +54,8 @@ export const Header = ({ title, cozy = false }: Props) => {
 					{title}
 				</h1>
 			)}
+			</div>
+			{setBar && <SetBar data={setBar} />}
 		</div>
 	)
 }

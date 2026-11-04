@@ -102,7 +102,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                     <ArrowLeft className="h-4 w-4" /> Мой путь
                 </Link>
 
-                <p className="mt-4 text-xs font-bold uppercase tracking-wide" style={{ color: ORANGE.button }}>Ход</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-wide" style={{ color: ORANGE.button }}>Сет</p>
                 <h1 className="text-2xl font-black text-[#F2F7FB]">Задание №{move.taskNum}</h1>
                 {move.taskTitle && <p className="text-sm font-bold text-[#9AA7B0]">{move.taskTitle}</p>}
 
@@ -134,7 +134,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                         className="mt-6 rounded-3xl border-2 p-5 text-center"
                         style={{ borderColor: hexToRgba(GREEN.button, 0.6), backgroundColor: hexToRgba(GREEN.button, 0.08) }}>
                         <p className="text-3xl">🎉</p>
-                        <p className="mt-1 text-xl font-black text-[#F2F7FB]">Ход сделан!</p>
+                        <p className="mt-1 text-xl font-black text-[#F2F7FB]">Сет съеден! 😋</p>
                         <div className="mt-4 flex items-center justify-center gap-3">
                             <div>
                                 <p className="text-xs font-bold text-[#9AA7B0]">было</p>
@@ -161,7 +161,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                             <button type="button" onClick={nextMove} disabled={pending}
                                 className="mt-5 w-full rounded-2xl py-3 text-base font-black uppercase tracking-wide text-[#151F24] disabled:opacity-60"
                                 style={{ backgroundColor: ORANGE.button, boxShadow: `0 5px 0 ${ORANGE.bottom}` }}>
-                                Следующий ход ➜
+                                Следующий сет ➜
                             </button>
                         )}
                         <Link href="/path" className="mt-3 block text-sm font-bold text-[#9AA7B0]">Вернуться в «Мой путь»</Link>

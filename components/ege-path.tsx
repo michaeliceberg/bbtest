@@ -25,7 +25,7 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
         if (activeMoveId) { router.push(`/move/${activeMoveId}`); return }
         const r = await startEgeMove().catch(() => null)
         if (r && 'id' in r) router.push(`/move/${r.id}`)
-        else setMoveError(r && 'error' in r ? r.error : 'Не получилось собрать ход')
+        else setMoveError(r && 'error' in r ? r.error : 'Не получилось собрать сет')
     })
     const [target, setTarget] = useState<number | null>(initialTarget)
     const [, startTransition] = useTransition()
@@ -58,7 +58,7 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
                     <img src="/chests/rare0001.svg" alt="" className="h-14 w-14 shrink-0 animate-tile-float" />
                     <div className="min-w-0 flex-1">
                         <p className="text-base font-black text-[#F2F7FB]">Тебя ждёт редкий кейс!</p>
-                        <p className="text-xs font-bold text-[#8FD8F2]">За ход по заданию №{unclaimedCase.taskNum}</p>
+                        <p className="text-xs font-bold text-[#8FD8F2]">За сет по заданию №{unclaimedCase.taskNum}</p>
                     </div>
                     <span className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-black text-[#151F24]" style={{ backgroundColor: '#00C5FF', boxShadow: '0 4px 0 #0089B3' }}>Открыть</span>
                 </Link>

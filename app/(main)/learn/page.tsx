@@ -20,6 +20,7 @@ import {
 } from '@/db/queries';
 import { redirect } from 'next/navigation';
 import { Header } from '../trainer/header';
+import { getSetBarData } from '@/lib/setBar';
 import { LearnUnitNav } from '@/components/learn-unit-nav';
 import { Unit } from './unit';
 import { format } from 'date-fns';
@@ -125,6 +126,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   }
 
   await recalculateDailyStats(userId, activeCourseId);
+  // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
+  const setBar = await getSetBarData(userId, activeCourse.title);
 
   // generateHomework (автогенерация "Челлендж дня" — 2 ЖЁСТКО
   // ЗАФИКСИРОВАННЫЕ задачи курса каждый день, components/homework-list.tsx)
@@ -481,7 +484,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
 
         <FeedWrapper>
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
-          <Header title={`Задачник ${activeCourse.title}`} />
+          <Header title={`Задачник ${activeCourse.title}`} setBar={setBar} />
           {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);

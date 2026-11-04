@@ -697,7 +697,7 @@ export const Quiz = ({
                 <p className="text-6xl">💪</p>
                 <h1 className="text-2xl md:text-3xl font-black text-[#F2F7FB]">Почти!</h1>
                 <p className="text-[#C9D3D9] font-bold">
-                    {moveWrong === 1 ? 'Одна ошибка' : `Ошибок: ${moveWrong}`} — ход засчитывается только на верных ответах.
+                    {moveWrong === 1 ? 'Одна ошибка' : `Ошибок: ${moveWrong}`} — сет засчитывается только на верных ответах.
                     <br />Держи задачу на замену 👇
                 </p>
                 <button
@@ -743,7 +743,7 @@ export const Quiz = ({
                         className="w-24 h-24 md:w-32 md:h-32"
                     />
                     <h1 className="text-2xl md:text-3xl font-bold text-neutral-700">
-                        {moveId ? 'Задачи хода решены! 🎉' : 'Отличная работа! 🎉'}
+                        {moveId ? 'Задачи сета решены! 🎉' : 'Отличная работа! 🎉'}
                     </h1>
                     <p className="text-[#9AA7B0]">{moveId ? 'Все ответы верные' : 'Вы завершили урок'}</p>
                     <div className="flex items-center gap-4 w-full justify-center mt-4">
@@ -761,7 +761,7 @@ export const Quiz = ({
                         className="mt-6 px-8 py-3 text-base"
                         size="lg"
                     >
-                        {moveId ? 'Завершить ход ➜' : 'Продолжить'}
+                        {moveId ? 'Доесть сет ➜' : 'Продолжить'}
                     </Button>
                 </motion.div>
             </>

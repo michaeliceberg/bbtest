@@ -1,3 +1,4 @@
+import { getSetBarData } from '@/lib/setBar';
 // app/(main)/trainer/page.tsx
 
 import { hasProFor } from '@/lib/pro'
@@ -213,6 +214,8 @@ const TLearnPage = async () => {
     // Код приглашения — для кнопки «поделиться» у пошаговых уроков на карте.
     const shareInvite = await getOrCreateInvite(userProgress.userId).catch(() => null);
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
+    // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
+    const setBar = userId ? await getSetBarData(userId, activeTCourse?.title) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
     const currentPoints = userProgress.points;
@@ -295,7 +298,7 @@ const TLearnPage = async () => {
             <FeedWrapper>
                 <GuestRewardClaimer />
                 {cashback.length > 0 && <ReferralCashbackScreen items={cashback} theme={uiTheme} />}
-                <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
+                <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} setBar={setBar} />
 
                 <div className='mt-2 lg:mt-5'>
                     {/* «Штурм» (lib/storm.ts): идут горячие 10 минут — отсчёт и что дадут */}

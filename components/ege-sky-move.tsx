@@ -166,7 +166,7 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
             {/* шаги хода */}
             {mv && (
                 <div className="bg-[#161F23] p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GGEGE_PALETTE.orange.button }}>Твой следующий ход</p>
+                    <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GGEGE_PALETTE.orange.button }}>Твой следующий сет</p>
                     <p className="mt-0.5 text-base font-black text-[#F2F7FB]">
                         {mv.topic ? <>Фундамент · {mv.topic.title}</> : <>Задание №{mv.station.num} · {mv.station.title}</>}
                     </p>
@@ -193,7 +193,7 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
                     <button type="button" onClick={onMove} disabled={movePending}
                         className="mt-3 w-full rounded-2xl py-3 text-base font-black uppercase tracking-wide text-[#151F24] disabled:opacity-60"
                         style={{ backgroundColor: GGEGE_PALETTE.orange.button, boxShadow: `0 5px 0 ${GGEGE_PALETTE.orange.bottom}` }}>
-                        {activeMoveId ? 'Продолжить ход ➜' : 'Начать ход ➜'}
+                        {activeMoveId ? 'Продолжить сет ➜' : 'Начать сет ➜'}
                     </button>
                     {moveError && <p className="mt-2 text-center text-sm font-bold text-[#DC605B]">{moveError}</p>}
                 </div>

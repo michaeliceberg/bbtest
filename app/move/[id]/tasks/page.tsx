@@ -78,7 +78,7 @@ const MoveTasksPage = async ({ params }: { params: { id: string } }) => {
             initialPercentage={Math.min(99, (answered.size / challenges.length) * 100)}
             userSubscription={null}
             challengeProgress={progress}
-            lessonTitle={`Ход · задание №${m.taskNum}`}
+            lessonTitle={`Сет · задание №${m.taskNum}`}
             oldCourseProgress={userProgress.courseProgress}
             activeCourseTitle={userProgress.activeCourse?.title ?? ''}
             hwChallengeIds={[]}
