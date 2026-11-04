@@ -8,4 +8,5 @@ export type SceneLesson = {
     scenes: Scene[]
     trials: SceneTrial[]
     last: string            // подпись кнопки после последнего задания
+    plainMath?: boolean     // простые формулы шрифтом урока, без KaTeX и без плашек «🎮 …»
 }

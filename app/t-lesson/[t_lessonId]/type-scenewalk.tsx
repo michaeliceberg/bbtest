@@ -19,7 +19,7 @@ import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
-import Latex from 'react-latex-next'
+import { MathText, PlainMathCtx } from '@/components/geometry/plain-math'
 import 'katex/dist/katex.min.css'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
@@ -120,6 +120,7 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
     const t = TRIALS[trialIndex]
     const long = t.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
     return (
+        <PlainMathCtx.Provider value={!!lesson.plainMath}>
         <div className="scene-tex w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
@@ -150,7 +151,7 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                         </div>
                         <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] text-center min-h-[3.5rem]">
                             {(qShow || checked) && (t.text.includes('$')
-                                ? <motion.div key={`q-${trialIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onAnimationComplete={() => setQTyped(true)}><Latex>{t.text}</Latex></motion.div>
+                                ? <motion.div key={`q-${trialIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onAnimationComplete={() => setQTyped(true)}><MathText>{t.text}</MathText></motion.div>
                                 : <Typewriter key={`q-${trialIndex}`} text={t.text} onDone={() => setQTyped(true)} />)}
                         </div>
                         {!checked && qTyped && (
@@ -161,7 +162,7 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                                         <button key={v} type="button" disabled={isWrong} onClick={() => answer(v)}
                                             className={cn('min-h-[60px] px-2 rounded-xl border-2 border-b-4 text-xl md:text-2xl font-black transition-colors',
                                                 isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
-                                            {v.includes('$') ? <Latex>{v}</Latex> : v}
+                                            <MathText>{v}</MathText>
                                         </button>
                                     )
                                 })}
@@ -169,12 +170,12 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                         )}
                         {!checked && wrongFlash && (
                             <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">
-                                {wrongFlash.includes('$') ? <Latex>{wrongFlash}</Latex> : wrongFlash}
+                                <MathText>{wrongFlash}</MathText>
                             </div>
                         )}
                         {checked && (
                             <FieryFeedbackBanner>
-                                {pickPraise(trialIndex)} {t.answer.includes('$') ? <Latex>{t.answer}</Latex> : t.answer}
+                                {pickPraise(trialIndex)} <MathText>{t.answer}</MathText>
                             </FieryFeedbackBanner>
                         )}
                         {checked && <LocalAnswerConfetti />}
@@ -199,5 +200,6 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                 </div>
             ) : null}
         </div>
+        </PlainMathCtx.Provider>
     )
 }

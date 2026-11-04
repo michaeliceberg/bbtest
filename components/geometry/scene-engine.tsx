@@ -13,12 +13,12 @@
 import { Fragment, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RememberPlate } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, splitThoughts } from '@/components/geometry/Typewriter'
+import { MathText, usePlainMath } from '@/components/geometry/plain-math'
 import { playJustClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
-import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
 
 export const SLOT_COL = GGEGE_PALETTE.purple.button
@@ -43,13 +43,21 @@ export type Part =
     | { t: 'custom'; label?: string; render: (done: () => void) => React.ReactNode }
 export type Scene = { title: string; next: string; parts: Part[] }
 
-const L = ({ children }: { children: string }) => (children.includes('$') ? <Latex>{children}</Latex> : <>{children}</>)
+const L = ({ children }: { children: string }) => <MathText>{children}</MathText>
 
-export const TypedLine = ({ text, onDone, big }: { text: string; onDone?: () => void; big?: boolean }) => (
-    <div className={cn('w-full text-center font-black text-[#F2F7FB]', big ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl')}>
-        <Typewriter text={text} onDone={() => setTimeout(() => onDone?.(), 350)} />
-    </div>
-)
+// Формулы в $…$: пока печатается — без значков «$», после печати текст рисуется через KaTeX.
+export const TypedLine = ({ text, onDone, big }: { text: string; onDone?: () => void; big?: boolean }) => {
+    const [typed, setTyped] = useState(false)
+    const hasTex = text.includes('$')
+    return (
+        <div className={cn('w-full text-center font-black text-[#F2F7FB]', big ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl')}>
+            {hasTex && typed
+                ? <span className="whitespace-pre-line"><L>{splitThoughts(text)}</L></span>
+                : <Typewriter text={hasTex ? text.replace(/\$/g, '').replace(/\\cdot/g, '·').replace(/[\\{}]/g, '') : text}
+                    onDone={() => { setTyped(true); setTimeout(() => onDone?.(), 350) }} />}
+        </div>
+    )
+}
 export const After = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     useEffect(() => {
         const t = setTimeout(onDone, ms)
@@ -63,16 +71,16 @@ export const FormulaCard = ({ tex, title }: { tex: string; title: string }) => (
         style={{ borderColor: 'rgba(232,182,54,0.85)', backgroundColor: '#161F23', boxShadow: '0 0 14px -4px rgba(232,182,54,0.45)' }}
         initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 13 }}>
         <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">{title}</div>
-        <div className="text-xl md:text-2xl text-[#F2F7FB]"><Latex>{`$${tex}$`}</Latex></div>
+        <div className="text-xl md:text-2xl text-[#F2F7FB]"><L>{`$${tex}$`}</L></div>
     </motion.div>
 )
 export const CalcLine = ({ tex }: { tex: string }) => (
     <motion.div className="w-full text-center text-3xl md:text-4xl text-[#F2F7FB] py-1"
         initial={{ opacity: 0, y: 8, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 14 }}>
-        <Latex>{`$${tex}$`}</Latex>
+        <L>{`$${tex}$`}</L>
     </motion.div>
 )
-export const GameLabel = ({ children }: { children: React.ReactNode }) => (
+export const GameLabel = ({ children }: { children: React.ReactNode }) => usePlainMath() ? null : (
     <div className="w-full flex items-center gap-2" aria-hidden>
         <div className="flex-1 h-px bg-[#3A464E]" />
         <span className="text-[11px] font-black uppercase tracking-wide text-[#F2C35B]">🎮 {children}</span>
@@ -88,6 +96,7 @@ export const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode 
 
 // --- «Выбери / посчитай» ---
 export const ChoiceGame = ({ rounds, onDone }: { rounds: ChoiceRound[]; onDone: () => void }) => {
+    const plain = usePlainMath()
     const [r, setR] = useState(0)
     const [wrong, setWrong] = useState<string[]>([])
     const [done, setDone] = useState(false)
@@ -108,7 +117,7 @@ export const ChoiceGame = ({ rounds, onDone }: { rounds: ChoiceRound[]; onDone: 
             <motion.div key={r} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                 className="w-full text-center text-xl md:text-2xl font-black text-[#F2F7FB]">
                 <L>{round.prompt}</L>
-                {rounds.length > 1 && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
+                {rounds.length > 1 && !plain && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
             </motion.div>
             <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
                 {round.options.map((o) => {
