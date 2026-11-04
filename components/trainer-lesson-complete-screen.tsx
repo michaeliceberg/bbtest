@@ -42,6 +42,8 @@ type Props = {
     // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
     // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
     chainHint?: { count: number; remaining: number } | null
+    // курсы с «Сетом»: вместо серии без остановки — сколько блюд осталось до сундука (actions/plan-lesson-case.ts)
+    setHint?: { title: string; text: string; chest: string } | null
     // Стиль: игровой (по умолчанию) или тёплый «cozy» — плоские блоки с
     // толстой нижней гранью, тёплый фон, без звёзд и неона.
     theme?: UiTheme
@@ -110,7 +112,7 @@ const StatCard = ({
 )
 
 export const TrainerLessonCompleteScreen = ({
-    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, tertiaryLabel, onTertiary, chainHint, theme = 'metal',
+    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, tertiaryLabel, onTertiary, chainHint, setHint, theme = 'metal',
 }: Props) => {
     const cozy = theme === 'cozy'
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
@@ -128,7 +130,7 @@ export const TrainerLessonCompleteScreen = ({
         return () => timers.forEach((t) => window.clearTimeout(t))
     }, [])
 
-    const accent = chainHint ? '#FBBF24' : '#38BDF8'
+    const accent = chainHint || setHint ? '#FBBF24' : '#38BDF8'
 
     return (
         <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
@@ -157,7 +159,21 @@ export const TrainerLessonCompleteScreen = ({
                     transition={{ delay: 0.35, type: 'spring', bounce: 0.4, duration: 0.6 }}
                     className="text-center"
                 >
-                    {chainHint ? (
+                    {setHint ? (
+                        <>
+                            <h1
+                                className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]"
+                                style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` } : { color: '#FBBF24' }}
+                            >
+                                {setHint.title}
+                            </h1>
+                            <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
+                                {setHint.text}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={setHint.chest} alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
+                            </p>
+                        </>
+                    ) : chainHint ? (
                         <>
                             <h1
                                 className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]"

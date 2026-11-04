@@ -95,7 +95,13 @@ export type LessonCaseRollResult = {
 	chainAlive: boolean;
 };
 
-export async function rollLessonCaseTier(userId: string, mistakes: number, storm = false): Promise<LessonCaseRollResult> {
+// noChain — в курсах, где есть «Сет» (lib/setBar.ts, «ЕГЭ Математика»), «ударный час» слит с сетом:
+// цепочку уроков не считаем и мифический за неё не даём — растущий сундук даёт сет (lib/egeMove.ts setTierOf).
+export async function rollLessonCaseTier(userId: string, mistakes: number, storm = false, noChain = false): Promise<LessonCaseRollResult> {
+	if (noChain) {
+		if (!storm && Math.random() > LESSON_CASE_DROP_CHANCE) return { tier: null, chainBonus: null, chainCount: 0, chainAlive: false };
+		return { tier: pickWeightedTier(storm ? STORM_TIER_WEIGHTS : TIER_WEIGHTS), chainBonus: null, chainCount: 0, chainAlive: false };
+	}
 	const safeMistakes = Number.isFinite(mistakes) ? Math.max(0, Math.floor(mistakes)) : 0;
 
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });

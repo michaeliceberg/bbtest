@@ -350,6 +350,7 @@ export default function TQuiz({
   // уроков и получишь mythic" на финальном экране.
   const [chainBonusLength, setChainBonusLength] = useState<number | null>(null)
   const [chainHint, setChainHint] = useState<{ count: number; alive: boolean } | null>(null)
+  const [setHint, setSetHint] = useState<{ title: string; text: string; chest: string } | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
 
@@ -380,6 +381,7 @@ export default function TQuiz({
     const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
     const result = await planLessonCase(t_lessonId, mistakes)
     setChainHint({ count: result.chainCount, alive: result.chainAlive })
+    setSetHint(result.setHint ?? null)
     const st = result.storm
     if (st?.until) setStormInfo({ until: st.until, lessons: st.lessons, goal: st.goal, rewarded: st.rewarded })
     if (st?.started) pendingStormStartRef.current = true
@@ -1240,6 +1242,7 @@ export default function TQuiz({
             // см. жалобу пользователя) — теперь занимает место самого
             // заголовка внутри экрана. Не показывается, если этот же урок
             // УЖЕ дал бонус цепочки (баннер CaseWonBanner выше это уже сказал).
+            setHint={setHint}
             chainHint={
               !chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3
                 ? { count: chainHint.count, remaining: 3 - chainHint.count }

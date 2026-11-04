@@ -31,12 +31,12 @@ export default function TestCompletePage() {
                 elapsedSeconds={134}
                 primaryLabel="Показать ещё раз"
                 onPrimary={() => setKey((k) => k + 1)}
-                secondaryLabel={chain ? 'Обычный вариант' : 'Вариант «серия без остановки»'}
+                secondaryLabel={chain ? 'Обычный вариант' : 'Вариант «сет»'}
                 onSecondary={() => {
                     setChain((c) => !c)
                     setKey((k) => k + 1)
                 }}
-                chainHint={chain ? { count: 1, remaining: 2 } : null}
+                setHint={chain ? { title: 'Закуска съедена! 🔥', text: 'Основное — 5 задач задания №7, и редкий сундук твой', chest: '/chests/rare0001.svg' } : null}
             />
         </div>
     )

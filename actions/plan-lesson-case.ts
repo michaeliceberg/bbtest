@@ -16,6 +16,11 @@ import { grantCaseKey, type GrantedKey } from '@/lib/caseKeys';
 import { rollLessonCaseTier } from '@/lib/lessonCaseRoll';
 import type { LessonCaseTier } from '@/lib/caseRewards';
 import { advanceStorm, type StormState } from '@/lib/storm';
+import { getSetBarData, isSetCourse } from '@/lib/setBar';
+import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL } from '@/lib/caseRewards';
+
+// Подсказка про сет на экране итогов урока (вместо «Серия xN без остановки» в курсах с сетом).
+export type SetFinishHint = { title: string; text: string; chest: string };
 
 export type PlannedLessonCase = {
 	key: GrantedKey | null;
@@ -26,6 +31,7 @@ export type PlannedLessonCase = {
 	storm: StormState | null;
 	// true — ключ выдан за STORM_GOAL уроков в штурме (мифический)
 	stormMythic?: boolean;
+	setHint?: SetFinishHint | null;
 };
 
 const EMPTY: PlannedLessonCase = { key: null, chainBonus: null, chainCount: 0, chainAlive: false, storm: null };
@@ -38,7 +44,7 @@ export async function planLessonCase(t_lessonId: number, mistakes: number): Prom
 
 	const lesson = await db.query.t_lessons.findFirst({
 		where: eq(t_lessons.id, t_lessonId),
-		with: { t_unit: { with: { t_lessons: { orderBy: (l, { asc }) => [asc(l.order)] } } } },
+		with: { t_unit: { with: { t_course: true, t_lessons: { orderBy: (l, { asc }) => [asc(l.order)] } } } },
 	});
 	if (!lesson) return EMPTY;
 	const siblings = lesson.t_unit.t_lessons;
@@ -71,7 +77,8 @@ export async function planLessonCase(t_lessonId: number, mistakes: number): Prom
 		return { ...base, key: await grantCaseKey(userId, 'mythic', 'mythic-stage', ref) };
 	}
 
-	const roll = await rollLessonCaseTier(userId, mistakes, !!storm?.counted);
+	const setCourse = isSetCourse(lesson.t_unit.t_course?.title);
+	const roll = await rollLessonCaseTier(userId, mistakes, !!storm?.counted, setCourse);
 	const key = roll.tier ? await grantCaseKey(userId, roll.tier, roll.chainBonus ? 'chain' : 'lesson', ref) : null;
 	return {
 		...base,
@@ -79,7 +86,21 @@ export async function planLessonCase(t_lessonId: number, mistakes: number): Prom
 		chainBonus: key ? (roll.chainBonus?.length ?? null) : null,
 		chainCount: roll.chainCount,
 		chainAlive: roll.chainAlive,
+		setHint: setCourse ? await setFinishHint(userId, lesson.t_unit.t_course?.title) : null,
 	};
+}
+
+async function setFinishHint(userId: string, courseTitle?: string | null): Promise<SetFinishHint | null> {
+	const d = await getSetBarData(userId, courseTitle);
+	if (!d) return null;
+	const tier = LESSON_CASE_TIER_LABEL[d.tier].toLowerCase();
+	const chest = LESSON_CASE_TIER_ICON[d.tier];
+	if (d.step === 'none') return { title: 'Команданте накрыл сет!', text: `Три блюда — и ${tier} сундук. Жми полоску сета сверху`, chest };
+	if (d.step === 'done') return d.caseClaimed ? null : { title: 'Сет съеден! 😋', text: `Забирай ${tier} сундук — он на полоске сета сверху`, chest };
+	if (d.step === 'trainer') return { title: `Сет №${d.setNumber} ждёт`, text: `Закуска: «${d.trainerTitle ?? 'урок тренажёра'}» — и вперёд к ${d.tier === 'common' ? 'обычному' : d.tier === 'rare' ? 'редкому' : 'мифическому'} сундуку`, chest };
+	if (d.step === 'trainer2') return { title: 'Закуска съедена! 🔥', text: `Основное — «${d.trainer2Title ?? 'урок тренажёра'}», и ${tier} сундук твой`, chest };
+	const left = Math.max(0, d.tasksTotal - d.tasksDone);
+	return { title: 'Закуска съедена! 🔥', text: `Основное — ${left} ${left === 1 ? 'задача' : left < 5 ? 'задачи' : 'задач'} задания №${d.taskNum}, и ${tier} сундук твой`, chest };
 }
 
 // Угадан «горячий вопрос» → ключ редкого кейса (не чаще раза на урок в день).
