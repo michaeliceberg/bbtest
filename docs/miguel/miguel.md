@@ -308,3 +308,30 @@ Voice ID `HIGUfNOdjuWQwwapnTRW` — тот же, что купили для Gara
 | `miguel-detective` | holding a big magnifying glass to the eye, one eye huge through the glass, curious (ИИ-помощник разбирает фото) |
 | `miguel-scientist` | in a white lab coat over the jacket, holding a bubbling test tube, safety goggles on the cap (физика) |
 | `miguel-mathboard` | writing a formula with chalk on a green chalkboard, chalk dust, focused (математика; без читаемого текста) |
+
+## Колокольчики уровня сета и еда блюд (промпты Leonardo, 2026-11-05)
+Не персонаж — иконки предметов. Image Guidance со стилем: `public/miguel/miguel-cloche.webp` (или любой стикер Мигеля),
+сила **0.3–0.35** (берём только стиль: толстый чёрный контур, плоская заливка). 1:1. Фон — сплошной ядовитый
+`flat solid pure magenta background #FF00FF` (серебро и белое с белого фона вырезаются плохо). Положить в
+`public/set-bells/bell-1..4.webp` и `public/set-food/fries|burger|donut.webp` — подключу (`SET_BELLS`, `SET_DISH_ICONS`
+в components/set-bar.tsx).
+
+Основа иконки (в начало каждого):
+> Cartoon game item icon, single object centered, slight 3/4 front view, thick clean black outline, flat cel shading with one soft highlight, bold saturated colors, kid-friendly mobile game style, flat solid pure magenta background #FF00FF, no text, no characters, no hands
+
+Негатив: `text, letters, numbers, watermark, logo, hands, person, animal, goose, realistic, photo, 3d render, gradient background, white border, sticker outline, shadow on background, multiple objects`
+
+Колокольчики (уровень = какой сет за день):
+| Файл | Предмет |
+|---|---|
+| `bell-1` (1-й сет, обычный) | simple silver hotel reception desk bell on a round black base, small push button on top, plain and shiny |
+| `bell-2` (2-й, редкий) | reception desk bell made of polished blue metal with silver trim, glowing light blue rim, small sparkles around |
+| `bell-3` (3-й, мифический) | ornate purple and gold reception desk bell, engraved star pattern, glowing violet aura, magic sparkles flying around |
+| `bell-4` (на будущее, МЕГА) | legendary golden reception desk bell with a small red star on the button, flames of golden light around it, rays behind, epic treasure look |
+
+Еда (блюда сета):
+| Файл | Предмет |
+|---|---|
+| `fries` (закуска) | red paper carton of golden french fries, a few fries sticking out, tiny ketchup drop |
+| `burger` (основное) | tall juicy cheeseburger with sesame bun, lettuce, tomato, melted cheese dripping, a tiny toothpick flag with a red star on top |
+| `donut` (десерт) | pink glazed donut with colorful sprinkles, glossy icing, one bite missing |
