@@ -191,3 +191,5 @@ export const QUEST_LAND_SOUND = '/snd-progress-plus1-fall.mp3'
 export const LEVEL_UP_SOUND = '/snd-lvlup.mp3'
 // Сундук кейса падает сверху и приземляется (components/CaseReel.tsx).
 export const CHEST_DROP_SOUND = '/snd-drop-chest.mp3'
+// колокольчик со стойки ресторана: сет перешёл к новому блюду (zapsplat, reception bell «ding»)
+export const SET_BELL_SOUND = '/snd-set-bell.mp3'
