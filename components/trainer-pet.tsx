@@ -78,6 +78,30 @@ const RISK_HOUR = 20
 
 type Mood = { src: string; text: string }
 
+// Мигель крупно «по пояс»: картинка больше, видна верхняя ~3/4 (лицо, руки и то, что в руках), низ мягко растворяется.
+const PetBust = ({ src, size, width, bob = false }: { src: string; size: number; width: number; bob?: boolean }) => (
+    <div
+        className="relative overflow-hidden flex-shrink-0 select-none"
+        style={{
+            width,
+            height: Math.round(size * 0.74),
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 78%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, #000 78%, transparent 100%)',
+        }}
+    >
+        <motion.img
+            key={src}
+            src={src}
+            alt=""
+            draggable={false}
+            className="absolute left-1/2 top-0 max-w-none object-contain"
+            style={{ width: size, height: size, marginLeft: -size / 2 }}
+            animate={bob ? { y: [0, -4, 0] } : undefined}
+            transition={bob ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        />
+    </div>
+)
+
 export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false }: Props) => {
     // Час сверяем только после монтирования (часовой пояс браузера).
     const [late, setLate] = useState(false)
@@ -115,8 +139,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                 <div className="w-[122px] rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2 py-1.5 text-[14px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={mood.src} alt="" draggable={false} className="h-24 w-24 object-contain select-none" />
+                <PetBust src={mood.src} size={156} width={140} />
             </div>
         )
     }
@@ -128,15 +151,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                 <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-2 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
-                <motion.img
-                    key={mood.src}
-                    src={mood.src}
-                    alt=""
-                    draggable={false}
-                    className="w-36 h-36 object-contain select-none"
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                />
+                <PetBust src={mood.src} size={184} width={150} bob />
             </div>
         )
     }
