@@ -29,7 +29,8 @@ const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
 const SET_TABLECLOTH = '/set-tablecloth/cloth-1.webp'
-export const SET_DISH_ICONS = ['🍟', '🍔', '🍩']
+// Десерт — это сам сундук, отдельной еды у него нет
+export const SET_DISH_ICONS = ['🍟', '🍔']
 // Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
 // 3-й — фиолетовый (мифический), 4-й и дальше — огненный золотой (сундук тот же мифический).
 // Картинка разрезана на корпус и кнопку сверху (public/set-bells/bell-N-body/knob.webp, исходники —
@@ -241,16 +242,21 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0 }: { d: SetB
                             )}
                             <div className="flex flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-1.5 text-center"
                                 style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322E6' : cur ? '#2A2410E6' : '#0F171BD9' }}>
-                                <span className={`relative text-3xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
-                                    {SET_DISH_ICONS[i]}
-                                    {ok && <Check className="absolute -bottom-1 -right-2 h-5 w-5 rounded-full bg-[#78C93C] p-0.5 text-[#16240C]" strokeWidth={4} />}
-                                </span>
-                                <span className="mt-0.5 line-clamp-2 text-[10px] font-bold leading-tight text-[#C9D3D9]">
-                                    {i < 2 ? tiles[i].what : ''}
-                                </span>
-                                {i === 2 && (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-7 w-7 ${cur ? 'animate-bounce' : far ? 'opacity-60' : ''}`} />
+                                {i < 2 ? (
+                                    <>
+                                        <span className={`relative text-3xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
+                                            {SET_DISH_ICONS[i]}
+                                            {ok && <Check className="absolute -bottom-1 -right-2 h-5 w-5 rounded-full bg-[#78C93C] p-0.5 text-[#16240C]" strokeWidth={4} />}
+                                        </span>
+                                        <span className="mt-0.5 line-clamp-2 text-[10px] font-bold leading-tight text-[#C9D3D9]">{tiles[i].what}</span>
+                                    </>
+                                ) : (
+                                    // десерт — сундук, под ним его редкость
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={LESSON_CASE_TIER_ICON[d.tier]} alt={name} className={`h-9 w-9 ${cur ? 'animate-bounce' : far ? 'opacity-45' : ''}`} />
+                                        <span className="mt-0.5 text-[10px] font-bold leading-tight text-[#C9D3D9]">{LESSON_CASE_TIER_LABEL[d.tier]}</span>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -286,7 +292,7 @@ function FreshStamp({ className = '' }: { className?: string }) {
 
 // Раскладки полоски (язычок с колокольчиком всегда справа); выбираем на /test-tablecloth
 export const SET_BAR_LAYOUTS = [
-    'Сундук и блюда слева, надпись по центру, FRESH справа от неё',
+    'Блюда и сундук-десерт слева, надпись по центру, FRESH справа от неё',
     'Надпись слева, FRESH над ней, блюда и сундук у колокольчика',
     'FRESH слева, надпись по центру, блюда и сундук у колокольчика',
     'Блюда слева, надпись по центру, сундук у колокольчика, FRESH на верхнем крае',
@@ -315,6 +321,10 @@ export function BarButton({ d, dish, onClick, layout = 0 }: { d: SetBarData; dis
         </span>
     )
     const stamp = active && <FreshStamp />
+    const dessertChest = (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-6 w-6 shrink-0 ${eaten ? 'animate-bounce' : 'opacity-40 grayscale'}`} />
+    )
     const L = active ? layout : 0
     return (
         <button type="button" onClick={onClick}
@@ -351,7 +361,8 @@ export function BarButton({ d, dish, onClick, layout = 0 }: { d: SetBarData; dis
                 </>
             ) : (
                 <>
-                    {chest}{dishes}
+                    {/* блюда, а на месте третьего — сундук-десерт (бледный, пока до него не дошли) */}
+                    <span className="flex shrink-0 items-center gap-0.5">{dishes}{dessertChest}</span>
                     <span className="flex min-w-0 flex-1 items-center justify-center gap-2">{text('text-center')}{stamp}</span>
                 </>
             )}
