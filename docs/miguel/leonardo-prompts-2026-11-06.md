@@ -9,7 +9,8 @@
 
 Как всегда: Leonardo → Image Guidance → исходник `docs/miguel/miguel-base-leonardo.jpg`, сила **0.5**, 1:1, 4 варианта.
 В начале — **основа промпта** (из `docs/miguel/miguel.md`, «Шаг 1»), потом поза из таблицы. Негатив — обычный, тоже из «Шаг 1».
-Вырезка: `python3 docs/miguel/tools/make_sticker_v2.py вход.jpg public/miguel/miguel-<имя>.webp`.
+Вырезка: `python3 docs/miguel/tools/make_sticker_v2.py вход.jpg public/miguel/miguel-<имя>.webp`. Remove Background в Leonardo
+не нужен — присылайте картинку на пурпурном фоне, вырежу сам.
 
 Основа (для удобства, копировать целиком перед позой):
 
@@ -60,7 +61,7 @@
 Сейчас у всех уровней один зелёный армейский стол (`public/set-tablecloth/cloth-green.webp`). Идея: чем выше колокольчик
 (1-й сет за день → 4-й), тем наряднее стол. Делать **правкой текущего стола**, чтобы вид сверху, размер и пустой центр
 совпали: FLUX.1 Kontext → Add Image `docs/set-table/leonardo/table-green.png` → команда из таблицы. Соотношение то же,
-что у исходника (16:9). Потом Remove Background (Full, тень None).
+что у исходника (16:9). Remove Background в Leonardo НЕ делать — фон вырежу сам (пурпурный фон для этого).
 
 Общее начало команды (копировать перед каждой):
 
@@ -68,7 +69,7 @@
 
 Общий конец:
 
-> White background, nothing around the table. Avoid: perspective, side view, room, walls, floor, sky, people, hands, text, letters, numbers, logos, food in the center, cluttered center.
+> Flat solid pure magenta background #FF00FF around the table, nothing else around it, no white border. Avoid: sticker, die-cut, white border, frame, perspective, side view, room, walls, floor, sky, people, hands, text, letters, numbers, logos, food in the center, cluttered center.
 
 | Файл | Колокольчик | Что поменять (вставить между началом и концом) |
 |---|---|---|
