@@ -337,3 +337,14 @@ Voice ID `HIGUfNOdjuWQwwapnTRW` — тот же, что купили для Gara
 | `fries` (закуска) | red paper carton of golden french fries, a few fries sticking out, tiny ketchup drop |
 | `burger` (основное) | tall juicy cheeseburger with sesame bun, lettuce, tomato, melted cheese dripping, a tiny toothpick flag with a red star on top |
 | `donut` (десерт) | pink glazed donut with colorful sprinkles, glossy icing, one bite missing |
+
+## Фон панели сета — «Банкетный зал» (промпт Leonardo, 2026-11-05)
+Фон панели (вытянутая карточка ~3:4, на ней сверху Мигель, ниже 3 блюда и кнопка) — нарядная скатерть, будто стол накрыт.
+Image Guidance не нужен (это не персонаж). Формат **3:4** (вертикальный). Середина должна быть спокойной и тёмной —
+поверх будет текст и блюда; всё нарядное — по краям. Положить в `public/set-food/tablecloth.webp` — подключу фоном панели.
+
+> Top-down view of an elegant festive banquet table covered with a deep dark burgundy velvet tablecloth, white lace trim along all four edges with delicate floral lace pattern, in the top right corner a small crystal carafe vase with one red rose, a few scattered rose petals near the edges, a folded white napkin and silver fork in the bottom left corner, soft warm candlelight glow, the center of the tablecloth is plain, calm and dark with no objects (space for text), cartoon game illustration style, thick clean outlines, flat cel shading, rich festive colors, no text, no people, no food in the center
+
+Негатив: `text, letters, watermark, logo, people, hands, goose, realistic photo, cluttered center, objects in the middle, bright center, white background`
+
+Если нужен вариант посветлее (для тёплого стиля): заменить `deep dark burgundy velvet` на `deep emerald green velvet` или `warm dark walnut wood table with a lace runner`.

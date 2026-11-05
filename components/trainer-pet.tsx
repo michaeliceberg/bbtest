@@ -79,7 +79,7 @@ const RISK_HOUR = 20
 type Mood = { src: string; text: string }
 
 // Мигель крупно «по пояс»: картинка больше, видна верхняя ~3/4 (лицо, руки и то, что в руках), низ мягко растворяется.
-export const PetBust = ({ src, size, width, bob = false }: { src: string; size: number; width: number; bob?: boolean }) => (
+export const PetBust = ({ src, size, width, bob = false, flip = false }: { src: string; size: number; width: number; bob?: boolean; flip?: boolean }) => (
     <div
         className="relative overflow-hidden flex-shrink-0 select-none"
         style={{
@@ -87,6 +87,8 @@ export const PetBust = ({ src, size, width, bob = false }: { src: string; size: 
             height: Math.round(size * 0.74),
             WebkitMaskImage: 'linear-gradient(to bottom, #000 78%, transparent 100%)',
             maskImage: 'linear-gradient(to bottom, #000 78%, transparent 100%)',
+            // отражение — на обёртке: transform на motion.img перезаписал бы framer
+            transform: flip ? 'scaleX(-1)' : undefined,
         }}
     >
         <motion.img

@@ -45,29 +45,21 @@ function BellIcon({ n, size = 22 }: { n: number; size?: number }) {
     return <Bell style={{ width: size, height: size, color: b.color, fill: `${b.color}55` }} strokeWidth={2.4} />
 }
 
-// Лестница сундуков: 1-й сет за день — обычный, 2-й — редкий, 3-й — мифический (картинками, без слов)
-function ChestLadder({ setNumber }: { setNumber: number }) {
-    const cur = Math.min(setNumber, SET_BELLS.length)
+// Уровни сундука столбиком: «ур1 🔔 обычный», «ур2 🔔 редкий», «ур3+ 🔔 мифический»; текущий — в рамке, остальные бледные
+function ChestLevels({ setNumber }: { setNumber: number }) {
+    const cur = Math.min(Math.max(setNumber, 1), SET_BELLS.length)
     return (
-        <div className="mt-3 flex items-end justify-center gap-1">
+        <div className="flex shrink-0 flex-col gap-0.5">
             {SET_BELLS.map((b, i) => {
                 const n = i + 1
                 const here = n === cur
                 return (
-                    <div key={n} className="flex items-end">
-                        {i > 0 && <ChevronRight className="mb-6 h-4 w-4 text-[#4A5A63]" />}
-                        <div className={`relative flex flex-col items-center gap-0.5 rounded-xl border-2 px-2 pb-1 pt-1.5 ${here ? '' : 'opacity-45'}`}
-                            style={{ borderColor: here ? b.color : 'transparent', background: here ? `${b.color}1A` : 'transparent' }}>
-                            {here && (
-                                <motion.span animate={{ y: [0, -3, 0] }} transition={{ duration: 1, repeat: Infinity }}
-                                    className="absolute -top-2.5 whitespace-nowrap rounded-full px-1.5 text-[9px] font-black text-[#151F24]" style={{ background: b.color }}>сейчас</motion.span>
-                            )}
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={LESSON_CASE_TIER_ICON[b.tier]} alt="" className={here ? 'h-11 w-11' : 'h-9 w-9'} />
-                            <span className="flex items-center gap-0.5 text-[11px] font-black" style={{ color: b.color }}>
-                                <BellIcon n={n} size={12} />{n}{n === SET_BELLS.length ? '+' : ''}
-                            </span>
-                        </div>
+                    <div key={n} className={`flex items-center gap-1 rounded-lg border-2 px-1 py-0.5 ${here ? '' : 'opacity-40'}`}
+                        style={{ borderColor: here ? b.color : 'transparent', background: here ? `${b.color}1F` : 'transparent' }}>
+                        <span className="w-[26px] text-[10px] font-black leading-none" style={{ color: b.color }}>ур{n}{n === SET_BELLS.length ? '+' : ''}</span>
+                        <BellIcon n={n} size={12} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={LESSON_CASE_TIER_ICON[b.tier]} alt={LESSON_CASE_TIER_LABEL[b.tier]} className="h-6 w-6" />
                     </div>
                 )
             })}
@@ -120,7 +112,7 @@ function useBell(d: SetBarData, dish: number) {
 }
 
 // ── Панель сета: выезжает вниз прямо из полоски ─────────────────────────────────────────
-function SetPanel({ d, dish, onClose }: { d: SetBarData; dish: number; onClose: () => void }) {
+function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void }) {
     const router = useRouter()
     const [busy, setBusy] = useState(false)
     const go = async () => {
@@ -149,20 +141,24 @@ function SetPanel({ d, dish, onClose }: { d: SetBarData; dish: number; onClose: 
         { what: '' },
     ]
     return (
-        <motion.div initial={{ y: -16, opacity: 0, scaleY: 0.92 }} animate={{ y: 0, opacity: 1, scaleY: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+        // Открытие — пружина вниз из полоски; закрытие (closing) — так же мягко сворачивается вверх, потом размонтируется
+        <motion.div initial={{ y: -16, opacity: 0, scaleY: 0.92 }}
+            animate={closing ? { y: -14, opacity: 0, scaleY: 0.9 } : { y: 0, opacity: 1, scaleY: 1 }}
+            transition={closing ? { duration: 0.26, ease: [0.4, 0, 1, 1] } : { type: 'spring', stiffness: 420, damping: 32 }}
             style={{ transformOrigin: 'top' }}
             className="absolute inset-x-0 top-full z-10 mt-1 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
                 {/* Мигель по пояс, как на карте тренажёра; поза — по блюду (SET_MIGUEL) */}
-                <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src={SET_MIGUEL[dish]} size={132} width={108} /></div>
+                <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src={SET_MIGUEL[dish]} size={124} width={84} flip={dish === 0} /></div>
                 <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-black uppercase tracking-wider text-[#F2C35B]">
-                        {d.taskNum ? `Задание ЕГЭ №${d.taskNum}` : 'От Команданте'}
+                    <p className="whitespace-nowrap text-[10px] font-black uppercase text-[#F2C35B]">
+                        {d.taskNum ? `ЕГЭ №${d.taskNum}` : 'От Команданте'}
                     </p>
-                    <p className="text-lg font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Обед из трёх блюд'}</p>
-                    <p className="mt-1 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
+                    <p className="text-[15px] font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Обед из трёх блюд'}</p>
                 </div>
+                <ChestLevels setNumber={d.setNumber} />
             </div>
+            <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
             <div className="mt-4 flex items-stretch gap-1.5">
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
@@ -170,7 +166,7 @@ function SetPanel({ d, dish, onClose }: { d: SetBarData; dish: number; onClose: 
                         <div key={i} className="relative flex flex-1 flex-col">
                             {cur && (
                                 <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
-                                    className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">ты здесь</motion.span>
+                                    className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">{name}</motion.span>
                             )}
                             <div className="flex h-full flex-col items-center gap-0.5 rounded-xl border-2 p-2 text-center"
                                 style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322' : cur ? '#2A2410' : '#0F171B' }}>
@@ -191,7 +187,6 @@ function SetPanel({ d, dish, onClose }: { d: SetBarData; dish: number; onClose: 
                     )
                 })}
             </div>
-            <ChestLadder setNumber={d.setNumber} />
             <button onClick={go} disabled={busy}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 py-2.5 text-sm font-black text-[#16240C] active:border-b-0"
                 style={{ background: dish === 2 ? 'linear-gradient(180deg,#FFD84D,#F2C35B)' : GREEN, borderBottomColor: dish === 2 ? '#B8862E' : '#60A12F' }}>
@@ -253,6 +248,8 @@ function BellTongue({ n, open, onToggle }: { n: number; open: boolean; onToggle:
 export function SetBar({ data }: { data: SetBarData }) {
     const dish = setDishOf(data)
     const [sheet, setSheetRaw] = useState(false)
+    const [closing, setClosing] = useState(false)
+    const closeTimer = useRef<number | null>(null)
     const [compact, setCompact] = useState(false)
     const store = useSetBarStore()
     const setStore = store.set
@@ -261,7 +258,14 @@ export function SetBar({ data }: { data: SetBarData }) {
     sheetRef.current = sheet
     useBell(data, dish)
     // открыли панель (в т.ч. из мини-значка в шапке) — полоска снова видна целиком
-    const setSheet = (v: boolean) => { setSheetRaw(v); if (v) { setCompact(false); setStore({ compact: false }) } }
+    const setSheet = (v: boolean) => {
+        if (closeTimer.current) { window.clearTimeout(closeTimer.current); closeTimer.current = null }
+        if (v) { setClosing(false); setSheetRaw(true); setCompact(false); setStore({ compact: false }); return }
+        if (!sheetRef.current) return
+        // сначала играем сворачивание, потом убираем панель
+        setClosing(true)
+        closeTimer.current = window.setTimeout(() => { setSheetRaw(false); setClosing(false); closeTimer.current = null }, 270)
+    }
 
     // мини-значок в шапке телефона знает, какое блюдо и как открыть карточку
     useEffect(() => {
@@ -291,13 +295,13 @@ export function SetBar({ data }: { data: SetBarData }) {
                 компьютер: стоит под кнопкой юнита, не прячется. */}
             <div className={`relative w-full pt-1.5 pb-3.5 lg:pb-3 lg:pt-0 lg:mt-2 transition-[transform,opacity] duration-300 lg:!translate-y-0 lg:!opacity-100 lg:!pointer-events-auto ${compact ? '-translate-y-[60px] opacity-0 pointer-events-none' : ''}`}>
                 <div className="relative">
-                    <BarButton d={data} dish={dish} onClick={() => setSheet(!sheet)} />
-                    <BellTongue n={data.setNumber} open={sheet} onToggle={setSheet} />
-                    {sheet && <SetPanel d={data} dish={dish} onClose={() => setSheet(false)} />}
+                    <BarButton d={data} dish={dish} onClick={() => setSheet(!(sheet && !closing))} />
+                    <BellTongue n={data.setNumber} open={sheet && !closing} onToggle={setSheet} />
+                    {sheet && <SetPanel d={data} dish={dish} closing={closing} onClose={() => setSheet(false)} />}
                 </div>
             </div>
             {sheet && typeof document !== 'undefined' && createPortal(
-                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className="fixed inset-0 z-30 bg-black/45" />,
+                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 z-30 bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} />,
                 document.body,
             )}
         </>
