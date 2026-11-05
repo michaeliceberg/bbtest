@@ -15525,3 +15525,20 @@ components/learn-section-header.tsx); баннер юнита спрятан (у
 (`TrainerKeyChips accent`). Правило пользователя: на экранах — меньше дублей и пёстрых цветов.
 Промпты новых стикеров Мигеля (Мой путь, диагностика, «боец-коммандос» для Рэмбо) и 4 столов сета по уровню колокольчика —
 docs/miguel/leonardo-prompts-2026-11-06.md (картинки ещё не сгенерированы).
+
+## Промпты Leonardo для Мигеля — правила (2026-11-06)
+Актуальные промпты — docs/miguel/leonardo-prompts-2026-11-06.md (стикеры «Мой путь», диагностика, Рэмбо; 4 стола сета
+по уровню колокольчика). Выводы по генерациям пользователя:
+- **Не писать «sticker»** в основе: Leonardo рисует белую рамку-наклейку. В основе — «cartoon character illustration»,
+  в негативе — «sticker, die-cut, white border, frame».
+- **Фон — пурпурный** «flat solid pure magenta background #FF00FF». Remove Background в Leonardo не нужен (лишние
+  токены): пользователь присылает картинку как есть, фон вырезает `docs/miguel/tools/make_sticker_v2.py` — он теперь
+  убирает и пурпурный фон везде, включая замкнутые «карманы». Прозрачный фон одним промптом не получить.
+- **Знак GG на бандане** описывать явно: «red bandana scarf with a small golden "GG" emblem and a tiny golden star on
+  the front knot». Старая основа («plain red bandana» + в негативе «text on bandana, letters») стирала GG.
+- **Руки, не крылья:** у Мигеля белые руки в перчатках. В позах писать «hand/arms», не «wing/wings» — иначе рисует
+  раскрытые крылья И руки. В основе «exactly two arms … no wings», в негативе «spread wings, extra wings, four arms».
+- **Рэмбо (боец-коммандос):** своя основа целиком, без фуражки («WITHOUT any cap or hat: bare white head with a long red
+  headband»), в негативе головные уборы (cap, hat, beret, helmet…), сила Image Guidance 0.35–0.4 — при 0.5 Leonardo
+  копирует фуражку с образца. Имя киногероя в промптах не писать.
+- Вставлять в Leonardo только английский текст (русские пометки он рисует надписями).
