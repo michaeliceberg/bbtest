@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { motion, type PanInfo } from 'framer-motion'
+import Confetti from 'react-confetti'
 import { Check, ChevronDown, Swords, Utensils, UtensilsCrossed, type LucideIcon } from 'lucide-react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
@@ -31,12 +32,16 @@ const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
 // Стол наряднее с каждым сетом за день (индекс — bellLevel − 1). У картинок разная высота и разный свободный центр,
 // поэтому рамка блюд своя у каждой; исходники — docs/set-table/leonardo, вырезка — docs/set-table/cut_tables.py.
-const SET_TABLES: { src: string; top: string; height: string }[] = [
-    { src: '/set-tablecloth/cloth-green.webp', top: '31%', height: '38%' },
-    { src: '/set-tablecloth/cloth-lvl2.webp', top: '31%', height: '36%' },
-    { src: '/set-tablecloth/cloth-lvl3.webp', top: '37%', height: '32%' },
-    { src: '/set-tablecloth/cloth-lvl4.webp', top: '29%', height: '35.5%' },
+// bellTop — где на столе стоит колокольчик уровня (сверху посередине, над блюдами).
+const SET_TABLES: { src: string; top: string; height: string; bellTop: string }[] = [
+    { src: '/set-tablecloth/cloth-green.webp', top: '31%', height: '38%', bellTop: '7%' },
+    { src: '/set-tablecloth/cloth-lvl2.webp', top: '31%', height: '36%', bellTop: '7%' },
+    { src: '/set-tablecloth/cloth-lvl3.webp', top: '37%', height: '32%', bellTop: '16%' },
+    { src: '/set-tablecloth/cloth-lvl4.webp', top: '29%', height: '35.5%', bellTop: '6%' },
 ]
+const TABLE_BELL_SIZE = 46
+const TABLE_SWAP_DELAY_MS = 1100 // сколько старый стол дрожит перед сменой на новый
+const LEVEL_SEEN_KEY = 'setBarLevelSeen'
 // Десерт — это сам сундук, отдельной еды у него нет
 export const SET_DISH_ICONS = ['🍟', '🍔']
 // Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
@@ -162,6 +167,17 @@ function shout(d: SetBarData, dish: number) {
     return 'Урок тренажёра, задачи — и сундук на десерт 😋'
 }
 
+// Какой уровень стола ученик уже видел сегодня; завтра счёт сетов начинается заново, и смена не нужна
+function readSeenLevel(): number | null {
+    try {
+        const v = JSON.parse(localStorage.getItem(LEVEL_SEEN_KEY) || 'null')
+        return v && v.day === new Date().toDateString() ? v.lvl : null
+    } catch { return null }
+}
+function writeSeenLevel(lvl: number) {
+    try { localStorage.setItem(LEVEL_SEEN_KEY, JSON.stringify({ day: new Date().toDateString(), lvl })) } catch { /* нет хранилища */ }
+}
+
 function useBell(d: SetBarData, dish: number) {
     useEffect(() => preloadSound(SET_BELL_SOUND), [])
     useEffect(() => {
@@ -178,6 +194,31 @@ function useBell(d: SetBarData, dish: number) {
 export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void; goVariant?: number; onLoading?: () => void }) {
     const router = useRouter()
     const [busy, setBusy] = useState(false)
+    const lvl = bellLevel(d.setNumber)
+    // Смена уровня: сначала виден прошлый стол, он дрожит, потом с отскоком становится новым — с колокольчиком и конфетти
+    const [shownLvl, setShownLvl] = useState(() => {
+        const seen = readSeenLevel()
+        return seen !== null && seen < lvl ? seen : lvl
+    })
+    const [party, setParty] = useState(0)
+    const swapping = shownLvl < lvl
+    useEffect(() => {
+        if (shownLvl === lvl) { writeSeenLevel(lvl); return }
+        if (shownLvl > lvl) { setShownLvl(lvl); return }
+        const t = window.setTimeout(() => {
+            setShownLvl(lvl)
+            setParty((p) => p + 1)
+            playSound(SET_BELL_SOUND, SET_BELL_VOLUME)
+        }, TABLE_SWAP_DELAY_MS)
+        return () => window.clearTimeout(t)
+    }, [lvl, shownLvl])
+    // Стол только что сервирован: блюда падают на него по очереди. Читаем при рендере: initial нужен в момент монтирования блюд
+    const prevDish = useRef(dish)
+    const justServed = prevDish.current === 3 && dish === 0
+    useEffect(() => {
+        if (prevDish.current === 3 && dish === 0) playSound(SET_BELL_SOUND, SET_BELL_VOLUME)
+        prevDish.current = dish
+    }, [dish])
     const go = async () => {
         if (busy) return
         // переход на урок/задачи/сундук: сразу показываем экран загрузки (живёт в SetBar, не в панели)
@@ -197,7 +238,7 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
         onClose()
     }
     const go0 = SET_GO_VARIANTS[goVariant] ?? SET_GO_VARIANTS[0]
-    const table = SET_TABLES[bellLevel(d.setNumber) - 1]
+    const table = SET_TABLES[shownLvl - 1]
     const label = dish < 2 ? go0.label : dish === 2 ? `Забрать ${tierLabel(d)} сундук 🎁` : busy ? 'Накрываем на стол…' : 'Накрыть стол'
     const GoIcon = dish < 2 ? go0.Icon : dish === 3 ? UtensilsCrossed : null
 
@@ -239,14 +280,35 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
             </div>
             {/* Блюда стоят на столе уровня колокольчика (SET_TABLES; каска зелёного стола подогнана по тону скатерти
                 docs/set-table/helmet_cut.py): вилка с ножом справа внизу — блюда в свободной середине */}
-            <div className="relative mx-auto mt-2 w-full">
+            <motion.div key={shownLvl} className="relative mx-auto mt-2 w-full"
+                initial={party > 0 ? { scale: 0.7, rotate: -3, opacity: 0 } : false}
+                animate={swapping ? { scale: [1, 1.02, 0.98, 1.03, 0.94], rotate: [0, -1.2, 1.2, -1.6, 0] } : { scale: 1, rotate: 0, opacity: 1 }}
+                transition={swapping ? { duration: TABLE_SWAP_DELAY_MS / 1000, ease: 'easeInOut' } : { type: 'spring', bounce: 0.55, duration: 0.7 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={table.src} alt="" draggable={false} className="block w-full select-none" />
+                {/* колокольчик уровня стоит на столе; при смене уровня падает крупным и пружинит */}
+                <motion.div className="pointer-events-none absolute left-1/2" style={{ top: table.bellTop, marginLeft: -TABLE_BELL_SIZE / 2 }}
+                    initial={party > 0 ? { scale: 3, y: -40, opacity: 0 } : false} animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', bounce: 0.6, duration: 0.8, delay: 0.15 }}>
+                    <span className="absolute inset-x-1 bottom-0 h-2.5 rounded-[50%] bg-black/35" />
+                    <BellIcon n={shownLvl} size={TABLE_BELL_SIZE} />
+                </motion.div>
+                {party > 0 && (
+                    <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: [0.4, 1.1, 1, 1, 0.9], opacity: [0, 1, 1, 1, 0] }} transition={{ duration: 3.2, delay: 0.3, times: [0, 0.1, 0.16, 0.9, 1] }}
+                        className="pointer-events-none absolute inset-x-0 bottom-[6%] z-10 mx-auto w-fit rounded-full px-3 py-1 text-[13px] font-black text-[#151F23]"
+                        style={{ background: SET_BELLS[lvl - 1].color }}>
+                        Новый стол: {LESSON_CASE_TIER_LABEL[d.tier].toLowerCase()} сундук!
+                    </motion.span>
+                )}
+                {/* пока сет не начат, стол пустой — блюда появляются по кнопке «Накрыть стол» */}
+                {dish !== 3 && (
                 <div className="absolute left-[13%] right-[25%] flex items-stretch gap-1.5 py-[2%]" style={{ top: table.top, height: table.height }}>
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (
-                        <div key={i} className="relative flex min-w-0 flex-1 flex-col">
+                        <motion.div key={i} className="relative flex min-w-0 flex-1 flex-col"
+                            initial={justServed ? { y: -60, scale: 0.5, opacity: 0 } : false} animate={{ y: 0, scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', bounce: 0.5, duration: 0.65, delay: i * 0.22 }}>
                             {cur && (
                                 <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
                                     className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">{name}</motion.span>
@@ -270,17 +332,23 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                                     </>
                                 )}
                             </div>
-                        </div>
+                        </motion.div>
                     )
                 })}
                 </div>
-            </div>
+                )}
+            </motion.div>
+            {party > 0 && createPortal(
+                <div className="pointer-events-none fixed inset-0 z-[200]">
+                    <Confetti key={party} width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={240}
+                        colors={[SET_BELLS[lvl - 1].color, GOLD, '#FFFFFF', '#F2F7FB']} />
+                </div>, document.body)}
             <div>
             <button onClick={go} disabled={busy}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 py-3 text-base font-black uppercase tracking-wide text-[#16240C] active:border-b-0"
                 style={{ background: dish === 2 ? 'linear-gradient(180deg,#FFD84D,#F2C35B)' : GREEN, borderBottomColor: dish === 2 ? '#B8862E' : '#60A12F' }}>
-                {GoIcon && <GoIcon className="h-5 w-5 shrink-0" strokeWidth={2.6} />}
                 <span className="truncate">{label}</span>
+                {GoIcon && <GoIcon className="h-5 w-5 shrink-0" strokeWidth={2.6} />}
             </button>
             <button onClick={onClose} className="mx-auto mt-1.5 flex items-center gap-1 px-3 py-1 text-xs font-black text-[#6B7A83]" aria-label="Свернуть">
                 <ChevronDown className="h-4 w-4 rotate-180" />Свернуть

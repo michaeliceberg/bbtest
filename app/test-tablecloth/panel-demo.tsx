@@ -17,13 +17,20 @@ export function PanelDemo() {
     const [dish, setDish] = useState(0)
     const [v, setV] = useState(0)
     const [open, setOpen] = useState(true)
-    const d: SetBarData = { ...BASE, preview: dish === 0 ? LESSON_PREVIEW : dish === 1 ? TASK_PREVIEW : null }
+    const [setNumber, setSetNumber] = useState(1)
+    const d: SetBarData = { ...BASE, setNumber, tier: setNumber === 1 ? 'common' : setNumber === 2 ? 'rare' : 'mythic', preview: dish === 0 ? LESSON_PREVIEW : dish === 1 ? TASK_PREVIEW : null }
     return (
         <div className="mx-auto max-w-[720px]">
             <div className="mb-2 flex flex-wrap justify-center gap-2">
                 {['Закуска', 'Основное', 'Десерт', 'Нет сета'].map((t, i) => (
                     <button key={i} onClick={() => setDish(i)}
                         className={`rounded-lg px-3 py-1 text-sm font-bold ${dish === i ? 'bg-[#F2C35B] text-[#3A2A08]' : 'bg-[#26333B]'}`}>{t}</button>
+                ))}
+            </div>
+            <div className="mb-2 flex flex-wrap justify-center gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                    <button key={n} onClick={() => setSetNumber(n)}
+                        className={`rounded-lg px-3 py-1 text-sm font-bold ${setNumber === n ? 'bg-[#C385F7] text-[#2A1A3A]' : 'bg-[#26333B]'}`}>Стол {n}</button>
                 ))}
             </div>
             <div className="mb-4 flex flex-wrap justify-center gap-2">
