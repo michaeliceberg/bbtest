@@ -358,11 +358,11 @@ const JuggleScene = ({ onSettled }: SceneProps) => {
             )}
             {phase >= 2 && (
                 <DiagramBlock>
-                    <Board eq={eq} groupId="juggle" interactive={phase < 3} onTap={tap} />
+                    <Board eq={eq} groupId="juggle" interactive onTap={tap} />
                 </DiagramBlock>
             )}
             {phase >= 2 && phase < 3 && <TLine small text="Кликни на любую букву 👆" />}
-            {phase >= 3 && <TLine small text="Видел? Буква перелетает на другую сторону и меняет этаж!" onDone={() => onSettled?.()} />}
+            {phase >= 3 && <TLine small text="Видел? Буквы перелетают на другую сторону и меняют этаж! Можешь ещё пожонглировать 🤹" onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -646,7 +646,7 @@ const SettleOnMount = ({ onSettled }: SceneProps) => {
 
 const SCENES = [FloorsScene, JuggleScene, RuleScene, WhereScene, OneScene, VanishScene, ExpressScene, RoundsScene]
 const SCENE_MAP_LABELS = ['Два этажа', 'Жонглирование', 'ЗАПОМНИ', 'Куда полетит?', 'Пустой этаж = 1', 'Дробь исчезла', 'Вырази a', 'Тренировка']
-const NEXT_LABELS = ['Понял, два этажа', 'Буквы прыгают!', 'Понял, можно только по диагонали', 'Этажи — изи!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
+const NEXT_LABELS = ['Понял, два этажа', 'Буквы меняют этаж', 'Понял, можно только по диагонали', 'Этажи — изи!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
 
 // ===== Проверим себя =====
 type Trial = { eq: string; target: string; options: string[]; correct: number; hint: string }
