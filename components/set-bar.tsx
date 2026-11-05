@@ -23,6 +23,7 @@ import { useSetBarStore } from '@/store/use-set-bar-store'
 import { SET_BELL_SOUND, SET_BELL_VOLUME, playSound, preloadSound } from '@/lib/sound'
 import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, type LessonCaseTier } from '@/lib/caseRewards'
 import { PetBust } from './trainer-pet'
+import { SetLoadingScreen } from './set-loading-screen'
 
 const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
@@ -167,11 +168,13 @@ function useBell(d: SetBarData, dish: number) {
 }
 
 // ── Панель сета: выезжает вниз прямо из полоски ─────────────────────────────────────────
-export function SetPanel({ d, dish, closing, onClose, goVariant = 0 }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void; goVariant?: number }) {
+export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void; goVariant?: number; onLoading?: () => void }) {
     const router = useRouter()
     const [busy, setBusy] = useState(false)
     const go = async () => {
         if (busy) return
+        // переход на урок/задачи/сундук: сразу показываем экран загрузки (живёт в SetBar, не в панели)
+        if (dish <= 2 && d.moveId) onLoading?.()
         if (dish === 0 && d.tLessonId && d.moveId) router.push(`/t-lesson/${d.tLessonId}?move=${d.moveId}`)
         else if (dish === 1 && d.moveId && d.tLessonId2) router.push(`/t-lesson/${d.tLessonId2}?move=${d.moveId}`)
         else if (dish === 1 && d.moveId) router.push(`/move/${d.moveId}/tasks`)
@@ -414,6 +417,13 @@ export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?:
     const [closing, setClosing] = useState(false)
     const closeTimer = useRef<number | null>(null)
     const [compact, setCompact] = useState(false)
+    const [loading, setLoading] = useState(false)
+    // страховка: если переход сорвался, экран загрузки не висит вечно
+    useEffect(() => {
+        if (!loading) return
+        const t = window.setTimeout(() => setLoading(false), 15000)
+        return () => window.clearTimeout(t)
+    }, [loading])
     const store = useSetBarStore()
     const setStore = store.set
     const lastY = useRef(0)
@@ -469,9 +479,10 @@ export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?:
                 <div className="relative">
                     <BarButton d={data} dish={dish} onClick={() => setSheet(!(sheet && !closing))} />
                     <BellTongue n={data.setNumber} open={sheet && !closing} onToggle={setSheet} />
-                    {sheet && <SetPanel d={data} dish={dish} closing={closing} onClose={() => setSheet(false)} />}
+                    {sheet && <SetPanel d={data} dish={dish} closing={closing} onClose={() => setSheet(false)} onLoading={() => setLoading(true)} />}
                 </div>
             </div>
+            {loading && <SetLoadingScreen />}
             {sheet && typeof document !== 'undefined' && createPortal(
                 <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} style={{ zIndex: backdropZ }} />,
                 document.body,
