@@ -77,7 +77,7 @@ export function RamboRun({ taskNum, taskTitle, level, questions }: { taskNum: nu
                     <img src={result.passed ? '/miguel/miguel-commando-win.webp' : '/miguel/miguel-commando-again.webp'} alt="" className="h-44 w-44 object-contain" />
                     <div className="text-4xl font-black" style={{ color: CREAM }}>{result.correct} из {result.total}</div>
                     <div className="text-lg font-bold" style={{ color: result.passed ? '#A1D151' : CREAM }}>
-                        {result.passed ? `Клетка ${level} пройдена!` : `Нужно ${Math.ceil(result.total * 0.75)} верных — давай ещё раз`}
+                        {result.passed ? `Бой ${level} выигран!` : `Нужно ${Math.ceil(result.total * 0.75)} верных — давай ещё раз`}
                     </div>
                     {result.coins > 0 && <div className="rounded-full px-4 py-1 text-sm font-black" style={{ background: '#F2C35B22', color: '#F2C35B' }}>+{result.coins} {declensionRu(result.coins, 'монета', 'монеты', 'монет')}</div>}
                     <p className="max-w-xs text-sm font-semibold" style={{ color: `${CREAM}AA` }}>
@@ -144,7 +144,7 @@ function Shell({ taskNum, taskTitle, level, onClose, children }: { taskNum: numb
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/miguel/miguel-commando.webp" alt="" className="-my-1 h-11 w-11 shrink-0 object-contain" />
                     <div className="min-w-0 flex-1 leading-tight">
-                        <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: RED }}>Рэмбо · клетка {level}/4</div>
+                        <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: RED }}>Рэмбо · бой {level}/4</div>
                         <div className="truncate text-sm font-black" style={{ color: CREAM }}>№{taskNum} {taskTitle}</div>
                     </div>
                     <button type="button" onClick={onClose} aria-label="Выйти" className="rounded-full p-1" style={{ color: CREAM }}><X className="h-6 w-6" /></button>

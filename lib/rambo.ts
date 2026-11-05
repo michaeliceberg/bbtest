@@ -67,7 +67,7 @@ export async function getRamboStatus(userId: string, hasPro: boolean, trainerKey
             const proLocked = !hasPro && level > 1
             const open = available && prevPassed && done >= needTopics && !proLocked
             const need = !available ? null
-                : !prevPassed ? `Сначала пройди клетку ${level - 1}`
+                : !prevPassed ? `Сначала выиграй бой ${level - 1}`
                 : done < needTopics ? `Пройди тренажёры: ${done}/${needTopics}`
                 : null
             cells.push({ level, open, proLocked, best: b, passed, need })

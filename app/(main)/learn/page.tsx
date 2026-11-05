@@ -530,7 +530,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const locked = !!item.locked && !isAdmin
               return (
                 <>
-                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} />
+                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} accent={getUnitButtonColor(Math.max(idx, 0)).button} />
                   {locked ? (
                     <div className='mt-4 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4'>
                       <p className='text-base font-black text-[#F2E3C2]'>🔒 Задачи откроются после тренажёров</p>

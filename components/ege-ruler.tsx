@@ -12,10 +12,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Lock, X } from 'lucide-react'
+import { Lock, Repeat, Swords, X } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import type { RulerData, RulerTask } from '@/lib/egeRuler'
 import { declensionRu } from '@/usefulFunctions'
+import { PetBust } from './trainer-pet'
 
 type Mode = 'learn' | 'trainer' | 'rambo'
 const MODES: Mode[] = ['learn', 'trainer', 'rambo']
@@ -73,7 +74,7 @@ function Squares({ t, mode, color, onTopic, onRambo }: { t: RulerTask; mode: Mod
         // 4 клетки: пройдена — залита красным, открыта — яркая рамка, закрыта — тусклая (с замком, если PRO).
         return <>{t.rambo.map((c) => (
             <span key={c.level} onClick={(e) => { e.stopPropagation(); onRambo(t.num, c.level, c.need, c.proLocked) }}
-                title={c.open ? `Клетка ${c.level}` : c.need ?? 'Только в PRO'}
+                title={c.open ? `Бой ${c.level}` : c.need ?? 'Только в PRO'}
                 className="relative flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] font-mono text-[9px] font-black"
                 style={{
                     background: c.passed ? color : c.open ? '#00000055' : '#00000030',
@@ -185,7 +186,7 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
     const onRambo = (num: number, level: number, need: string | null, proLocked: boolean) => {
         const c = data.tasks.find((t) => t.num === num)?.rambo[level - 1]
         if (c?.open) { setHint(null); go(`/rambo/${num}/${level}`); return }
-        setHint(proLocked ? `№${num}, клетка ${level} — только в PRO` : `№${num}, клетка ${level}: ${need ?? 'пока закрыта'}`)
+        setHint(proLocked ? `№${num}, бой ${level} — только в PRO` : `№${num}, бой ${level}: ${need ?? 'пока закрыт'}`)
     }
     const locked = data.tasks.reduce((n, t) => n + (mode === 'rambo'
         ? (t.ramboAvailable ? t.rambo.filter((c) => c.proLocked).length : 0)
@@ -206,7 +207,7 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                     ))}
                 </div>
                 {mode === 'rambo'
-                    ? <span className="shrink-0 text-right leading-none" title="Пройдено клеток «Рэмбо»"><span className="font-mono text-base font-black" style={{ color: TICK }}>{ramboPassed}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(ramboPassed, 'клетка', 'клетки', 'клеток')}</span></span>
+                    ? <span className="shrink-0 text-right leading-none" title="Выиграно боёв «Рэмбо»"><span className="font-mono text-base font-black" style={{ color: TICK }}>{ramboPassed}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(ramboPassed, 'бой', 'боя', 'боёв')}</span></span>
                     : mode === 'learn'
                     ? <span className="shrink-0 text-right leading-none" title="Прогноз баллов ЕГЭ"><span className="font-mono text-base font-black" style={{ color: TICK }}>≈{data.test}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(data.test, 'балл', 'балла', 'баллов')}</span></span>
                     : <span className="shrink-0 text-right leading-none" title="Тем тренажёра с медалью"><span className="font-mono text-base font-black" style={{ color: TICK }}>{medaled}/{topics.size}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>тем</span></span>}
@@ -217,8 +218,11 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                 )}
             </div>
             {mode === 'rambo' && (
-                <div className="mx-3 mb-2 rounded-xl px-3 py-2 text-[11px] font-bold leading-snug" style={{ background: '#0006', color: hint ? '#F2A19D' : `${TICK}CC` }}>
-                    {hint ?? 'Рэмбо — смесь тренажёра и задачника. Клетка 1 — самое простое, 4 — сложное. Проходи по кругу, чтобы не забывать.'}
+                <div className="mx-3 mb-2 flex items-end overflow-hidden rounded-xl pl-3" style={{ background: '#0006' }}>
+                    <div className="min-w-0 flex-1 self-center py-2">
+                        {hint ? <p className="text-[12px] font-bold leading-snug" style={{ color: '#F2A19D' }}>{hint}</p> : <RamboLegend />}
+                    </div>
+                    <PetBust src="/miguel/miguel-commando.webp" size={120} width={92} />
                 </div>
             )}
             <div ref={listRef} className="relative min-h-0 flex-1 overflow-y-auto px-2 pb-2">
@@ -264,6 +268,22 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                 </Link>
             )}
         </div>
+    )
+}
+
+// Что такое Рэмбо, почти без слов: случайная смесь, 4 боя всё тяжелее, можно идти по кругу
+const RAMBO_STEPS = ['#78C93C', '#F2C35B', '#F09B38', '#E04848']
+function RamboLegend() {
+    return (
+        <>
+            <p className="flex items-center gap-1 text-[13px] font-black" style={{ color: TICK }}><Swords className="h-4 w-4 shrink-0" style={{ color: '#E04848' }} />Случайные задачи</p>
+            <div className="mt-1.5 flex items-end gap-1">
+                {RAMBO_STEPS.map((c, i) => (
+                    <span key={c} className="flex w-6 items-end justify-center rounded-t pb-0.5 font-mono text-[11px] font-black" style={{ height: 14 + i * 6, background: c, color: '#1D2210' }}>{i + 1}</span>
+                ))}
+                <span className="ml-1.5 flex items-center gap-1 text-[11px] font-bold" style={{ color: `${TICK}CC` }}><Repeat className="h-3.5 w-3.5" />по кругу</span>
+            </div>
+        </>
     )
 }
 

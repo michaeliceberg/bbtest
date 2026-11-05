@@ -6,8 +6,9 @@
 import Link from 'next/link'
 import { ArrowLeft, Check, Dumbbell, ListChecks, Star } from 'lucide-react'
 
-export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = false }: {
+export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = false, accent }: {
     num: number; title: string; pic: string
+    accent?: string // цвет раздела, тот же, что у кружков уроков и кнопки «Пройти»
     tasks?: { solved: number; target: number; full?: number }
     fixed?: boolean
     trainers: { title: string; percent: number }[]
@@ -26,7 +27,7 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
             <div className="mt-3 flex items-center gap-3 rounded-2xl border-2 border-[#2A363C] bg-[#151F23] p-3">
                 <ItemBadge pic={pic} />
                 <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black uppercase tracking-wide text-[#53ADEF]">Задание {num}</p>
+                    <p className="text-xs font-black uppercase tracking-wide" style={{ color: accent ?? '#53ADEF' }}>Задание {num}</p>
                     <p className="truncate text-lg font-black text-[#F2F7FB]">{title}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {trainers.length > 0 && (
@@ -52,7 +53,7 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
 // Предмет ангара на светлом круге: картинки рисованы для светлого пола ангара, и на тёмной карточке тёмные вещи
 // (провода, бочка) почти не видны. Круг — пыльно-бежевый, как пол ангара, с объёмной нижней гранью; под предметом
 // своей тени нет — у картинок ангара тень уже нарисована.
-function ItemBadge({ pic }: { pic: string }) {
+export function ItemBadge({ pic }: { pic: string }) {
     return (
         <span className="relative h-[72px] w-[72px] flex-shrink-0">
             <span className="absolute inset-x-0 bottom-0 top-[6px] rounded-full border-b-4"
