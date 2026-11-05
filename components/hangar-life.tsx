@@ -338,7 +338,7 @@ function HangingWeb() {
 export function HangarHangingSpider() {
     const L = 230 // длина нити в пикселях картинки при полном спуске
     return (
-        <div className="pointer-events-none absolute" aria-hidden style={{ left: pct(728), top: pct(70), width: cq(40), zIndex: 850 }}>
+        <div className="pointer-events-none absolute" aria-hidden style={{ left: pct(708), top: pct(70), width: cq(40), zIndex: 850 }}>
             {/* у потолка — маленькая сплетённая сеть, нить спускается из её центра */}
             <HangingWeb />
             <div className="hangar-thread absolute left-1/2 top-0 w-px -translate-x-1/2 bg-[#C9C6BC]/70" style={{ height: cq(L) }} />

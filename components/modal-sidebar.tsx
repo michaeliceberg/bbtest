@@ -30,6 +30,10 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userNa
 	useEffect(() => {
 		setOpen(false)
 	}, [pathname])
+	// открыли меню — сворачиваем панель сета и лоток «Вторая часть» в ангаре
+	useEffect(() => {
+		if (open) window.dispatchEvent(new Event('mobile-sidebar-open'))
+	}, [open])
 
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
@@ -37,7 +41,8 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userNa
 				<Menu className='text-white' />
 				{claimCount > 0 && <span className='absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full bg-[#FFC53D] shadow-[0_0_8px_rgba(255,197,61,0.8)]' />}
 			</SheetTrigger>
-			<SheetContent className='p-0 z-[100]' side='left'>
+			{/* выше ангара (его плашки до z 1250), чтобы сет и «Вторая часть» не лезли поверх меню */}
+			<SheetContent className='p-0 z-[1500]' overlayClassName='z-[1490]' side='left'>
 				<Sidebar
 					courses={courses}
 					activeCourseId={activeCourseId}

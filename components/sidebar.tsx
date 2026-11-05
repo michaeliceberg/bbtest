@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route } from 'lucide-react'
+import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket } from 'lucide-react'
 import { ProSidebarButton } from '@/components/pro-sidebar-button'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
@@ -98,8 +98,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const navItems = [
     // Порядок (2026-11-05): Задачник, Тренажёр, Мой путь. disabled: true —
     // сделать пункт неактивным (приглушён, замок, не ссылка).
-    // У задачника — ракета с пульта ангара (ангар — карта задачника), картинкой, а не значком lucide.
-    { label: 'Задачник', href: '/learn', icon: Route, img: '/hangar/ui/cap2-rocket.webp', disabled: learnLocked },
+    // У задачника — ракета (как на пульте ангара), но тем же серым значком, что остальные пункты.
+    { label: 'Задачник', href: '/learn', icon: Rocket, disabled: learnLocked },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
     { label: 'Мой путь', href: '/path', icon: Route },
     // Справочник временно убран (2026-10-29): будет премиальной страницей с теорией из пройденных step-by-step.
@@ -118,10 +118,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   ]
   
   const navIconEl = (item: (typeof navItems)[number], active: boolean) => {
-    if ('img' in item && item.img) {
-      // eslint-disable-next-line @next/next/no-img-element
-      return <img src={item.img} alt="" className={cn('mr-3 h-6 w-6 shrink-0 object-contain', !active && 'opacity-90')} />
-    }
     const Icon = item.icon
     return <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(active)} />
   }

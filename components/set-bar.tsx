@@ -432,6 +432,11 @@ export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?:
         html.style.overflow = 'hidden'; body.style.overflow = 'hidden'; body.style.overscrollBehavior = 'none'
         return () => { html.style.overflow = prev[0]; body.style.overflow = prev[1]; body.style.overscrollBehavior = prev[2] }
     }, [sheet])
+    useEffect(() => {
+        const close = () => setSheet(false)
+        window.addEventListener('mobile-sidebar-open', close)
+        return () => window.removeEventListener('mobile-sidebar-open', close)
+    })
     const store = useSetBarStore()
     const setStore = store.set
     const lastY = useRef(0)

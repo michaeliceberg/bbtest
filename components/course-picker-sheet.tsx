@@ -41,8 +41,8 @@ export const CoursePickerSheet = ({ open, onOpenChange, courses, activeId, onPic
 }) => (
     // Не модальное окно + своё затемнение (как меню юнитов): на телефоне шторка открывается поверх мобильного сайдбара.
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
-        {open && <div className="fixed inset-0 z-[109] bg-black/70" onClick={() => onOpenChange(false)} aria-hidden />}
-        <SheetContent side="left" className={`${NAV_SHEET_CLASS} z-[110]`}>
+        {open && <div className="fixed inset-0 z-[1509] bg-black/70" onClick={() => onOpenChange(false)} aria-hidden />}
+        <SheetContent side="left" className={`${NAV_SHEET_CLASS} z-[1510]`}>
             <SheetTitle className="flex items-center gap-2 px-5 pb-3 pt-6 text-lg font-extrabold text-white"><BookOpen className="h-5 w-5" />Курсы</SheetTitle>
             <div className="flex flex-col gap-4 px-4 pb-8">
                 {groupsOf(courses).map(([g, list]) => (
