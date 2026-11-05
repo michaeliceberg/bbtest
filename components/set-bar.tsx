@@ -277,7 +277,7 @@ function FreshStamp() {
     return (
         <motion.span initial={{ scale: 2.2, opacity: 0, rotate: -4 }} animate={{ scale: 1, opacity: 1, rotate: -12 }}
             transition={{ type: 'spring', stiffness: 520, damping: 14, delay: 0.25 }}
-            className="ml-auto shrink-0 select-none rounded-md border-2 px-1.5 py-[1px] text-[11px] font-black italic leading-tight tracking-wider"
+            className="shrink-0 select-none rounded-md border-2 px-1.5 py-[1px] text-[11px] font-black italic leading-tight tracking-wider"
             style={{ color: '#7BE0B6', borderColor: '#5CC99F', background: '#5CC99F1F', boxShadow: 'inset 0 0 0 2px #0F171B, inset 0 0 0 3px #5CC99F88', textShadow: '0 0 6px #5CC99F66' }}>
             FRESH
         </motion.span>
@@ -300,12 +300,14 @@ export function BarButton({ d, dish, onClick }: { d: SetBarData; dish: number; o
                     ))}
                 </span>
             )}
-            {/* Штамп «FRESH» наискосок: сет свежий, его надо «выпить» сегодня — с размаху «ставится» при появлении */}
-            {dish < 2 && <FreshStamp />}
-            <span className={`min-w-0 truncate text-right ${dish < 2 ? '' : 'flex-1'} text-[13px] font-black text-[#F2F7FB]`}>
-                {dish < 2 ? <>Сет дня <span className="text-[#F2C35B]">· <span className="hidden min-[400px]:inline">ЕГЭ </span>№{d.taskNum}</span></>
-                    : dish === 2 ? <span className="text-[#FFE58A]">Всё съедено! Забрать сундук</span>
-                        : 'Команданте накрыл стол 🍽'}
+            {/* По центру — «Сет дня · ЕГЭ №N», справа от надписи штамп «FRESH» наискосок: сет свежий, его надо «выпить» сегодня */}
+            <span className="flex min-w-0 flex-1 items-center justify-center gap-2">
+                <span className="min-w-0 truncate text-center text-[13px] font-black text-[#F2F7FB]">
+                    {dish < 2 ? <>Сет дня <span className="text-[#F2C35B]">· <span className="hidden min-[400px]:inline">ЕГЭ </span>№{d.taskNum}</span></>
+                        : dish === 2 ? <span className="text-[#FFE58A]">Всё съедено! Забрать сундук</span>
+                            : 'Команданте накрыл стол 🍽'}
+                </span>
+                {dish < 2 && <FreshStamp />}
             </span>
         </button>
     )
