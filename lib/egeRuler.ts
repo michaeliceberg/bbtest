@@ -2,6 +2,7 @@ import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
+import { getEgeMap } from '@/lib/egeMap'
 
 // Данные «Линейки ЕГЭ» (components/ege-ruler.tsx): на каждое задание 1–20 — подразделы задачника
 // (уроки юнитов, привязанных к заданию через ege_task_links kind='unit') с долей решённых задач
@@ -10,12 +11,13 @@ import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
 export type RulerLesson = { id: number; title: string; total: number; solved: number; proLocked: boolean }
 export type RulerTrainer = { tUnitId: number; title: string; percent: number; proLocked: boolean }
 export type RulerTask = { num: number; title: string; part: number; lessons: RulerLesson[]; trainers: RulerTrainer[] }
-export type RulerData = { tasks: RulerTask[]; setTaskNum: number | null }
+// test — прогноз ЕГЭ в тестовых баллах (как в «Моём пути»), currentTaskNum — задание, где ученик сейчас (стрелка).
+export type RulerData = { tasks: RulerTask[]; setTaskNum: number | null; test: number; currentTaskNum: number | null }
 
 type Row = Record<string, unknown>
 
-export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; setTaskNum?: number | null }): Promise<RulerData> {
-    const [taskRows, lessonRows, tLessonCounts, trainerKeys] = await Promise.all([
+export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; setTaskNum?: number | null; currentTaskNum?: number | null }): Promise<RulerData> {
+    const [taskRows, lessonRows, tLessonCounts, trainerKeys, egeMap] = await Promise.all([
         db.execute(sql`SELECT num, title, part FROM ege_tasks WHERE subject = 'math_profile' ORDER BY num`),
         db.execute(sql`
             SELECT t.num, l.id, l.title, l."order", u."order" AS unit_order,
@@ -30,6 +32,7 @@ export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; s
             ORDER BY t.num, u."order", l."order"`),
         db.execute(sql`SELECT t_unit_id, count(*) AS n FROM t_lessons GROUP BY t_unit_id`),
         getTrainerKeysByTask(userId),
+        getEgeMap(userId, 'math_profile').catch(() => null),
     ])
     const lessonCount = new Map((tLessonCounts as unknown as Row[]).map((r) => [Number(r.t_unit_id), Number(r.n)]))
     const byNum = new Map<number, RulerLesson[]>()
@@ -51,5 +54,5 @@ export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; s
             trainers: (trainerKeys[num] ?? []).map((k) => ({ ...k, proLocked: !opts.hasPro && (lessonCount.get(k.tUnitId) ?? 0) > 1 })),
         }
     })
-    return { tasks, setTaskNum: opts.setTaskNum ?? null }
+    return { tasks, setTaskNum: opts.setTaskNum ?? null, test: egeMap?.test ?? 0, currentTaskNum: opts.currentTaskNum ?? null }
 }

@@ -492,7 +492,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
           {/* на экране ангара полоска сета лежит поверх картинки ангара (иначе пульт ангара не влезает в экран телефона) */}
           <Header title={`Задачник ${activeCourse.title}`} setBar={onHangarScreen ? null : setBar} />
-                {egeRuler && <EgeRuler data={egeRuler} />}
+                {egeRuler && !onHangarScreen && <EgeRuler data={{ ...egeRuler, currentTaskNum: taskNum }} />}
           {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);

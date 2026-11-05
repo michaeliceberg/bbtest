@@ -829,7 +829,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
     const topicParam = searchParams.get('topic');
     const topicRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
     const [highlightedTopic, setHighlightedTopic] = useState<string | null>(null);
-    const topicScrollStartedRef = React.useRef(false);
+    const topicScrollStartedRef = React.useRef<string | null>(null);
 
 
     useEffect(() => {
@@ -1002,11 +1002,12 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
     }, [topicParam]);
 
     useEffect(() => {
-        if (!topicParam || topicScrollStartedRef.current) return;
+        // Ref хранит тему, к которой уже докрутили: новая ?topic= (например, из линейки ЕГЭ) — докручиваем снова.
+        if (!topicParam || topicScrollStartedRef.current === topicParam) return;
         const key = Object.keys(topicRefs.current).find((k) => k === topicParam || REFERENCE_ALIAS[k] === topicParam);
         const node = key ? topicRefs.current[key] : null;
         if (!node) return;
-        topicScrollStartedRef.current = true;
+        topicScrollStartedRef.current = topicParam;
         setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500);
         setHighlightedTopic(key ?? topicParam);
         const t = setTimeout(() => setHighlightedTopic(null), 2200);

@@ -10,7 +10,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import { Lock, X } from 'lucide-react'
+import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import type { RulerData, RulerTask } from '@/lib/egeRuler'
 import { declensionRu } from '@/usefulFunctions'
 
@@ -50,9 +53,9 @@ function Bell({ size = 14 }: { size?: number }) {
     return <img src="/set-bells/bell-1-body.webp" alt="Сет" title="Сейчас в сете" className="shrink-0 animate-bounce" style={{ width: size, height: size }} />
 }
 
-function Square({ fill, color, locked, title, gold }: { fill: number; color: string; locked: boolean; title: string; gold?: boolean }) {
+function Square({ fill, color, locked, title, gold, onClick }: { fill: number; color: string; locked: boolean; title: string; gold?: boolean; onClick?: (e: React.MouseEvent) => void }) {
     return (
-        <span title={title} className="relative h-[13px] w-[13px] shrink-0 overflow-hidden rounded-[3px]"
+        <span title={title} onClick={onClick} className={`relative h-[13px] w-[13px] shrink-0 overflow-hidden rounded-[3px] ${onClick ? 'cursor-pointer' : ''}`}
             style={{ background: '#00000040', boxShadow: `inset 0 0 0 1px ${TICK}33` }}>
             {fill > 0 && <span className="absolute inset-x-0 bottom-0" style={{ height: `${Math.max(fill, 0.15) * 100}%`, background: color, boxShadow: gold ? `0 0 6px ${color}` : undefined }} />}
             {locked && <Lock className="absolute inset-0 m-auto h-[9px] w-[9px]" style={{ color: `${TICK}99` }} strokeWidth={3} />}
@@ -60,7 +63,7 @@ function Square({ fill, color, locked, title, gold }: { fill: number; color: str
     )
 }
 
-function Squares({ t, mode, color }: { t: RulerTask; mode: Mode; color: string }) {
+function Squares({ t, mode, color, onTopic }: { t: RulerTask; mode: Mode; color: string; onTopic: (title: string) => void }) {
     if (mode === 'learn') {
         if (!t.lessons.length) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
         return <>{t.lessons.map((l) => {
@@ -71,17 +74,26 @@ function Squares({ t, mode, color }: { t: RulerTask; mode: Mode; color: string }
     if (!t.trainers.length) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
     return <>{t.trainers.map((k) => {
         const c = medalColor(k.percent)
-        return <Square key={k.tUnitId} fill={c ? 1 : 0} color={c ?? color} gold={k.percent >= 100} locked={k.proLocked && k.percent < 100} title={`${k.title}: ${k.percent}%`} />
+        // В режиме «Тренажёр» каждый квадратик — своя тема: нажал — открывается именно она.
+        return <Square key={k.tUnitId} fill={c ? 1 : 0} color={c ?? color} gold={k.percent >= 100} locked={k.proLocked && k.percent < 100} title={`${k.title}: ${k.percent}%`}
+            onClick={(e) => { e.stopPropagation(); onTopic(k.title) }} />
     })}</>
 }
 
-const rowHref = (t: RulerTask, mode: Mode) =>
-    mode === 'trainer' && t.trainers.length
-        ? `/trainer?topic=${encodeURIComponent((t.trainers.find((k) => k.percent < 100) ?? t.trainers[0]).title)}`
-        : `/learn?task=${t.num}`
+const topicHref = (title: string) => `/trainer?topic=${encodeURIComponent(title)}`
+/** Куда ведёт строка: задачник — раздел задания, тренажёр — первая непройденная тема. Нечего открыть — null. */
+const rowHref = (t: RulerTask, mode: Mode) => {
+    if (mode === 'trainer') return t.trainers.length ? topicHref((t.trainers.find((k) => k.percent < 100) ?? t.trainers[0]).title) : null
+    return t.lessons.length ? `/learn?task=${t.num}` : null
+}
+
+/** Стрелка «ты здесь» у задания, которое сейчас открыто. */
+function HereArrow({ size = 7, color = '#FFFFFF' }: { size?: number; color?: string }) {
+    return <span className="shrink-0" style={{ width: 0, height: 0, borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderLeft: `${size * 1.3}px solid ${color}`, filter: 'drop-shadow(0 0 3px #000a)' }} />
+}
 
 /** Узкая свёрнутая линейка: только риски и мелкие номера. */
-function Strip({ data, mode, onOpen }: { data: RulerData; mode: Mode; onOpen: () => void }) {
+function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here: Set<number>; onOpen: () => void }) {
     const s = SKIN[mode]
     return (
         <button type="button" onClick={onOpen} aria-label="Открыть линейку ЕГЭ"
@@ -91,10 +103,12 @@ function Strip({ data, mode, onOpen }: { data: RulerData; mode: Mode; onOpen: ()
             {data.tasks.map((t) => {
                 const p = taskProgress(t, mode)
                 return (
-                    <span key={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`} style={{ borderColor: `${TICK}66` }}>
-                        <span className="w-[12px] text-right font-mono text-[8px] font-bold leading-none" style={{ color: `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
+                    <span key={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`}
+                        style={{ borderColor: `${TICK}66`, ...(here.has(t.num) ? { background: '#FFFFFF33' } : {}) }}>
+                        <span className="w-[12px] text-right font-mono text-[8px] font-bold leading-none" style={{ color: here.has(t.num) ? '#FFFFFF' : `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
                         <span className="h-[2px] rounded-full" style={{ width: 3 + 10 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
-                        {data.setTaskNum === t.num && <span className="absolute -left-[5px] h-[7px] w-[7px] rounded-full" style={{ background: '#F2C35B', boxShadow: '0 0 6px #F2C35B' }} />}
+                        {data.setTaskNum === t.num && <span className="absolute right-[2px] h-[6px] w-[6px] rounded-full" style={{ background: '#F2C35B', boxShadow: '0 0 6px #F2C35B' }} />}
+                        {here.has(t.num) && <span className="absolute -left-[12px]"><HereArrow size={6} /></span>}
                     </span>
                 )
             })}
@@ -103,9 +117,14 @@ function Strip({ data, mode, onOpen }: { data: RulerData; mode: Mode; onOpen: ()
 }
 
 /** Выдвижная линейка: 20 строк, переключатель задачник/тренажёр, замки PRO. */
-function Panel({ data, mode, setMode, onClose }: { data: RulerData; mode: Mode; setMode: (m: Mode) => void; onClose?: () => void }) {
+function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: Mode; setMode: (m: Mode) => void; here: Set<number>; onClose?: () => void }) {
     const s = SKIN[mode]
-    const all = data.tasks.reduce((sum, t) => sum + taskProgress(t, mode), 0) / Math.max(data.tasks.length, 1)
+    const router = useRouter()
+    const go = (href: string | null) => { if (!href) return; onClose?.(); router.push(href) }
+    // Тренажёр: сколько тем уже с медалью (бронза и выше) из всех тем, привязанных к заданиям.
+    const topics = new Map<number, number>()
+    for (const t of data.tasks) for (const k of t.trainers) topics.set(k.tUnitId, k.percent)
+    const medaled = [...topics.values()].filter((p) => p > 0).length
     const locked = data.tasks.reduce((n, t) => n + (mode === 'learn'
         ? t.lessons.filter((l) => l.proLocked && l.solved < l.total).length
         : t.trainers.filter((k) => k.proLocked && k.percent < 100).length), 0)
@@ -113,16 +132,18 @@ function Panel({ data, mode, setMode, onClose }: { data: RulerData; mode: Mode; 
         <div className="flex max-h-full w-[min(340px,92vw)] flex-col rounded-l-2xl border-y border-l shadow-[-6px_6px_24px_#000a]"
             style={{ background: `linear-gradient(90deg, ${s.light}, ${s.body} 18%, ${s.body} 85%, ${s.edge})`, borderColor: s.edge }}>
             <div className="flex items-center gap-2 px-3 pb-2 pt-3">
-                <div className="flex rounded-full p-[3px]" style={{ background: '#0006' }}>
+                <div className="flex min-w-0 flex-1 rounded-full p-[3px]" style={{ background: '#0006' }}>
                     {(['learn', 'trainer'] as Mode[]).map((m) => (
                         <button key={m} type="button" onClick={() => setMode(m)}
-                            className="rounded-full px-3 py-1 text-xs font-black transition-colors"
+                            className="flex-1 rounded-full py-1.5 text-xs font-black transition-colors"
                             style={m === mode ? { background: SKIN[m].fill, color: '#1D2210' } : { color: `${TICK}AA` }}>
                             {SKIN[m].label}
                         </button>
                     ))}
                 </div>
-                <span className="ml-auto font-mono text-sm font-black" style={{ color: TICK }}>{Math.round(all * 100)}%</span>
+                {mode === 'learn'
+                    ? <span className="shrink-0 text-right leading-none" title="Прогноз баллов ЕГЭ"><span className="font-mono text-base font-black" style={{ color: TICK }}>≈{data.test}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(data.test, 'балл', 'балла', 'баллов')}</span></span>
+                    : <span className="shrink-0 text-right leading-none" title="Тем тренажёра с медалью"><span className="font-mono text-base font-black" style={{ color: TICK }}>{medaled}/{topics.size}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>тем</span></span>}
                 {onClose && (
                     <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-full p-1" style={{ color: TICK }}>
                         <X className="h-5 w-5" />
@@ -133,6 +154,8 @@ function Panel({ data, mode, setMode, onClose }: { data: RulerData; mode: Mode; 
                 {data.tasks.map((t) => {
                     const p = taskProgress(t, mode)
                     const isSet = data.setTaskNum === t.num
+                    const isHere = here.has(t.num)
+                    const href = rowHref(t, mode)
                     return (
                         <div key={t.num}>
                             {t.num === 14 && (
@@ -142,19 +165,20 @@ function Panel({ data, mode, setMode, onClose }: { data: RulerData; mode: Mode; 
                                     <span className="h-px flex-1" style={{ background: `${TICK}66` }} />
                                 </div>
                             )}
-                            <Link href={rowHref(t, mode)} onClick={onClose}
-                                className="flex items-center gap-2 rounded-lg px-1 py-[5px] hover:bg-black/20"
-                                style={isSet ? { background: '#F2C35B1A', boxShadow: 'inset 0 0 0 1px #F2C35B66' } : undefined}>
+                            <div role={href ? 'button' : undefined} onClick={() => go(href)}
+                                className={`flex items-center gap-1.5 rounded-lg px-1 py-[5px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
+                                style={isHere ? { background: '#FFFFFF14', boxShadow: 'inset 0 0 0 1px #FFFFFF55' } : isSet ? { background: '#F2C35B1A', boxShadow: 'inset 0 0 0 1px #F2C35B66' } : undefined}>
                                 <span className="flex w-[34px] shrink-0 items-center gap-[3px]">
-                                    <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />
-                                    <span className="font-mono text-[13px] font-black leading-none" style={{ color: p > 0 ? TICK : `${TICK}88` }}>{t.num}</span>
+                                    {isHere ? <HereArrow size={5} /> : <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />}
+                                    <span className="font-mono text-[13px] font-black leading-none" style={{ color: isHere ? '#FFFFFF' : p > 0 ? TICK : `${TICK}88` }}>{t.num}</span>
                                 </span>
-                                <span className="w-[86px] shrink-0 truncate text-[11px] font-bold" style={{ color: `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
+                                {/* Колокольчик — между номером и названием: задание текущего сета */}
+                                <span className="flex w-[16px] shrink-0 justify-center">{isSet && <Bell />}</span>
+                                <span className="w-[80px] shrink-0 truncate text-[11px] font-bold" style={{ color: isHere ? '#FFFFFF' : `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
                                 <span className="flex min-w-0 flex-1 flex-wrap items-center gap-[3px]">
-                                    <Squares t={t} mode={mode} color={s.fill} />
+                                    <Squares t={t} mode={mode} color={s.fill} onTopic={(title) => go(topicHref(title))} />
                                 </span>
-                                {isSet && <Bell />}
-                            </Link>
+                            </div>
                         </div>
                     )
                 })}
@@ -174,7 +198,9 @@ function Panel({ data, mode, setMode, onClose }: { data: RulerData; mode: Mode; 
 export function EgeRuler({ data, inline = false }: { data: RulerData; inline?: boolean }) {
     const [mode, setModeState] = useState<Mode>('learn')
     const [open, setOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
     useEffect(() => {
+        setMounted(true)
         try { const m = localStorage.getItem(MODE_KEY); if (m === 'learn' || m === 'trainer') setModeState(m) } catch {}
     }, [])
     const setMode = (m: Mode) => {
@@ -182,18 +208,29 @@ export function EgeRuler({ data, inline = false }: { data: RulerData; inline?: b
         try { localStorage.setItem(MODE_KEY, m) } catch {}
     }
 
-    if (inline) return <Panel data={data} mode={mode} setMode={setMode} />
+    // «Ты здесь»: в задачнике — открытый раздел (?task=N), в тренажёре — задания, к которым относится тема на экране.
+    const navTitle = useTrainerNavStore((st) => st.title)
+    const here = new Set<number>(
+        data.currentTaskNum ? [data.currentTaskNum]
+            : navTitle ? data.tasks.filter((t) => t.trainers.some((k) => k.title === navTitle)).map((t) => t.num) : [],
+    )
 
-    return (
+    if (inline) return <Panel data={data} mode={mode} setMode={setMode} here={here} />
+
+    // Портал в body: страницы обёрнуты в анимированные блоки с transform, и fixed внутри них
+    // считался бы от обёртки (линейка уезжала вниз страницы), а не от экрана.
+    if (!mounted) return null
+    return createPortal(
         <>
-            <div className="fixed right-0 top-[120px] z-[60] lg:top-[140px]">
-                <Strip data={data} mode={mode} onOpen={() => setOpen(true)} />
+            <div className="fixed right-0 top-1/2 z-[60] -translate-y-1/2">
+                <Strip data={data} mode={mode} here={here} onOpen={() => setOpen(true)} />
             </div>
             {open && <div className="fixed inset-0 z-[119] bg-black/40" onClick={() => setOpen(false)} />}
             <div className="fixed bottom-4 right-0 top-[64px] z-[120] flex items-start transition-transform duration-300 ease-out"
                 style={{ transform: open ? 'translateX(0)' : 'translateX(105%)' }}>
-                <Panel data={data} mode={mode} setMode={setMode} onClose={() => setOpen(false)} />
+                <Panel data={data} mode={mode} setMode={setMode} here={here} onClose={() => setOpen(false)} />
             </div>
-        </>
+        </>,
+        document.body,
     )
 }
