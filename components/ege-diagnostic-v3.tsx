@@ -66,14 +66,16 @@ function NotKnowButton({ onClick, disabled, wide }: { onClick: () => void; disab
     )
 }
 
-export const EgeDiagnosticV3 = ({ save }: { save?: SaveFn } = {}) => {
-    const [phase, setPhase] = useState<'intro' | 'count' | 'quiz' | 'done'>('intro')
+// save — в приложении (/diagnostic) сохраняет итог (finishBaseDiagnostic); initialRows/initialResult — показать уже
+// пройденную диагностику. Без save (тестовая страница) ничего не сохраняется.
+export const EgeDiagnosticV3 = ({ save, initialRows, initialResult }: { save?: SaveFn; initialRows?: Result[]; initialResult?: DiagResult | null } = {}) => {
+    const [phase, setPhase] = useState<'intro' | 'count' | 'quiz' | 'done'>(initialRows ? 'done' : 'intro')
     const [count, setCount] = useState(3)
     const [index, setIndex] = useState(0)
-    const [results, setResults] = useState<Result[]>([])
-    const [result, setResult] = useState<DiagResult | null>(null)
+    const [results, setResults] = useState<Result[]>(initialRows ?? [])
+    const [result, setResult] = useState<DiagResult | null>(initialResult ?? null)
     const [saveError, setSaveError] = useState<string | null>(null)
-    const savedRef = useRef(false)
+    const savedRef = useRef(!!initialRows)
 
     useEffect(() => {
         if (phase !== 'done' || !save || savedRef.current) return
@@ -111,7 +113,7 @@ export const EgeDiagnosticV3 = ({ save }: { save?: SaveFn } = {}) => {
                 </div>
             )}
             {phase === 'quiz' && <TaskScreen key={TASKS[index].id} task={TASKS[index]} index={index} total={TASKS.length} results={results} onDone={record} />}
-            {phase === 'done' && <ResultsView results={results} result={result} saving={!!save && !result && !saveError} saveError={saveError} testMode={!save} />}
+            {phase === 'done' && <ResultsView results={results} result={result} saving={!!save && !result && !saveError} saveError={saveError} testMode={!save && !initialRows} />}
         </>
     )
 }
@@ -427,6 +429,7 @@ function ResultsView({ results, result, saving, saveError, testMode }: { results
                     <PremiumButton onClick={() => setBuilding(true)} disabled={!result} color="#F09B38" edge="#C07C2B" className="mt-5 w-full">
                         {saving ? 'Сохраняю…' : 'Построить мой план ➜'}
                     </PremiumButton>
+                    <a href="/diagnostic?again=1" className="mt-3 block text-center text-xs font-black underline-offset-4 hover:underline" style={{ color: MUTED }}>Пройти ещё раз</a>
                     {building && result && <PlanBuildModal r={result} onClose={() => setBuilding(false)} />}
                 </>
             )}

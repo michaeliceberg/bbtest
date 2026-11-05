@@ -1,5 +1,5 @@
 // app/diagnostic/page.tsx — диагностика «Мой путь», во весь экран.
-// С 2026-10-13 — новая диагностика «база в уме» (components/ege-diagnostic-v2.tsx, lib/diagBase.ts).
+// С 2026-10-13 — диагностика «база в уме» (lib/diagBase.ts), с 2026-11-06 в премиальном виде (components/ege-diagnostic-v3.tsx).
 // Пройдена новая — показываем её итог; пройдена только старая (version 1) — её итог (lib/egeDiagnostic.ts);
 // ?again=1 или ещё ничего не пройдено — новая диагностика с начала.
 
@@ -9,7 +9,7 @@ import { buildDiagResult, getLatestDiagnostic } from '@/lib/egeDiagnostic'
 import { buildBaseResult, getBaseRows } from '@/lib/diagBase'
 import { finishBaseDiagnostic } from '@/actions/ege-diagnostic'
 import { EgeDiagnostic } from '@/components/ege-diagnostic'
-import { EgeDiagnosticV2 } from '@/components/ege-diagnostic-v2'
+import { EgeDiagnosticV3 } from '@/components/ege-diagnostic-v3'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +24,8 @@ const DiagnosticPage = async ({ searchParams }: { searchParams: { again?: string
     if (done?.version === 2) {
         const [rows, result] = await Promise.all([getBaseRows(done.id), buildBaseResult(done.id, SUBJECT)])
         return (
-            <div className="min-h-screen bg-[#131D22]">
-                <EgeDiagnosticV2 save={finishBaseDiagnostic} initialRows={rows} initialResult={result} />
+            <div className="relative isolate min-h-screen">
+                <EgeDiagnosticV3 save={finishBaseDiagnostic} initialRows={rows} initialResult={result} />
             </div>
         )
     }
@@ -34,8 +34,8 @@ const DiagnosticPage = async ({ searchParams }: { searchParams: { again?: string
         return <EgeDiagnostic id={done.id} plan={done.plan} questions={[]} initialAnswers={[]} initialResult={result} />
     }
     return (
-        <div className="min-h-screen bg-[#131D22]">
-            <EgeDiagnosticV2 save={finishBaseDiagnostic} />
+        <div className="relative isolate min-h-screen">
+            <EgeDiagnosticV3 save={finishBaseDiagnostic} />
         </div>
     )
 }
