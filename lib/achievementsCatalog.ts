@@ -80,6 +80,7 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	// Друзья и банды
 	{ key: 'invite_first', group: 'friends', emoji: '📣', title: 'Агитатор', desc: 'Друг зарегистрировался по твоей ссылке' },
 	{ key: 'friend_lesson', group: 'friends', emoji: '🤝', title: 'Хорошие у тебя друзья', desc: 'Приглашённый друг прошёл свой первый урок' },
+	{ key: 'parent_link', group: 'friends', emoji: '👨‍👩‍👦', title: 'Семейный подряд', desc: 'Подключил родителя — теперь он видит твои успехи' },
 	{ key: 'gang_create', group: 'friends', emoji: '🏴', title: 'Босс района', desc: 'Создал банду' },
 
 	// Билд на задачу (/photo-task, lib/photoTask.ts)
@@ -175,6 +176,7 @@ export const REWARDS: Record<string, AchievementReward> = {
 	pizza_full: { kind: 'gems', amount: 5 },
 	invite_first: { kind: 'pizza', amount: 1 },
 	friend_lesson: { kind: 'pizza', amount: 1 },
+	parent_link: { kind: 'pizza', amount: 1 },
 	gang_create: { kind: 'coins', amount: 50 },
 	build_first: { kind: 'coins', amount: 50 },
 	build_done: { kind: 'gems', amount: 5 },

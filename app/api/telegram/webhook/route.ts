@@ -9,6 +9,7 @@ import { eq, and } from 'drizzle-orm';
 import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnostic';
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards';
 import { sendShareCard } from '@/lib/telegramShareCard';
+import { getWeeklySummary, parentReportText } from '@/lib/weeklyReport';
 
 // Чат админа (тот же, куда по умолчанию шлёт sendMessageToTelegram) — получает вопросы поддержки.
 const SUPPORT_ADMIN_CHAT_ID = '1005641275';
@@ -122,10 +123,18 @@ async function performBind(chatId: string, firstName: string, rawCode: string | 
         `✅ *Ученик "${student.userName}" успешно привязан!*\n\n` +
         `📊 *Что дальше?*\n` +
         `• Вы будете получать уведомления о просроченных ДЗ\n` +
-        `• Можно отслеживать прогресс в любое время`,
+        `• Каждое воскресенье — отчёт: уроки, задачи и прогноз балла ЕГЭ`,
         chatId,
         keyboard
     );
+
+    // Сразу первый отчёт — родитель видит успехи ребёнка уже сейчас, а не через неделю.
+    try {
+        const w = await getWeeklySummary(student.userId, { withForecast: true });
+        await sendMessageToTelegram(parentReportText(student.userName, w), chatId);
+    } catch (e) {
+        console.error('parent first report', e);
+    }
 
     console.log(`📢 Родитель ${firstName} привязан к ученику ${student.userName}`);
 }

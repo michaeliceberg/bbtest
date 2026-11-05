@@ -134,6 +134,8 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	// Друзья и банды.
 	const inv = await rows(sql`SELECT count(*) AS n FROM user_progress WHERE invited_by_user_id = ${userId}`);
 	if (num(inv[0]?.n) > 0) keys.push('invite_first');
+	const pl = await rows(sql`SELECT 1 FROM parent_links WHERE student_id = ${userId} AND is_active LIMIT 1`);
+	if (pl.length) keys.push('parent_link');
 	const fl = await rows(sql`
 		SELECT 1 FROM user_progress f WHERE f.invited_by_user_id = ${userId}
 			AND EXISTS (SELECT 1 FROM t_lesson_progress p WHERE p.user_id = f.user_id AND p.training_pts > 0) LIMIT 1`);

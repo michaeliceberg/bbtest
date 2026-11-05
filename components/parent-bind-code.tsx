@@ -47,8 +47,12 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
         <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
             <h3 className="font-bold text-[#F2F7FB] flex items-center gap-2">
                 <Users className="h-5 w-5 text-amber-500" />
-                Привязать родителя
+                Подключи родителя
+                <span className="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-black text-amber-300">+🍕 кусочек</span>
             </h3>
+            <p className="text-sm text-[#9AA7B0]">
+                Родитель будет получать в Telegram твои успехи: уроки, задачи и рост балла ЕГЭ. А тебе — кусочек пиццы и ачивка «Семейный подряд».
+            </p>
 
             <Button type="button" variant="secondary" className="w-full" onClick={shareLink}>
                 <Share2 className="h-4 w-4 mr-2" />
