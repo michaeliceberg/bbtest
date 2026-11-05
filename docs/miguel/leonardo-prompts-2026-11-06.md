@@ -56,6 +56,16 @@ Leonardo рисовать раскрытые крылья И руки сразу
 фуражки, полосы маскировочной краски на щеках, на груди — лента с карандашами вместо патронов. Оружия нет.
 Для этих поз из основы **убрать** «black military cap with a red star» и вписать то, что в таблице.
 
+**Своя основа для Рэмбо — копировать её ЦЕЛИКОМ вместо общей** (в ней нет фуражки и есть «без головного убора»):
+
+> Charismatic cartoon goose commander mascot character, same goose as the reference image but WITHOUT any cap or hat: bare white head with a long red headband tied around the forehead, headband tails hanging behind, long S-curved white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot, olive green field jacket with rolled sleeves and a red star patch on the shoulder, exactly two arms: white feathered cartoon arms ending in white gloved hands like in the reference image (no wings), orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the beak, thick clean black outline, flat cel shading, cartoon character illustration, full body, isolated on a flat solid pure magenta background #FF00FF, no white border, no text, kid-friendly
+
+Негатив для Рэмбо (общий + головные уборы):
+
+> cap, hat, military cap, peaked cap, beret, helmet, headwear on top of the headband, spread wings, feathered wings, extra wings, four arms, sticker, die-cut, white border, frame, smoke, cigarette, cigar, duck, realistic, photo, 3d render, gore, blood, real weapon, gun, extra limbs, multiple characters, watermark, logo, extra text, random letters
+
+Сила Image Guidance для Рэмбо — **0.35–0.4** (не 0.5): при 0.5 Leonardo копирует фуражку с образца, даже если её нет в промпте.
+
 | Файл | Где | Поза |
 |---|---|---|
 | `miguel-commando` | шапка экрана Рэмбо | wearing a long red headband tied on the forehead instead of the cap, two stripes of green camouflage face paint on the cheeks, a bandolier of yellow pencils across the chest instead of bullets, fierce focused squint, crouching ready pose, hands clenched into fists |
