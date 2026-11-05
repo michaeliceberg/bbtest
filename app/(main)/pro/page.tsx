@@ -11,6 +11,7 @@ import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_FEATURES, PRO_PAYWALL_ENABLED, PRO
 import Link from 'next/link'
 import { ProWantButton } from './want-button'
 import { ProBuyButton } from './buy-button'
+import { getProOffer } from '@/lib/proDiscount'
 import { getUserProgress } from '@/db/queries'
 import { yookassaConfigured, yookassaIsTest } from '@/lib/yookassa'
 
@@ -42,6 +43,9 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
     await db.execute(sql`INSERT INTO pro_interest (user_id, event, source) VALUES (${userId}, 'view', ${source})`)
     const wanted = ((await db.execute(sql`SELECT 1 FROM pro_interest WHERE user_id = ${userId} AND event = 'want' LIMIT 1`)) as unknown as unknown[]).length > 0
     const earlyPrice = Math.round((PRO_PRICE_RUB * (100 - PRO_EARLY_DISCOUNT)) / 100)
+    // Скидка по приглашению (lib/proDiscount.ts); админ платит тестовую сумму — ему не показываем.
+    const offer = canBuy && !isAdmin ? await getProOffer(userId) : null
+    const price = offer?.amountRub ?? PRO_PRICE_RUB
 
     return (
         <div className="max-w-lg mx-auto px-4 py-8 text-[#F2F7FB]">
@@ -64,10 +68,16 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
                     </div>
                     <h1 className="mt-1 text-3xl font-black">ggege <span className="text-[#F2C35B]">PRO</span></h1>
                     <p className="mt-1 text-sm text-[#9AA7B0]">Готовься к ЕГЭ как в игре — без ограничений</p>
-                    <div className="mt-5 flex items-end gap-1">
-                        <span className="text-5xl font-black">{PRO_PRICE_RUB}</span>
+                    <div className="mt-5 flex items-end gap-2">
+                        {offer?.percent ? <span className="pb-2 text-xl font-bold text-[#7F8C93] line-through">{PRO_PRICE_RUB}</span> : null}
+                        <span className="text-5xl font-black">{price}</span>
                         <span className="pb-1.5 text-lg font-bold text-[#9AA7B0]">₽ / месяц</span>
                     </div>
+                    {offer?.percent ? (
+                        <span className="mt-2 rounded-full bg-[#A1D151]/15 px-3 py-1 text-xs font-black text-[#A1D151]">
+                            🎁 −{offer.percent}% {offer.reason === 'friend' ? 'за друга, который оформил PRO по твоей ссылке' : 'на первый месяц — ты пришёл по приглашению'}
+                        </span>
+                    ) : null}
                 </div>
 
                 <ul className="relative mt-6 space-y-3">
@@ -88,7 +98,7 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
 
                 <div className="relative mt-6">
                     {canBuy ? (
-                        <ProBuyButton price={PRO_PRICE_RUB} proUntil={proUntil} paidId={paidId} test={yookassaIsTest()} />
+                        <ProBuyButton price={isAdmin ? 10 : price} proUntil={proUntil} paidId={paidId} test={yookassaIsTest()} />
                     ) : (
                         <ProWantButton initiallyWanted={wanted} source={source ?? undefined} earlyPrice={earlyPrice} discount={PRO_EARLY_DISCOUNT} />
                     )}

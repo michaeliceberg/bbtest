@@ -2,6 +2,7 @@ import 'server-only'
 import { ZN_JOKES, znSource } from '@/lib/zaNauku'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getLessonInviteLink } from '@/lib/referral'
+import { REFERRAL_DISCOUNT_PERCENT } from '@/lib/proDiscount'
 
 // Второе сообщение родителю — то, что удобно переслать другим родителям: смешная задача физтехов
 // из газеты «За науку» («Задачи без ответов») + ссылка на пошаговый урок без регистрации.
@@ -26,6 +27,6 @@ export async function parentShareText(studentId: string): Promise<string | null>
         `🧊 А детям — урок «${PARENT_SHARE_LESSON.title}» из стереометрии ЕГЭ: разберутся по шагам, без регистрации:`,
         link,
         '',
-        '📨 Перешлите другим родителям — пусть тоже поломают голову 😄',
+        `📨 Перешлите другим родителям — пусть тоже поломают голову 😄 Кто придёт по этой ссылке, получит скидку ${REFERRAL_DISCOUNT_PERCENT}% на первый месяц PRO, а вам — ${REFERRAL_DISCOUNT_PERCENT}% на продление, когда он его оформит.`,
     ].join('\n')
 }

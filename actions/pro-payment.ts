@@ -11,6 +11,7 @@ import { PRO_PRICE_RUB } from '@/lib/pro'
 const ADMIN_TEST_PRICE_RUB = 10
 import { PRO_DAYS, syncProPayment } from '@/lib/proPayments'
 import { createYkPayment, yookassaConfigured, yookassaIsTest } from '@/lib/yookassa'
+import { getProOffer, releaseCredit, reserveCredit } from '@/lib/proDiscount'
 
 // Кнопка «Купить PRO»: создаём платёж в ЮKassa и отдаём ссылку на её форму оплаты.
 export async function startProPayment(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
@@ -25,12 +26,19 @@ export async function startProPayment(): Promise<{ ok: true; url: string } | { o
 
     const up = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId), columns: { isAdmin: true } })
     const isAdmin = up?.isAdmin === 1
-    const amountRub = isAdmin ? ADMIN_TEST_PRICE_RUB : PRO_PRICE_RUB
+    // Скидка по приглашению (lib/proDiscount.ts): приглашённому — на первую оплату, пригласившему — за оплатившего друга.
+    const offer = isAdmin ? null : await getProOffer(userId)
+    let amountRub = isAdmin ? ADMIN_TEST_PRICE_RUB : offer?.amountRub ?? PRO_PRICE_RUB
     const days = isAdmin ? 1 : PRO_DAYS
     const [row] = await db
         .insert(proPayments)
         .values({ userId, amountRub, days, test: yookassaIsTest() })
         .returning({ id: proPayments.id })
+    if (offer?.creditId && !(await reserveCredit(offer.creditId, row.id))) {
+        // Скидку только что забрал параллельный платёж — этот по полной цене.
+        amountRub = PRO_PRICE_RUB
+        await db.update(proPayments).set({ amountRub }).where(eq(proPayments.id, row.id))
+    }
 
     try {
         const p = await createYkPayment({
@@ -47,6 +55,7 @@ export async function startProPayment(): Promise<{ ok: true; url: string } | { o
     } catch (e) {
         console.error('startProPayment', e)
         await db.update(proPayments).set({ status: 'error' }).where(eq(proPayments.id, row.id))
+        await releaseCredit(row.id)
         return { ok: false, error: 'Не получилось открыть оплату, попробуй ещё раз' }
     }
 }

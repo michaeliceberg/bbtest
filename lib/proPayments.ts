@@ -5,6 +5,7 @@ import { proPayments, userProgress } from '@/db/schema'
 import { getYkPayment, type YkPayment } from '@/lib/yookassa'
 import { sendMessageToTelegram } from '@/utils/telegram'
 import { issueReceipt, nalogConfigured, proReceiptName } from '@/lib/moyNalog'
+import { onProPaid, releaseCredit } from '@/lib/proDiscount'
 
 // lib/proPayments.ts — оплата PRO: сверка платежа с ЮKassa и продление подписки.
 // Статусу из тела webhook не доверяем: всегда перечитываем платёж по API.
@@ -25,6 +26,7 @@ export async function syncProPayment(ykPaymentId: string): Promise<SyncResult> {
 
     if (p.status !== 'succeeded' || !p.paid) {
         if (p.status !== row.status) await db.update(proPayments).set({ status: p.status }).where(eq(proPayments.id, row.id))
+        if (p.status === 'canceled') await releaseCredit(row.id)
         return { status: p.status, applied: false, proUntil: null }
     }
 
@@ -48,6 +50,8 @@ export async function syncProPayment(ykPaymentId: string): Promise<SyncResult> {
     const base = up?.proUntil && up.proUntil.getTime() > now.getTime() ? up.proUntil : now
     const proUntil = new Date(base.getTime() + row.days * 24 * 3600 * 1000)
     await db.update(userProgress).set({ proUntil }).where(eq(userProgress.userId, row.userId))
+    // Скидка по приглашению потрачена; первая оплата приглашённого дарит скидку пригласившему.
+    await onProPaid(row.id, row.userId, !!p.test).catch((e) => console.error('onProPaid', e))
 
     const name = up?.nickname || up?.userName || row.userId
     const paidAt = row.paidAt ?? now
