@@ -15,7 +15,10 @@ FEET_H, FEET_BLUR, FEET_A = 34, 9, 0.75      # пятно под ногами
 def cut(path, extra=()):
     a = np.array(Image.open(path).convert('RGB')).astype(int)
     mx, mn = a.max(-1), a.min(-1)
-    bg = (mn > 150) & (mx - mn < 30)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    # Пурпурный фон (#FF00FF из промпта): такого цвета нет на рисунке — убираем его везде, в т.ч. в замкнутых «карманах».
+    magenta = (r > 140) & (b > 140) & (g < np.minimum(r, b) - 70)
+    bg = ((mn > 150) & (mx - mn < 30)) | magenta
     H, W = bg.shape
     seen = np.zeros_like(bg)
     q = deque()
@@ -29,6 +32,7 @@ def cut(path, extra=()):
             if 0 <= ny < H and 0 <= nx < W and not seen[ny, nx] and bg[ny, nx]:
                 seen[ny, nx] = True
                 q.append((ny, nx))
+    seen |= magenta
     mask = Image.fromarray(((~seen) * 255).astype('uint8')).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
     st = Image.fromarray(np.dstack([a, np.array(mask)]).astype('uint8'), 'RGBA')
     return st.crop(st.getbbox())
