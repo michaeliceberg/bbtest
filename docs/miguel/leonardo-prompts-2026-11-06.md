@@ -14,11 +14,15 @@
 
 Основа (для удобства, копировать целиком перед позой):
 
-> Charismatic cartoon goose commander mascot character, same character as the reference image: long S-curved white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, black military cap with a red star, plain red bandana scarf, olive green field jacket with rolled sleeves and a red star patch on the shoulder, orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the beak, thick clean black outline, flat cel shading, cartoon character illustration, full body, isolated on a flat solid pure magenta background #FF00FF, no white border, no outline around the whole image, no text, kid-friendly
+> Charismatic cartoon goose commander mascot character, same character as the reference image: long S-curved white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, black military cap with a red star, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot (exactly like the reference image), olive green field jacket with rolled sleeves and a red star patch on the shoulder, orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the beak, thick clean black outline, flat cel shading, cartoon character illustration, full body, isolated on a flat solid pure magenta background #FF00FF, no white border, no outline around the whole image, no text, kid-friendly
 
 Негатив:
 
-> sticker, die-cut, white border, white outline around the character, white frame, border, frame, badge, smoke, steam, cigarette, cigar, ash, duck, eyelashes, blush, makeup, girly, text on bandana, letters, writing, realistic, photo, 3d render, gore, blood, real weapon, extra limbs, multiple characters, watermark, logo, cropped
+> sticker, die-cut, white border, white outline around the character, white frame, border, frame, badge, smoke, steam, cigarette, cigar, ash, duck, eyelashes, blush, makeup, girly, extra text, random letters, words, writing on the jacket, realistic, photo, 3d render, gore, blood, real weapon, extra limbs, multiple characters, watermark, logo, cropped
+
+**Знак «GG» на бандане (2026-11-06):** раньше в основе было «plain red bandana» и в негативе «text on bandana, letters» — это
+и стирало GG на новых генерациях. Теперь GG прямо описан в основе, а из негатива убраны «буквы на бандане». Если GG всё равно
+пропадёт или выйдет кривым — присылайте как есть, дорисую знак сам.
 
 **Почему так (2026-11-06):** слово «sticker» Leonardo понимает как вырезанную наклейку и сам рисует белую рамку вокруг.
 Поэтому «sticker» убрано из основы и добавлено в негатив, а фон — пурпурный: на белом фоне белая рамка сливается
