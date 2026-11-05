@@ -149,7 +149,8 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
                         className="mt-6 rounded-3xl border-2 p-5 text-center"
                         style={{ borderColor: hexToRgba(GREEN.button, 0.6), backgroundColor: hexToRgba(GREEN.button, 0.08) }}>
-                        <p className="text-3xl">🎉</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/miguel/miguel-full.webp" alt="" className="mx-auto -mb-2 h-32 w-32 object-contain" />
                         <p className="mt-1 text-xl font-black text-[#F2F7FB]">Сет съеден! 😋</p>
                         <div className="mt-4 flex items-center justify-center gap-3">
                             <div>

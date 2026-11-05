@@ -1,6 +1,7 @@
 # Стикер Мигеля новой версии: без белой обводки, мягкая тень по силуэту + тёмное пятно под ногами (запечено в картинку,
 # чтобы не держать CSS-фильтры на анимациях). 512×512 WebP.
-# Запуск: python3 docs/miguel/tools/make_sticker_v2.py вход.jpg выход.webp
+# Запуск: python3 docs/miguel/tools/make_sticker_v2.py вход.jpg выход.webp [x,y ...]
+# x,y — доп. точки фона (в пикселях исходника) для закрытых «карманов» фона, куда заливка от углов не доходит.
 import sys
 from collections import deque
 import numpy as np
@@ -11,14 +12,14 @@ PAD_SIDE, PAD_TOP, PAD_BOTTOM = 22, 14, 62   # снизу запас под те
 DROP_Y, DROP_BLUR, DROP_A = 16, 12, 0.6      # мягкая тень по силуэту
 FEET_H, FEET_BLUR, FEET_A = 34, 9, 0.75      # пятно под ногами
 
-def cut(path):
+def cut(path, extra=()):
     a = np.array(Image.open(path).convert('RGB')).astype(int)
     mx, mn = a.max(-1), a.min(-1)
     bg = (mn > 150) & (mx - mn < 30)
     H, W = bg.shape
     seen = np.zeros_like(bg)
     q = deque()
-    for y, x in [(0, 0), (0, W - 1), (H - 1, 0), (H - 1, W - 1)]:
+    for y, x in [(0, 0), (0, W - 1), (H - 1, 0), (H - 1, W - 1), *extra]:
         seen[y, x] = True
         q.append((y, x))
     while q:
@@ -32,8 +33,8 @@ def cut(path):
     st = Image.fromarray(np.dstack([a, np.array(mask)]).astype('uint8'), 'RGBA')
     return st.crop(st.getbbox())
 
-def build(src, dst):
-    st = cut(src)
+def build(src, dst, extra=()):
+    st = cut(src, extra)
     w, h = st.size
     k = min((SIZE - 2 * PAD_SIDE) / w, (SIZE - PAD_TOP - PAD_BOTTOM) / h)
     st = st.resize((round(w * k), round(h * k)), Image.Resampling.LANCZOS)
@@ -57,4 +58,4 @@ def build(src, dst):
     out.save(dst, quality=88)
 
 if __name__ == '__main__':
-    build(sys.argv[1], sys.argv[2])
+    build(sys.argv[1], sys.argv[2], [tuple(int(v) for v in reversed(p.split(','))) for p in sys.argv[3:]])
