@@ -82,9 +82,10 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
  *  «К задачам» в плашке предмета ведёт на экран раздела /learn?task=N. */
 export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight, cornerTop }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode }) {
     return (
-        <div id="learn-hangar">
-            {/* 50 шапка + 12 отступ + 106 пульт под ангаром */}
-            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={168} />
+        // На телефоне — во всю ширину экрана и вплотную к шапке (страница задачника даёт px-6 и сверху ~32px)
+        <div id="learn-hangar" className="-mx-6 -mt-8 lg:mx-0 lg:mt-0">
+            {/* 50 шапка + 106 пульт под ангаром */}
+            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={156} />
         </div>
     )
 }

@@ -89,7 +89,7 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 			{setBar.dish !== null && (
 				<button type='button' onClick={openSet}
 					className='flex h-[38px] shrink-0 items-center gap-1.5 overflow-hidden rounded-xl bg-[#0F171B] border-[#2A363C] transition-[width,opacity,padding] duration-300'
-					style={{ marginLeft: miniSet ? 8 : 0, width: miniSet ? (setBar.dish === 3 ? 44 : 78) : 0, opacity: miniSet ? 1 : 0, paddingLeft: miniSet ? 8 : 0, paddingRight: miniSet ? 6 : 0, borderWidth: miniSet ? 2 : 0 }}
+					style={{ marginLeft: !unitButton ? 'auto' : miniSet ? 8 : 0, width: miniSet ? (setBar.dish === 3 ? 44 : 78) : 0, opacity: miniSet ? 1 : 0, paddingLeft: miniSet ? 8 : 0, paddingRight: miniSet ? 6 : 0, borderWidth: miniSet ? 2 : 0 }}
 					aria-hidden={!miniSet} tabIndex={miniSet ? 0 : -1} aria-label='Сет'>
 					{setBar.dish < 3 && <SetDots dish={setBar.dish} size={8} />}
 					{/* колокольчик уровня сета — как на язычке полоски */}

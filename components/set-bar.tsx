@@ -204,9 +204,9 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
             animate={closing ? { y: -14, opacity: 0, scaleY: 0.9 } : { y: 0, opacity: 1, scaleY: 1 }}
             transition={closing ? { duration: 0.26, ease: [0.4, 0, 1, 1] } : { type: 'spring', stiffness: 420, damping: 32 }}
             style={{ transformOrigin: 'top' }}
-            className="absolute inset-x-0 top-full z-10 mt-1 grid max-h-[calc(100dvh-110px)] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60 sm:max-w-[680px] sm:grid-cols-[270px_1fr] sm:grid-rows-[auto_auto_1fr] sm:gap-x-5">
+            className="absolute inset-x-0 top-full z-10 mt-1 grid max-h-[calc(100dvh-110px)] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60 sm:mx-auto sm:max-w-[440px]">
             {/* Телефон: шапка → превью → стол → кнопка. Шире — слева стол, справа Мигель, превью и кнопка */}
-            <div className="flex items-start gap-2 sm:col-start-2">
+            <div className="flex items-start gap-2">
                 {/* Мигель по пояс, как на карте тренажёра; поза — по блюду (SET_MIGUEL) */}
                 <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src={SET_MIGUEL[dish]} size={124} width={84} flip={dish === 0} /></div>
                 <div className="min-w-0 flex-1">
@@ -225,17 +225,17 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 {/* отступ сверху — над уровнями висит язычок с колокольчиком */}
                 <div className="mt-4"><ChestLevels setNumber={d.setNumber} /></div>
             </div>
-            <div className="sm:col-start-2">
+            <div>
                 {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
                     : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
             </div>
             {/* Блюда стоят на зелёном армейском столе (public/set-tablecloth/cloth-green.webp; исходники Leonardo —
                 docs/set-table/leonardo, каска вырезана и подогнана по тону скатерти docs/set-table/helmet_cut.py):
                 роза слева вверху, каска справа вверху, вилка с ножом справа внизу — блюда в свободной середине */}
-            <div className="relative mx-auto mt-2 w-full sm:col-start-1 sm:row-span-3 sm:row-start-1 sm:mt-0 sm:w-full sm:self-center">
+            <div className="relative mx-auto mt-2 w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={SET_TABLECLOTH} alt="" draggable={false} className="block w-full select-none" />
-                <div className="absolute left-[13%] right-[25%] top-[31%] flex h-[38%] items-center gap-1.5">
+                <div className="absolute left-[13%] right-[25%] top-[31%] flex h-[38%] items-stretch gap-1.5 py-[2%]">
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (
@@ -244,7 +244,7 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                                 <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
                                     className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">{name}</motion.span>
                             )}
-                            <div className="flex flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-1.5 text-center"
+                            <div className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border-2 px-1 py-1.5 text-center"
                                 style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322E6' : cur ? '#2A2410E6' : '#0F171BD9' }}>
                                 {i < 2 ? (
                                     <>
@@ -268,7 +268,7 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 })}
                 </div>
             </div>
-            <div className="sm:col-start-2 sm:row-start-3 sm:self-end">
+            <div>
             <button onClick={go} disabled={busy}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 py-3 text-base font-black uppercase tracking-wide text-[#16240C] active:border-b-0"
                 style={{ background: dish === 2 ? 'linear-gradient(180deg,#FFD84D,#F2C35B)' : GREEN, borderBottomColor: dish === 2 ? '#B8862E' : '#60A12F' }}>
