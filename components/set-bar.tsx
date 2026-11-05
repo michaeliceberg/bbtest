@@ -29,7 +29,7 @@ const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
-const SET_TABLECLOTH = '/set-tablecloth/cloth-1.webp'
+const SET_TABLECLOTH = '/set-tablecloth/cloth-green.webp'
 // Десерт — это сам сундук, отдельной еды у него нет
 export const SET_DISH_ICONS = ['🍟', '🍔']
 // Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
@@ -229,12 +229,13 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
                     : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
             </div>
-            {/* Блюда стоят на бархатной скатерти (public/set-tablecloth/cloth-1.webp, исходник Leonardo —
-                docs/miguel/leonardo/tablecloth): ряд блюд — на гладкой середине стола, между розой сверху и вилкой снизу */}
-            <div className="relative mx-auto mt-2 w-[min(70%,250px)] sm:col-start-1 sm:row-span-3 sm:row-start-1 sm:mt-0 sm:w-full sm:self-center">
+            {/* Блюда стоят на зелёном армейском столе (public/set-tablecloth/cloth-green.webp; исходники Leonardo —
+                docs/set-table/leonardo, каска вырезана и подогнана по тону скатерти docs/set-table/helmet_cut.py):
+                роза слева вверху, каска справа вверху, вилка с ножом справа внизу — блюда в свободной середине */}
+            <div className="relative mx-auto mt-2 w-full sm:col-start-1 sm:row-span-3 sm:row-start-1 sm:mt-0 sm:w-full sm:self-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={SET_TABLECLOTH} alt="" draggable={false} className="block w-full select-none" />
-                <div className="absolute inset-x-[9%] top-[27%] flex h-[31%] items-center gap-1.5">
+                <div className="absolute left-[13%] right-[25%] top-[31%] flex h-[38%] items-center gap-1.5">
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (
