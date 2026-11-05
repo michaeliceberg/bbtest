@@ -193,3 +193,5 @@ export const LEVEL_UP_SOUND = '/snd-lvlup.mp3'
 export const CHEST_DROP_SOUND = '/snd-drop-chest.mp3'
 // колокольчик со стойки ресторана: сет перешёл к новому блюду (zapsplat, reception bell «ding»)
 export const SET_BELL_SOUND = '/snd-set-bell.mp3'
+// Колокольчик сета звучит еле слышно — громкий звон раздражал
+export const SET_BELL_VOLUME = 0.12

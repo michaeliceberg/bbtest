@@ -17,7 +17,7 @@ import { Check, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import type { SetBarData } from '@/lib/setBar'
 import { startEgeMove } from '@/actions/ege-move'
 import { useSetBarStore } from '@/store/use-set-bar-store'
-import { SET_BELL_SOUND, playSound, preloadSound } from '@/lib/sound'
+import { SET_BELL_SOUND, SET_BELL_VOLUME, playSound, preloadSound } from '@/lib/sound'
 import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, type LessonCaseTier } from '@/lib/caseRewards'
 import { PetBust } from './trainer-pet'
 
@@ -125,7 +125,7 @@ function useBell(d: SetBarData, dish: number) {
         let prev: { id: number; dish: number } | null = null
         try { prev = JSON.parse(localStorage.getItem('setBarDish') || 'null') } catch { /* нет хранилища */ }
         // новое блюдо подано — колокольчик, как на стойке ресторана
-        if (prev && prev.id === d.moveId && dish > prev.dish && dish <= 2) playSound(SET_BELL_SOUND)
+        if (prev && prev.id === d.moveId && dish > prev.dish && dish <= 2) playSound(SET_BELL_SOUND, SET_BELL_VOLUME)
         try { localStorage.setItem('setBarDish', JSON.stringify({ id: d.moveId, dish })) } catch { /* нет хранилища */ }
     }, [d.moveId, dish])
 }
@@ -271,7 +271,7 @@ function BellTongue({ n, open, onToggle }: { n: number; open: boolean; onToggle:
     return (
         <motion.button type="button" aria-label={open ? 'Свернуть сет' : 'Открыть сет'}
             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.5} onDragEnd={onEnd}
-            onTap={() => { ring(1); playSound(SET_BELL_SOUND); onToggle(!open) }}
+            onTap={() => { ring(1); playSound(SET_BELL_SOUND, SET_BELL_VOLUME); onToggle(!open) }}
             className="absolute left-1.5 top-0 z-20 flex h-[58px] w-[48px] touch-none flex-col items-center justify-center rounded-b-2xl rounded-t-xl border-2 border-t-0 bg-[#151F23] shadow-lg shadow-black/50"
             style={{ borderColor: `${b.color}AA` }}>
             <BellIcon n={n} size={36} pressed={pressed} />

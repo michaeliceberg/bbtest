@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, ChevronDown, ChevronRight, Lock, Menu, Radar, X } from 'lucide-react'
-import { SET_BELL_SOUND, playSound, preloadSound } from '@/lib/sound'
+import { SET_BELL_SOUND, SET_BELL_VOLUME, playSound, preloadSound } from '@/lib/sound'
 
 const UNIT = { title: 'Тригонометрическая окружность (БАЗА)', button: '#BC418A', bottom: '#96346F' }
 const SET = {
@@ -149,7 +149,7 @@ export default function TestSetBarPage() {
 
     const step = () => {
         // новое блюдо подано (закуска → основное → десерт) — звенит колокольчик, как на стойке ресторана
-        if (d < 2) playSound(SET_BELL_SOUND)
+        if (d < 2) playSound(SET_BELL_SOUND, SET_BELL_VOLUME)
         if (d < 3) setD(d + 1)
         else setD(0)
         if (d >= 1) setSheet(false)
@@ -205,7 +205,7 @@ export default function TestSetBarPage() {
                     Листай вверх — возвращается. Нажми на полоску — карточка сета.
                     <div className="mt-2 flex flex-wrap gap-1.5">
                         {['Блюдо 1', 'Блюдо 2', 'Десерт', 'Съеден'].map((t, i) => (
-                            <button key={t} onClick={() => { if (i > d && i <= 2) playSound(SET_BELL_SOUND); setD(i) }}
+                            <button key={t} onClick={() => { if (i > d && i <= 2) playSound(SET_BELL_SOUND, SET_BELL_VOLUME); setD(i) }}
                                 className={`rounded-lg px-2 py-1 text-[11px] font-black ${d === i ? 'bg-[#F2C35B] text-[#3A2A08]' : 'bg-[#26333B] text-[#C9D3D9]'}`}>{t}</button>
                         ))}
                     </div>
