@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import { useSetBarStore } from '@/store/use-set-bar-store'
 import { BellIcon, SetDots } from './set-bar'
+import { SET_BELL_SOUND, SET_BELL_VOLUME, playSound } from '@/lib/sound'
 import { MobileSidebar } from './modal-sidebar'
 import type { SidebarCourse } from './sidebar'
 
@@ -46,6 +48,14 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 	// Полоска «Сета» (components/set-bar.tsx) уехала под шапку при прокрутке — справа остаются точки и сундук
 	const setBar = useSetBarStore()
 	const miniSet = setBar.dish !== null && setBar.compact
+	// нажали мини-значок — колокольчик «дзинь» (кнопка уходит вниз, звук), потом сет разворачивается
+	const [bellPressed, setBellPressed] = useState(false)
+	const openSet = () => {
+		playSound(SET_BELL_SOUND, SET_BELL_VOLUME)
+		setBellPressed(true)
+		window.setTimeout(() => setBellPressed(false), 150)
+		window.setTimeout(() => setBar.open?.(), 180)
+	}
 
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>
@@ -75,13 +85,13 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 				</motion.button>
 			)}
 			{setBar.dish !== null && (
-				<button type='button' onClick={() => setBar.open?.()}
+				<button type='button' onClick={openSet}
 					className='flex h-[38px] shrink-0 items-center gap-1.5 overflow-hidden rounded-xl bg-[#0F171B] border-[#2A363C] transition-[width,opacity,padding] duration-300'
 					style={{ marginLeft: miniSet ? 8 : 0, width: miniSet ? (setBar.dish === 3 ? 44 : 78) : 0, opacity: miniSet ? 1 : 0, paddingLeft: miniSet ? 8 : 0, paddingRight: miniSet ? 6 : 0, borderWidth: miniSet ? 2 : 0 }}
 					aria-hidden={!miniSet} tabIndex={miniSet ? 0 : -1} aria-label='Сет'>
 					{setBar.dish < 3 && <SetDots dish={setBar.dish} size={8} />}
 					{/* колокольчик уровня сета — как на язычке полоски */}
-					<span className={setBar.dish === 2 ? 'animate-bounce' : ''}><BellIcon n={setBar.bell} size={26} /></span>
+					<span className={`flex items-center ${setBar.dish === 2 ? 'animate-bounce' : ''}`}><BellIcon n={setBar.bell} size={26} pressed={bellPressed} /></span>
 				</button>
 			)}
 			{!unitButton && displayTitle && (

@@ -418,6 +418,8 @@ export function SetBar({ data }: { data: SetBarData }) {
     const lastY = useRef(0)
     const sheetRef = useRef(false)
     sheetRef.current = sheet
+    const compactRef = useRef(false)
+    compactRef.current = compact
     useBell(data, dish)
     // открыли панель (в т.ч. из мини-значка в шапке) — полоска снова видна целиком
     const setSheet = (v: boolean) => {
@@ -429,9 +431,16 @@ export function SetBar({ data }: { data: SetBarData }) {
         closeTimer.current = window.setTimeout(() => { setSheetRaw(false); setClosing(false); closeTimer.current = null }, 270)
     }
 
+    // из мини-значка в шапке: сначала полоска плавно выезжает из-под шапки, потом разворачивается панель
+    const openFromMini = () => {
+        if (!compactRef.current) { setSheet(true); return }
+        setCompact(false); setStore({ compact: false })
+        window.setTimeout(() => setSheet(true), 300)
+    }
+
     // мини-значок в шапке телефона знает, какое блюдо и как открыть карточку
     useEffect(() => {
-        setStore({ dish, chest: LESSON_CASE_TIER_ICON[data.tier], bell: data.setNumber, open: () => setSheet(true) })
+        setStore({ dish, chest: LESSON_CASE_TIER_ICON[data.tier], bell: data.setNumber, open: openFromMini })
         return () => setStore({ dish: null, open: null, compact: false })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dish, data.tier, data.setNumber, setStore])
