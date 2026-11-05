@@ -407,7 +407,8 @@ export function BellTongue({ n, open, onToggle }: { n: number; open: boolean; on
     )
 }
 
-export function SetBar({ data }: { data: SetBarData }) {
+// backdropZ: затемнение под открытой панелью; поверх ангара (z до 1200) нужно выше, иначе тап мимо нажимает предметы
+export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?: number }) {
     const dish = setDishOf(data)
     const [sheet, setSheetRaw] = useState(false)
     const [closing, setClosing] = useState(false)
@@ -472,7 +473,7 @@ export function SetBar({ data }: { data: SetBarData }) {
                 </div>
             </div>
             {sheet && typeof document !== 'undefined' && createPortal(
-                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 z-30 bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} />,
+                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} style={{ zIndex: backdropZ }} />,
                 document.body,
             )}
         </>

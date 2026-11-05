@@ -35,6 +35,8 @@ const MainLayout = async ({ children }: Props) => {
     // Профиль (имя/аватар) — источник правды для сайдбара, а не сессия
     // NextAuth, которая обновляется только при новом входе.
     const userProgressRow = await getUserProgress()
+    // кнопка PRO в сайдбаре: купленная подписка — спокойная, иначе переливается (админ без подписки видит призывную)
+    const proBought = !!userProgressRow?.proUntil && new Date(userProgressRow.proUntil).getTime() > Date.now()
 
     // Получаем доступные курсы пользователя
     const allCourses = await getUserCourses()
@@ -42,8 +44,8 @@ const MainLayout = async ({ children }: Props) => {
     if (!allCourses.length) {
         return (
             <>
-                <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAdmin={userProgressRow?.isAdmin === 1} />
-                <Sidebar className='hidden lg:flex' theme={getUiTheme()} userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAmbassador={userProgressRow?.isAmbassador} isAdmin={userProgressRow?.isAdmin === 1} />
+                <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought} />
+                <Sidebar className='hidden lg:flex' theme={getUiTheme()} userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAmbassador={userProgressRow?.isAmbassador} isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
                 </main>
@@ -128,7 +130,7 @@ const MainLayout = async ({ children }: Props) => {
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
                 learnSubject={learnSubject}
-                isAdmin={userProgressRow?.isAdmin === 1}
+                isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought}
             />
             <Sidebar
                 className='hidden lg:flex'
@@ -143,7 +145,7 @@ const MainLayout = async ({ children }: Props) => {
                 learnLocked={learnLocked}
                 learnSubject={learnSubject}
                 isAmbassador={userProgressRow?.isAmbassador}
-                isAdmin={userProgressRow?.isAdmin === 1}
+                isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>

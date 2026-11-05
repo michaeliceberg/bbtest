@@ -17,9 +17,10 @@ type Props = {
 	learnLocked?: boolean
 	learnSubject?: 'math' | 'physics'
 	isAdmin?: boolean
+	isPro?: boolean
 }
 
-export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked, learnSubject, isAdmin }: Props) => {
+export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro }: Props) => {
 	const [open, setOpen] = useState(false)
 	const pathname = usePathname()
 	const claimCount = useAchievementClaimStore((st) => st.count)
@@ -46,6 +47,7 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userNa
 					learnLocked={learnLocked}
 					learnSubject={learnSubject}
 					isAdmin={isAdmin}
+					isPro={isPro}
 					onAfterCourseChange={() => setOpen(false)}
 				/>
 			</SheetContent>

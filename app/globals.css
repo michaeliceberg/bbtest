@@ -1284,3 +1284,26 @@ body {
 @keyframes hangar-neon { 0% { opacity: 0; } 1.5% { opacity: 1; } 2.5% { opacity: 0.25; } 3.5% { opacity: 1; } 17% { opacity: 1; } 18% { opacity: 0.2; } 19% { opacity: 0.9; } 21%, 100% { opacity: 0; } }
 .hangar-neon { animation: hangar-neon 11s linear infinite; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .hangar-badge-peek, .hangar-tarp-rustle, .hangar-neon { animation: none; } }
+
+/* Кнопка PRO в сайдбаре (components/pro-sidebar-button.tsx): золотой вариант .btn-magic — переливается, блик, искры */
+.btn-pro {
+    position: relative; overflow: hidden; isolation: isolate;
+    border-radius: .75rem; font-weight: 900; color: #3A2606;
+    background: linear-gradient(110deg, #B8862E, #F2C35B, #FFF1B8, #F2C35B, #B8862E, #F2C35B);
+    background-size: 200% 100%; animation: magic-flow 3.5s linear infinite;
+    box-shadow: 0 3px 0 #8A5E16, 0 0 12px rgba(242, 195, 91, .5);
+}
+.btn-pro:active { transform: translateY(3px); box-shadow: 0 0 12px rgba(242, 195, 91, .5); }
+.btn-pro::after {
+    content: ''; position: absolute; inset: 0; z-index: -1; width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .8), transparent);
+    animation: magic-shine 2.6s ease-in-out infinite;
+}
+.btn-pro .magic-icon { animation: magic-twinkle 1.6s ease-in-out infinite; }
+.btn-pro .magic-spark {
+    position: absolute; bottom: 5px; width: 4px; height: 4px; border-radius: 9999px; background: #fff;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, .9); animation: magic-spark 1.8s ease-out infinite; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .btn-pro, .btn-pro::after, .btn-pro .magic-icon, .btn-pro .magic-spark { animation: none !important; }
+}

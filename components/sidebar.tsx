@@ -1,7 +1,8 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Swords, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
+import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route } from 'lucide-react'
+import { ProSidebarButton } from '@/components/pro-sidebar-button'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -54,9 +55,10 @@ interface SidebarProps {
   // ученики-евангелисты, продвигающие приложение среди одноклассников,
   // включается вручную точечным SQL, не автоматически.
   isAmbassador?: boolean
+  isPro?: boolean // купленная подписка: кнопка PRO спокойная
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false, isPro = false }: SidebarProps) => {
   const claimCount = useAchievementClaimStore((st) => st.count)
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
@@ -94,16 +96,17 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   }, [displayedCourseId, courses])
 
   const navItems = [
-    // Тренажёр — первым (просьба пользователя 2026-09-29). disabled: true —
+    // Порядок (2026-11-05): Задачник, Тренажёр, Мой путь. disabled: true —
     // сделать пункт неактивным (приглушён, замок, не ссылка).
-    { label: 'Мой путь', href: '/path', icon: Route },
+    // У задачника — ракета с пульта ангара (ангар — карта задачника), картинкой, а не значком lucide.
+    { label: 'Задачник', href: '/learn', icon: Route, img: '/hangar/ui/cap2-rocket.webp', disabled: learnLocked },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
-    { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
+    { label: 'Мой путь', href: '/path', icon: Route },
     // Справочник временно убран (2026-10-29): будет премиальной страницей с теорией из пройденных step-by-step.
     // { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Банда', href: '/gang', icon: Shield },
     { label: 'Ачивки', href: '/achievements', icon: Trophy },
-    { label: 'PRO', href: '/pro', icon: Crown, disabled: !PRO_ENABLED },
+    // PRO — не пункт меню, а кнопка справа от аккаунта внизу (components/pro-sidebar-button.tsx)
     // Только админам — статистика (воронка) с телефона.
     ...(isAdmin ? [{ label: 'Админка', href: '/admin/funnel', icon: BarChart3 }] : []),
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
@@ -114,6 +117,15 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     // { label: 'Прогресс', href: '/progress', icon: TrendingUp },
   ]
   
+  const navIconEl = (item: (typeof navItems)[number], active: boolean) => {
+    if ('img' in item && item.img) {
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={item.img} alt="" className={cn('mr-3 h-6 w-6 shrink-0 object-contain', !active && 'opacity-90')} />
+    }
+    const Icon = item.icon
+    return <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(active)} />
+  }
+
   const setPendingCourse = useCourseSwitchStore((s) => s.setPending)
 
   const handleCourseChange = (courseId: number) => {
@@ -137,8 +149,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   // Иконка пользователя внизу сайдбара — клик сразу ведёт в /account
   // (выход из аккаунта — красной кнопкой внизу той страницы).
   const userMenu = session?.user && (
-    <div className="px-2 pb-4">
-      <TransitionLink href="/account" className="block">
+    <div className="px-2 pb-4 flex items-center gap-2">
+      <TransitionLink href="/account" className="block min-w-0 flex-1">
         <div className="w-full flex items-center gap-2 p-3 rounded-lg hover:bg-[#232F34] transition-colors cursor-pointer">
           {userImageSrc || session.user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -158,6 +170,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           </span>
         </div>
       </TransitionLink>
+      {PRO_ENABLED && <ProSidebarButton bought={isPro} />}
     </div>
   )
 
@@ -171,10 +184,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
             const isActive = pathname === item.href
-            const Icon = item.icon
             if (item.disabled) return (
               <Button key={item.href} variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
-                <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
+                {navIconEl(item, false)}
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
               </Button>
@@ -182,7 +194,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             return (
               <TransitionLink key={item.href} href={item.href}>
                 <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
-                  <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(isActive)} />
+                  {navIconEl(item, isActive)}
                   <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 </Button>
               </TransitionLink>
@@ -218,10 +230,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
       <div className='flex flex-col gap-y-2 flex-1 justify-center'>
         {navItems.map((item) => {
           const isActive = pathname === item.href
-          const Icon = item.icon
           if (item.disabled) return (
             <Button key={item.href} variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
-              <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
+              {navIconEl(item, false)}
               <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
               <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
             </Button>
@@ -229,7 +240,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           return (
             <TransitionLink key={item.href} href={item.href}>
               <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
-                <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(isActive)} />
+                {navIconEl(item, isActive)}
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 {item.badge && <div className="ml-auto h-5 w-5 rounded-full bg-red-500"></div>}
                 {item.href === '/achievements' && claimCount > 0 && (

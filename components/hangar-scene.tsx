@@ -163,9 +163,10 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, phoneReserve = 116 }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, cornerTop, phoneReserve = 116 }: {
     /** плашка в правом верхнем углу ангара (серия на /learn) */
     cornerRight?: React.ReactNode
+    cornerTop?: React.ReactNode // сверху по центру поверх картинки (полоска «Сета» на /learn); тогда ключ и cornerRight — столбиком слева под ней
     /** телефон: сколько px высоты экрана оставить под шапку и пульт (ангар = экран минус это) */
     phoneReserve?: number
     catFood?: CatFoodStock
@@ -432,14 +433,19 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {/* ключ «N/20» и «Выйти» — плашками поверх картинки, вне прокручиваемой рамки (не уезжают при листании) */}
             <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s : '100%' }}>
+            {!bare && cornerTop && (
+                <div className="absolute left-2 right-2 top-1" style={{ zIndex: 1250 }}>{cornerTop}</div>
+            )}
             {!bare && (
-                <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-xl border-2 border-[#4A3A14] bg-[#151F23]/90 px-2.5 py-1 text-sm font-black text-[#F2E3C2] shadow-lg"
-                    style={{ zIndex: 1200 }} title="Починено">
+                <div className={`pointer-events-none absolute left-2.5 flex flex-col items-start gap-1.5 ${cornerTop ? 'top-[58px]' : 'top-2.5'}`} style={{ zIndex: 1200 }}>
+                    <span className="flex items-center gap-1.5 rounded-xl border-2 border-[#4A3A14] bg-[#151F23]/90 px-2.5 py-1 text-sm font-black text-[#F2E3C2] shadow-lg" title="Починено">
                     <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
                     {goldCount > 0 && <span className="ml-1 flex items-center gap-0.5 text-[#FFD84D]"><Star className="h-4 w-4" fill="#FFD84D" />{goldCount}</span>}
                 </span>
+                    {cornerTop && !onClose && cornerRight && <div className="pointer-events-auto">{cornerRight}</div>}
+                </div>
             )}
-            {!bare && !onClose && cornerRight && (
+            {!bare && !onClose && !cornerTop && cornerRight && (
                 <div className="absolute right-2.5 top-2.5" style={{ zIndex: 1200 }}>{cornerRight}</div>
             )}
             {!bare && onClose && (

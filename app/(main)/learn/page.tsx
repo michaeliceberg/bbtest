@@ -37,6 +37,7 @@ import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
 import { HangarInline } from '@/components/hangar-entry';
 import { StreakChip } from '@/components/streak-chip';
+import { SetBar } from '@/components/set-bar';
 import { LearnSectionHeader } from '@/components/learn-section-header';
 import { getHangarItems } from '@/lib/hangar';
 import { getEgeMap } from '@/lib/egeMap';
@@ -389,6 +390,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   const [hangarItems, hangarLayout] = activeCourse.title.includes('ЕГЭ Математика')
     ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m, trainerKeys)), getHangarLayout()])
     : [null, null]
+  const onHangarScreen = !!hangarItems && !(taskNum && hangarItems.some((h) => h.num === taskNum))
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
   const defaultOpenUnitId: number | null =
@@ -484,7 +486,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
 
         <FeedWrapper>
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
-          <Header title={`Задачник ${activeCourse.title}`} setBar={setBar} />
+          {/* на экране ангара полоска сета лежит поверх картинки ангара (иначе пульт ангара не влезает в экран телефона) */}
+          <Header title={`Задачник ${activeCourse.title}`} setBar={onHangarScreen ? null : setBar} />
           {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);
@@ -507,6 +510,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               if (!item) return (
                 <>
                   <HangarInline items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
+                    cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
                     cornerRight={<StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />} />
                   {levelCase && (
                     <div className='mt-4'>

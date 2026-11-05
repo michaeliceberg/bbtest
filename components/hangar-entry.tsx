@@ -80,11 +80,11 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
 
 /** Задачник «ЕГЭ Математика»: ангар — целый экран (на телефоне ровно по высоте, пульт виден без прокрутки).
  *  «К задачам» в плашке предмета ведёт на экран раздела /learn?task=N. */
-export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode }) {
+export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight, cornerTop }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode }) {
     return (
         <div id="learn-hangar">
             {/* 50 шапка + 12 отступ + 106 пульт под ангаром */}
-            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} cornerRight={cornerRight} phoneReserve={168} />
+            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={168} />
         </div>
     )
 }
