@@ -49,7 +49,7 @@ const bellOf = (n: number) => SET_BELLS[bellLevel(n) - 1]
 
 // Колокольчик: слои снизу вверх — подложка (свечение там, где была кнопка), кнопка, корпус с дыркой под кнопку.
 // Кнопка лежит ПОД корпусом, при нажатии опускается и прячется в купол, корпус чуть сплющивается
-function BellIcon({ n, size = 22, pressed = false }: { n: number; size?: number; pressed?: boolean }) {
+export function BellIcon({ n, size = 22, pressed = false }: { n: number; size?: number; pressed?: boolean }) {
     const lvl = bellLevel(n)
     const b = SET_BELLS[lvl - 1]
     return (
@@ -420,10 +420,10 @@ export function SetBar({ data }: { data: SetBarData }) {
 
     // мини-значок в шапке телефона знает, какое блюдо и как открыть карточку
     useEffect(() => {
-        setStore({ dish, chest: LESSON_CASE_TIER_ICON[data.tier], open: () => setSheet(true) })
+        setStore({ dish, chest: LESSON_CASE_TIER_ICON[data.tier], bell: data.setNumber, open: () => setSheet(true) })
         return () => setStore({ dish: null, open: null, compact: false })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dish, data.tier, setStore])
+    }, [dish, data.tier, data.setNumber, setStore])
 
     useEffect(() => {
         const onScroll = () => {

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import { useSetBarStore } from '@/store/use-set-bar-store'
-import { SetDots } from './set-bar'
+import { BellIcon, SetDots } from './set-bar'
 import { MobileSidebar } from './modal-sidebar'
 import type { SidebarCourse } from './sidebar'
 
@@ -80,8 +80,8 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 					style={{ marginLeft: miniSet ? 8 : 0, width: miniSet ? (setBar.dish === 3 ? 44 : 78) : 0, opacity: miniSet ? 1 : 0, paddingLeft: miniSet ? 8 : 0, paddingRight: miniSet ? 6 : 0, borderWidth: miniSet ? 2 : 0 }}
 					aria-hidden={!miniSet} tabIndex={miniSet ? 0 : -1} aria-label='Сет'>
 					{setBar.dish < 3 && <SetDots dish={setBar.dish} size={8} />}
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src={setBar.chest} alt='' className={`h-6 w-6 shrink-0 ${setBar.dish === 2 ? 'animate-bounce' : ''}`} />
+					{/* колокольчик уровня сета — как на язычке полоски */}
+					<span className={setBar.dish === 2 ? 'animate-bounce' : ''}><BellIcon n={setBar.bell} size={26} /></span>
 				</button>
 			)}
 			{!unitButton && displayTitle && (
