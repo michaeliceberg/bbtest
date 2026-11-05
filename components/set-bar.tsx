@@ -6,14 +6,14 @@
 // справа от юнита остаются точки и сундук (components/mobile-header.tsx). Компьютер — под кнопкой юнита.
 // Под полоской — «язычок» с колокольчиком уровня (1-й/2-й/3-й сет за день): тянешь вниз или жмёшь — панель сета
 // выезжает вниз прямо из полоски. Новое блюдо — звенит колокольчик. Еда блюд и колокольчики — SET_DISH_ICONS /
-// SET_BELLS (пока эмодзи и рисованный колокольчик; картинки из Leonardo — см. docs/miguel/miguel.md).
+// SET_BELLS (еда пока эмодзи; колокольчики — картинки из Leonardo с отдельной кнопкой сверху).
 // Макет, по которому сделано, — /test-set-bar.
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { motion, type PanInfo } from 'framer-motion'
-import { Bell, Check, ChevronDown, ChevronRight, Lock } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import type { SetBarData } from '@/lib/setBar'
 import { startEgeMove } from '@/actions/ege-move'
 import { useSetBarStore } from '@/store/use-set-bar-store'
@@ -26,38 +26,57 @@ const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
 export const SET_DISH_ICONS = ['🍟', '🍔', '🍩']
-// Уровень колокольчика = какой это сет за день: 1-й — обычный, 2-й — редкий, 3-й и дальше — мифический.
-// img: null — пока рисуем значок Bell цветом редкости; потом public/set-bells/bell-N.webp
-const SET_BELLS: { tier: LessonCaseTier; color: string; img: string | null }[] = [
-    { tier: 'common', color: '#C9D3D9', img: null },
-    { tier: 'rare', color: '#38BDF8', img: null },
-    { tier: 'mythic', color: '#C385F7', img: null },
+// Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
+// 3-й — фиолетовый (мифический), 4-й и дальше — огненный золотой (сундук тот же мифический).
+// Картинка разрезана на корпус и кнопку сверху (public/set-bells/bell-N-body/knob.webp, исходники —
+// docs/miguel/leonardo/bells, вырезка — docs/miguel/tools/bell_key.py, резка — bell_split.py): при нажатии кнопка уходит вниз внутрь колокольчика.
+// press — насколько опускать кнопку, в долях размера картинки.
+const SET_BELLS: { tier: LessonCaseTier; color: string; press: number }[] = [
+    { tier: 'common', color: '#C9D3D9', press: 0.077 },
+    { tier: 'rare', color: '#38BDF8', press: 0.064 },
+    { tier: 'mythic', color: '#C385F7', press: 0.096 },
+    { tier: 'mythic', color: '#F2C35B', press: 0.048 },
 ]
 // Мигель в панели по блюду: закуска — клош с подносом, основное — шеф пробует, десерт — сундук на подносе,
 // нового сета ещё нет — жмёт колокольчик «заказ готов»
 const SET_MIGUEL = ['/miguel/miguel-cloche.webp', '/miguel/miguel-chef.webp', '/miguel/miguel-tray-chest.webp', '/miguel/miguel-bell.webp']
-const bellOf = (n: number) => SET_BELLS[Math.min(Math.max(n, 1), SET_BELLS.length) - 1]
+const bellLevel = (n: number) => Math.min(Math.max(n, 1), SET_BELLS.length)
+const bellOf = (n: number) => SET_BELLS[bellLevel(n) - 1]
 
-function BellIcon({ n, size = 22 }: { n: number; size?: number }) {
-    const b = bellOf(n)
-    // eslint-disable-next-line @next/next/no-img-element
-    if (b.img) return <img src={b.img} alt="" style={{ width: size, height: size }} className="object-contain" />
-    return <Bell style={{ width: size, height: size, color: b.color, fill: `${b.color}55` }} strokeWidth={2.4} />
+// Колокольчик: слои снизу вверх — подложка (свечение там, где была кнопка), кнопка, корпус с дыркой под кнопку.
+// Кнопка лежит ПОД корпусом, при нажатии опускается и прячется в купол, корпус чуть сплющивается
+function BellIcon({ n, size = 22, pressed = false }: { n: number; size?: number; pressed?: boolean }) {
+    const lvl = bellLevel(n)
+    const b = SET_BELLS[lvl - 1]
+    return (
+        <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/set-bells/bell-${lvl}-back.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/set-bells/bell-${lvl}-knob.webp`} alt="" draggable={false}
+                className="absolute inset-0 h-full w-full transition-transform duration-75 ease-out"
+                style={{ transform: `translateY(${pressed ? b.press * size : 0}px)` }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/set-bells/bell-${lvl}-body.webp`} alt="" draggable={false}
+                className="absolute inset-0 h-full w-full origin-bottom transition-transform duration-75 ease-out"
+                style={{ transform: pressed ? 'scaleY(0.96)' : 'none' }} />
+        </span>
+    )
 }
 
 // Уровни сундука столбиком: «ур1 🔔 обычный», «ур2 🔔 редкий», «ур3+ 🔔 мифический»; текущий — в рамке, остальные бледные
 function ChestLevels({ setNumber }: { setNumber: number }) {
-    const cur = Math.min(Math.max(setNumber, 1), SET_BELLS.length)
+    const cur = Math.min(Math.max(setNumber, 1), 3)
     return (
         <div className="flex shrink-0 flex-col gap-0.5">
-            {SET_BELLS.map((b, i) => {
+            {SET_BELLS.slice(0, 3).map((b, i) => {
                 const n = i + 1
                 const here = n === cur
                 return (
                     <div key={n} className={`flex items-center gap-1 rounded-lg border-2 px-1 py-0.5 ${here ? '' : 'opacity-40'}`}
                         style={{ borderColor: here ? b.color : 'transparent', background: here ? `${b.color}1F` : 'transparent' }}>
-                        <span className="w-[26px] text-[10px] font-black leading-none" style={{ color: b.color }}>ур{n}{n === SET_BELLS.length ? '+' : ''}</span>
-                        <BellIcon n={n} size={12} />
+                        <span className="w-[26px] text-[10px] font-black leading-none" style={{ color: b.color }}>ур{n}{n === 3 ? '+' : ''}</span>
+                        <BellIcon n={n} size={18} />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={LESSON_CASE_TIER_ICON[b.tier]} alt={LESSON_CASE_TIER_LABEL[b.tier]} className="h-6 w-6" />
                     </div>
@@ -227,6 +246,24 @@ function BarButton({ d, dish, onClick }: { d: SetBarData; dish: number; onClick:
 // «Язычок» под полоской с колокольчиком уровня: тянешь вниз (или жмёшь) — панель выезжает, вверх — прячется
 function BellTongue({ n, open, onToggle }: { n: number; open: boolean; onToggle: (v: boolean) => void }) {
     const b = bellOf(n)
+    const [pressed, setPressed] = useState(false)
+    const timers = useRef<number[]>([])
+    // «дзинь»: кнопка уходит вниз и возвращается; times — сколько раз подряд
+    const ring = (times: number) => {
+        timers.current.forEach(window.clearTimeout)
+        timers.current = []
+        for (let i = 0; i < times; i++) {
+            timers.current.push(window.setTimeout(() => setPressed(true), i * 300))
+            timers.current.push(window.setTimeout(() => setPressed(false), i * 300 + 150))
+        }
+    }
+    // пока панель закрыта — колокольчик сам изредка звонит «дзинь-дзинь» (без звука), зовёт открыть
+    useEffect(() => {
+        if (open) return
+        const id = window.setInterval(() => { if (document.visibilityState === 'visible') ring(2) }, 4200)
+        return () => window.clearInterval(id)
+    }, [open])
+    useEffect(() => () => timers.current.forEach(window.clearTimeout), [])
     const onEnd = (_: unknown, info: PanInfo) => {
         if (info.offset.y > 24) onToggle(true)
         else if (info.offset.y < -24) onToggle(false)
@@ -234,13 +271,11 @@ function BellTongue({ n, open, onToggle }: { n: number; open: boolean; onToggle:
     return (
         <motion.button type="button" aria-label={open ? 'Свернуть сет' : 'Открыть сет'}
             drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.5} onDragEnd={onEnd}
-            onTap={() => onToggle(!open)}
-            className="absolute left-1.5 top-0 z-20 flex h-[58px] w-[48px] touch-none flex-col items-center justify-center gap-0.5 rounded-b-2xl rounded-t-xl border-2 border-t-0 bg-[#151F23] shadow-lg shadow-black/50"
+            onTap={() => { ring(1); playSound(SET_BELL_SOUND); onToggle(!open) }}
+            className="absolute left-1.5 top-0 z-20 flex h-[58px] w-[48px] touch-none flex-col items-center justify-center rounded-b-2xl rounded-t-xl border-2 border-t-0 bg-[#151F23] shadow-lg shadow-black/50"
             style={{ borderColor: `${b.color}AA` }}>
-            <motion.span animate={open ? { rotate: 0 } : { rotate: [0, -14, 12, -8, 0] }} transition={open ? undefined : { duration: 1.2, repeat: Infinity, repeatDelay: 2.4 }}>
-                <BellIcon n={n} size={24} />
-            </motion.span>
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: b.color }} />
+            <BellIcon n={n} size={36} pressed={pressed} />
+            <ChevronDown className={`-mt-1 h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: b.color }} />
         </motion.button>
     )
 }
