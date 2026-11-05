@@ -1066,7 +1066,7 @@ const FluxMotionScene = ({ onSettled }: { onSettled?: () => void }) => {
                             <SvgSticker x={92} y={56} text="Φ" color={PHI} />
                             <MiniRingTrack cx={240} cy={255} r={110} mass="light" speed={v} />
                         </svg>
-                        <div className="flex gap-2 w-full">
+                        <div className="drop-in-options flex gap-2 w-full">
                             {['Φ = 0', 'мало', 'много'].map((t, i) => (
                                 <MassBtn key={i} active={level === i} pulse={!tried[i]} color={PHI} onClick={() => pick(i)}>{t}</MassBtn>
                             ))}

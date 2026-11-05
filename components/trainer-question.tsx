@@ -794,7 +794,7 @@ export default function TrainerQuestion({
                 : question.questionType === "AREA6WALK"
                 ? "Площадь треугольника"
                 : question.questionType === "PROPWALK"
-                ? "Вырази букву"
+                ? "Пропорция"
                 : question.questionType === "MENELAUSWALK"
                 ? "Теорема Менелая"
                 : question.questionType === "SCENEWALK"

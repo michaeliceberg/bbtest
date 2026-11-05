@@ -564,7 +564,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {!done && step === 'hand' && (
                             <>
                                 <p className="text-base font-black text-[#F2F7FB]">Как схватить провод?</p>
-                                <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                                <div className="drop-in-options grid w-full max-w-xs grid-cols-2 gap-3">
                                     {ordered(hands).map((up) => optBtn(`h${up}`, () => pickHand(up),
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img src={up ? '/hands/grip-up.webp' : '/hands/grip-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-auto" draggable={false} />))}
@@ -574,7 +574,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {!done && step === 'ring' && (
                             <>
                                 <p className="text-base font-black text-[#F2F7FB]">Куда крутится поле <span style={{ color: FIELD_COLOR }}>B</span>?</p>
-                                <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                                <div className="drop-in-options grid w-full max-w-xs grid-cols-2 gap-3">
                                     {ordered(rings).map((right) => optBtn(`r${right}`, () => pickRing(right), <MiniRing dirRight={right} />))}
                                 </div>
                             </>

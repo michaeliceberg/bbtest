@@ -722,7 +722,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                         </DiagramBlock>
                         {quizAnswers[0] === null && (
                             <>
-                                <div className="flex flex-wrap justify-center gap-3">
+                                <div className="drop-in-options flex flex-wrap justify-center gap-3">
                                     {DEFINE_OPTIONS.map((num) => {
                                         const isWrong = quizWrongTried.includes(num)
                                         return (

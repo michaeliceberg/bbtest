@@ -324,7 +324,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                             )}
 
                             {choiceReveal >= 3 && (
-                                <div className="grid grid-cols-2 gap-3 w-full">
+                                <div className="drop-in-options grid grid-cols-2 gap-3 w-full">
                                     {['15 · cos', '15 / cos'].map((option, idx) => (
                                         <AnimatedOptionButton
                                             clickSound={false}

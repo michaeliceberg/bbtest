@@ -253,7 +253,7 @@ const ATiltScene = ({ onSettled }: SceneProps) => {
         <>
             <Typed parts={[{ text: 'Наклони наклонную — смотри на угол φ' }]} />
             <DiagramBlock><AngleFigure key={i} stage={5} deg={DEGS[i]} label={`${DEGS[i]}°`} /></DiagramBlock>
-            <div className="grid grid-cols-3 gap-3 w-full">
+            <div className="drop-in-options grid grid-cols-3 gap-3 w-full">
                 {['Пологая', 'Средняя', 'Крутая'].map((t, k) => (
                     <button key={t} type="button" onClick={() => { setI(k); setSeen((s) => (s.includes(k) ? s : [...s, k])) }}
                         className={cn('min-h-[52px] rounded-xl border-2 font-black transition-colors', i === k ? 'border-[#F09B38] bg-[#F09B3822] text-[#F09B38]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB]')}>{t}</button>

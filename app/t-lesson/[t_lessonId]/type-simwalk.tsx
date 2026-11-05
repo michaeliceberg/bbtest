@@ -730,7 +730,7 @@ const AreaScene = ({ onSettled }: SceneProps) => {
             <Typed parts={[{ t: 'Стороны подобных треугольников отличаются в ' }, { t: 'k', c: ORANGE }, { t: ' раз. А площади? Посмотри сам: нажми k = 2 и k = 3.' }]} onDone={() => setT1(true)} />
             {t1 && <Fig items={areaItems(k)} vb={[400, 250]} maxW={380} />}
             {t1 && (
-                <div className="flex gap-3 w-full">
+                <div className="drop-in-options flex gap-3 w-full">
                     {[1, 2, 3].map((n) => (
                         <button key={n} type="button" onClick={() => pickK(n)}
                             className={cn('flex-1 h-12 rounded-xl border-2 border-b-4 font-extrabold active:border-b-2', k === n ? 'border-[#F09B38] bg-[#F09B3822] text-[#F09B38]' : 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB]')}>

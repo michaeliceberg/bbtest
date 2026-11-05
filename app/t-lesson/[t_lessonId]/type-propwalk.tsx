@@ -196,15 +196,19 @@ const SideView = ({ side, k, o }: { side: Side; k: SideKey; o: BoardOpts }) => {
     )
 }
 
-const Board = ({ eq, groupId, ...o }: BoardOpts & { eq: Eq; groupId: string }) => (
-    <LayoutGroup id={groupId}>
-        <motion.div layout className="flex items-center justify-center gap-3 md:gap-4 py-2">
-            <SideView side={eq.L} k="L" o={o} />
-            <motion.span layout transition={flight} className="font-black text-3xl md:text-4xl" style={{ color: MUTED }}>=</motion.span>
-            <SideView side={eq.R} k="R" o={o} />
-        </motion.div>
-    </LayoutGroup>
-)
+// reveal: 1 — видна только левая дробь, 2 — ещё «=», 3 — всё (место под скрытое зарезервировано, ничего не прыгает)
+const Board = ({ eq, groupId, reveal = 3, ...o }: BoardOpts & { eq: Eq; groupId: string; reveal?: number }) => {
+    const vis = (n: number): React.CSSProperties => ({ opacity: reveal >= n ? 1 : 0, transition: 'opacity 0.45s' })
+    return (
+        <LayoutGroup id={groupId}>
+            <motion.div layout className="flex items-center justify-center gap-3 md:gap-4 py-2">
+                <div style={vis(1)}><SideView side={eq.L} k="L" o={o} /></div>
+                <motion.span layout transition={flight} className="font-black text-3xl md:text-4xl" style={{ color: MUTED, ...vis(2) }}>=</motion.span>
+                <div style={vis(3)}><SideView side={eq.R} k="R" o={o} /></div>
+            </motion.div>
+        </LayoutGroup>
+    )
+}
 
 // ===== Режим «выбери этаж»: кликнул букву — подсвечиваются 3 места, куда она могла бы полететь =====
 // Верно только одно: на другую сторону и на другой этаж. Ошибки здесь — часть обучения, в ошибки урока не идут.
@@ -297,21 +301,30 @@ function usePhase() {
     return { phase, go }
 }
 
-// ===== Сцена 0: два этажа =====
+// ===== Сцена 0: это пропорция, два этажа =====
 const FloorsScene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhase()
+    const [reveal, setReveal] = useState(1)
     const eq = parseEq('a / b = c / d')
+    // Левая дробь → пауза → «=» → пауза → правая дробь → пауза → кнопка
+    const startReveal = () => {
+        setTimeout(() => setReveal(2), 900)
+        setTimeout(() => setReveal(3), 1800)
+        setTimeout(() => go(2), 2700)
+    }
     return (
         <>
-            <TLine text="У каждой дроби есть два этажа." onDone={() => go(1)} />
+            <TLine text="Это пропорция." onDone={() => go(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => go(2)}>
-                    <Board eq={eq} groupId="floors" interactive={false} glowFloor={phase >= 4 ? 'den' : phase >= 2 ? 'num' : null} />
+                <DiagramBlock onSettled={startReveal}>
+                    <Board eq={eq} groupId="floors" interactive={false} reveal={reveal}
+                        glowFloor={phase >= 5 ? 'den' : phase >= 3 ? 'num' : null} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TLine text="ВЕРХНИЙ этаж — числитель." onDone={() => go(3)} />}
-            {phase === 3 && <ReplyButton onClick={() => go(4)}>Вижу верхний этаж</ReplyButton>}
-            {phase >= 4 && <TLine text="НИЖНИЙ этаж — знаменатель." onDone={() => onSettled?.()} />}
+            {phase === 2 && <ReplyButton onClick={() => go(3)}>Пропорция, понял</ReplyButton>}
+            {(phase === 3 || phase === 4) && <TLine key="top" text="Это верхний этаж." onDone={() => go(4)} />}
+            {phase === 4 && <ReplyButton onClick={() => go(5)}>Вижу верхний этаж</ReplyButton>}
+            {phase >= 5 && <TLine key="bottom" text="А это нижний этаж." onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -327,26 +340,55 @@ const JuggleScene = ({ onSettled }: SceneProps) => {
         setTaps((n) => n + 1)
     }
     useEffect(() => {
-        if (taps === 1) go(2)
         if (taps >= 3) go(3)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [taps])
     return (
         <>
-            <TLine text="Буквы умеют прыгать через «=». Кликни на любую букву!" onDone={() => go(1)} />
+            <div className="w-full text-center font-black text-[#F2F7FB] text-xl md:text-2xl">
+                <Typewriter text="Любую букву можно перенести," onDone={() => setTimeout(() => go(1), 250)} />
+            </div>
             {phase >= 1 && (
+                <motion.div className="w-full text-center font-black text-2xl md:text-3xl" style={{ color: ACCENT }}
+                    initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 13 }}
+                    onAnimationComplete={() => setTimeout(() => go(2), 500)}>
+                    но она ПОМЕНЯЕТ ЭТАЖ!
+                </motion.div>
+            )}
+            {phase >= 2 && (
                 <DiagramBlock>
-                    <div className="w-full flex flex-col items-center gap-2">
-                        <Board eq={eq} groupId="juggle" interactive onTap={tap} />
-                        {taps > 0 && <ResetButton onClick={() => setEq(parseEq(JUGGLE))} />}
-                    </div>
+                    <Board eq={eq} groupId="juggle" interactive={phase < 3} onTap={tap} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TLine small text="Видел? Буква перелетела на другую сторону и поменяла этаж!" />}
-            {phase >= 3 && <TLine small text="Покликай ещё. Сверху улетает вниз, снизу — наверх." onDone={() => onSettled?.()} />}
+            {phase >= 2 && phase < 3 && <TLine small text="Кликни на любую букву 👆" />}
+            {phase >= 3 && <TLine small text="Видел? Буква перелетает на другую сторону и меняет этаж!" onDone={() => onSettled?.()} />}
         </>
     )
 }
+
+// Схема «верх ↘ низ, низ ↗ верх»: слева и справа по дроби из слов, стрелки по диагоналям через «=»
+const DiagonalScheme = () => (
+    <svg viewBox="0 0 280 120" className="w-full max-w-[300px]" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>
+        <defs>
+            {[['dg-a', GGEGE_PALETTE.teal.button], ['dg-b', ACCENT]].map(([id, c]) => (
+                <marker key={id} id={id} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill={c} />
+                </marker>
+            ))}
+        </defs>
+        {[50, 230].map((x) => (
+            <g key={x}>
+                <text x={x} y={42} textAnchor="middle" fontSize="22" fontWeight={900} fill={TEXT}>верх</text>
+                <line x1={x - 34} x2={x + 34} y1={58} y2={58} stroke={TEXT} strokeWidth={3} strokeLinecap="round" />
+                <text x={x} y={92} textAnchor="middle" fontSize="22" fontWeight={900} fill={TEXT}>низ</text>
+            </g>
+        ))}
+        <text x={140} y={67} textAnchor="middle" fontSize="28" fontWeight={900} fill={MUTED}>=</text>
+        <line x1={92} y1={30} x2={186} y2={84} stroke={GGEGE_PALETTE.teal.button} strokeWidth={4} strokeLinecap="round" markerEnd="url(#dg-a)" />
+        <line x1={92} y1={86} x2={186} y2={32} stroke={ACCENT} strokeWidth={4} strokeLinecap="round" markerEnd="url(#dg-b)" />
+    </svg>
+)
 
 // ===== Сцена 2: правило =====
 const RuleScene = ({ onSettled }: SceneProps) => {
@@ -357,12 +399,13 @@ const RuleScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <motion.div className="w-full" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     <RememberPlate>
-                        <div className="text-lg md:text-xl">Перепрыгнула через «=» — <span style={{ color: ACCENT }}>поменяла этаж</span></div>
-                        <div className="text-base md:text-lg" style={{ color: MUTED }}>верх ↘ низ · низ ↗ верх</div>
+                        <div className="text-lg md:text-xl">Перекидываем через «=» — <span style={{ color: ACCENT }}>меняем этаж</span></div>
+                        <div className="text-sm md:text-base" style={{ color: MUTED }}>Это не обсуждается. Это заучивается 😤</div>
+                        <div className="w-full flex justify-center pt-1"><DiagonalScheme /></div>
                     </RememberPlate>
                 </motion.div>
             )}
-            {phase >= 1 && <TLine small text="Буква всегда летит по диагонали." onDone={() => onSettled?.()} />}
+            {phase >= 1 && <TLine small text="Букву можно перекинуть только по диагонали." onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -494,6 +537,8 @@ const WhereScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div key={ri} className="w-full flex flex-col items-center gap-2">
+                        {/* Новое задание падает сверху, как варианты ответа */}
+                        <div className={cn('w-full flex flex-col items-center gap-2', ri > 0 && 'drop-in-options')}>
                         <div className="flex items-center gap-2 text-sm font-black">
                             <span className="px-2.5 h-7 inline-flex items-center rounded-full border-2 tabular-nums"
                                 style={{ borderColor: hexToRgba(ZONE_COLOR, 0.55), backgroundColor: hexToRgba(ZONE_COLOR, 0.16), color: ZONE_COLOR }}>
@@ -503,9 +548,12 @@ const WhereScene = ({ onSettled }: SceneProps) => {
                         <div className="text-lg md:text-xl font-black text-[#F2F7FB] text-center">
                             Кликни на <span style={{ color: colorOf(r.letter) }}>{r.letter}</span> и выбери, куда она полетит
                         </div>
+                        <div>
                         <PickBoard eq={eq} groupId={`where-${ri}`} tapLetters={[r.letter]} glowLetters={done ? undefined : [r.letter]} disabled={done}
                             onMove={(s, f, id) => { setEq((e) => moveTok(e, s, f, id)); setDone(true); setWrong(null); showAnswerMeme(true) }}
                             onWrong={setWrong} onSelect={(v) => { setSel(v); if (v) setWrong(null) }} />
+                        </div>
+                        </div>
                         {!done && <PickHint sel={sel} wrong={wrong} />}
                         {done && (
                             <>
@@ -564,6 +612,7 @@ const RoundsScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div key={ri} className="w-full flex flex-col items-center gap-2">
+                        <div className={cn('w-full flex flex-col items-center gap-2', ri > 0 && 'drop-in-options')}>
                         <div className="flex items-center gap-2 text-sm font-black">
                             <span className="px-2.5 h-7 inline-flex items-center rounded-full border-2 tabular-nums"
                                 style={{ borderColor: hexToRgba(ACCENT, 0.55), backgroundColor: hexToRgba(ACCENT, 0.16), color: ACCENT }}>
@@ -575,6 +624,7 @@ const RoundsScene = ({ onSettled }: SceneProps) => {
                             Вырази <span style={{ color: colorOf(r.target) }}>{r.target}</span>
                         </div>
                         <Puzzle init={r.init} target={r.target} best={r.best} groupId={`round-${ri}`} onSolved={() => setSolvedIdx(ri)} />
+                        </div>
                         {solvedIdx === ri && (
                             <>
                                 <FieryFeedbackBanner>{r.after ?? CORRECT_FEEDBACK_PHRASES[ri % CORRECT_FEEDBACK_PHRASES.length]}</FieryFeedbackBanner>
@@ -596,7 +646,7 @@ const SettleOnMount = ({ onSettled }: SceneProps) => {
 
 const SCENES = [FloorsScene, JuggleScene, RuleScene, WhereScene, OneScene, VanishScene, ExpressScene, RoundsScene]
 const SCENE_MAP_LABELS = ['Два этажа', 'Жонглирование', 'ЗАПОМНИ', 'Куда полетит?', 'Пустой этаж = 1', 'Дробь исчезла', 'Вырази a', 'Тренировка']
-const NEXT_LABELS = ['Понял, два этажа', 'Буквы прыгают!', 'Меняем этаж!', 'Этажи — изи!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
+const NEXT_LABELS = ['Понял, два этажа', 'Буквы прыгают!', 'Понял, можно только по диагонали', 'Этажи — изи!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
 
 // ===== Проверим себя =====
 type Trial = { eq: string; target: string; options: string[]; correct: number; hint: string }

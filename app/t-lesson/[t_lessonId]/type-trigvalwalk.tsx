@@ -314,7 +314,7 @@ const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                             ))}
                         </div>
                         {!done && (
-                            <div className="flex items-center gap-3">
+                            <div className="drop-in-options flex items-center gap-3">
                                 {order.map((a) => (
                                     <button
                                         key={a}

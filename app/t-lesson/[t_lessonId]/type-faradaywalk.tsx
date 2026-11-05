@@ -688,7 +688,7 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: FIELD_COLOR }} animate={{ width: `${DS_LEVEL_W[idx]}%` }} transition={{ duration: 0.5 }} />
                 </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+            <div className="drop-in-options grid grid-cols-3 gap-2 w-full max-w-xs">
                 {['далеко', 'средне', 'близко'].map((o, i) => (
                     <button
                         key={o}
@@ -1506,7 +1506,7 @@ const RingSizeScene = ({ onSettled }: { onSettled?: () => void }) => {
                             </motion.g>
                         </svg>
                         <p className="text-lg font-black" style={{ color: RING_COLOR }}>S — {RING_SIZE_NAMES[size]}</p>
-                        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                        <div className="drop-in-options grid grid-cols-2 gap-3 w-full max-w-xs">
                             {[-1, 1].map((d) => {
                                 const disabled = d < 0 ? size === 0 : size === RING_SIZES.length - 1
                                 return (
@@ -1573,7 +1573,7 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const Seg = ({ label, value, options, onPick, color }: { label: string; value: number; options: string[]; onPick: (v: number) => void; color: string }) => (
         <div className="flex flex-col gap-1 w-full">
             <span className="text-xs font-bold text-[#9AA7B0] text-center">{label}</span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="drop-in-options grid grid-cols-3 gap-1.5">
                 {options.map((o, i) => {
                     const on = value === i
                     return (

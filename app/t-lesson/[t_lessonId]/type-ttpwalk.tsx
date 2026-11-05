@@ -1937,7 +1937,7 @@ const W5Scene = ({ onSettled }: SceneProps) => {
                 </DiagramBlock>
             )}
             {typed && cur && (
-                <div className="w-full grid grid-cols-2 gap-2">
+                <div className="drop-in-options w-full grid grid-cols-2 gap-2">
                     {LABEL_ITEMS.map((it) => (
                         <GuessBtn key={it.id} color={it.sh ? '#6FB08C' : it.color} onClick={() => choose(it.name)}>{it.name}</GuessBtn>
                     ))}

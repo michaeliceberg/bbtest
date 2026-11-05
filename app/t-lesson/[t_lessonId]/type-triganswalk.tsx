@@ -869,7 +869,7 @@ const RememberLeftScene = ({ onSettled }: SceneProps) => {
                         {solved[i] ? <Pop><span style={{ color: '#A1D151' }}><PiFrac s={t.left} /></span></Pop> : <span className="text-[#9AA7B0]">?</span>}
                     </div>
                     {i === idx && !solved[i] && (
-                        <div className="grid grid-cols-4 gap-2 w-full max-w-md">
+                        <div className="drop-in-options grid grid-cols-4 gap-2 w-full max-w-md">
                             {opts[i].map((o) => (
                                 <button key={o} type="button" onClick={() => pick(o)}
                                     className={cn('min-h-[60px] rounded-xl border-2 text-xl font-black transition-colors flex items-center justify-center',
@@ -954,7 +954,7 @@ const KGameScene = ({ onSettled }: SceneProps) => {
                     labels={[{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false }]} />
             </DiagramBlock>
             <TypedBig small parts={[{ text: 'Проедем ' }, { text: '2π · k', color: PERIOD_COLOR }]} />
-            <div className="grid grid-cols-4 gap-2 w-full max-w-md mx-auto">
+            <div className="drop-in-options grid grid-cols-4 gap-2 w-full max-w-md mx-auto">
                 {K_OPTIONS.map((k) => (
                     <button key={k} type="button" onClick={() => go(k)} disabled={busy}
                         className={cn('min-h-[56px] rounded-xl border-2 text-lg font-black transition-colors disabled:opacity-60',
