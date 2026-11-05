@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
 import { getEgeMap } from '@/lib/egeMap'
+import { getRamboStatus, type RamboCell } from '@/lib/rambo'
 
 // Данные «Линейки ЕГЭ» (components/ege-ruler.tsx): на каждое задание 1–20 — подразделы задачника
 // (уроки юнитов, привязанных к заданию через ege_task_links kind='unit') с долей решённых задач
@@ -10,7 +11,8 @@ import { getEgeMap } from '@/lib/egeMap'
 
 export type RulerLesson = { id: number; title: string; total: number; solved: number; proLocked: boolean }
 export type RulerTrainer = { tUnitId: number; title: string; percent: number; proLocked: boolean }
-export type RulerTask = { num: number; title: string; part: number; lessons: RulerLesson[]; trainers: RulerTrainer[] }
+// rambo — 4 клетки режима «Рэмбо» (lib/rambo.ts), ramboAvailable — есть ли задания для смеси.
+export type RulerTask = { num: number; title: string; part: number; lessons: RulerLesson[]; trainers: RulerTrainer[]; rambo: RamboCell[]; ramboAvailable: boolean }
 // test — прогноз ЕГЭ в тестовых баллах (как в «Моём пути»), currentTaskNum — задание, где ученик сейчас (стрелка).
 export type RulerData = { tasks: RulerTask[]; setTaskNum: number | null; test: number; currentTaskNum: number | null }
 
@@ -34,6 +36,7 @@ export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; s
         getTrainerKeysByTask(userId),
         getEgeMap(userId, 'math_profile').catch(() => null),
     ])
+    const rambo = await getRamboStatus(userId, opts.hasPro, trainerKeys).catch(() => ({} as Awaited<ReturnType<typeof getRamboStatus>>))
     const lessonCount = new Map((tLessonCounts as unknown as Row[]).map((r) => [Number(r.t_unit_id), Number(r.n)]))
     const byNum = new Map<number, RulerLesson[]>()
     for (const r of lessonRows as unknown as Row[]) {
@@ -52,6 +55,8 @@ export async function getEgeRulerData(userId: string, opts: { hasPro: boolean; s
             lessons: byNum.get(num) ?? [],
             // Бесплатно — первый урок темы; если уроков больше одного, тема без PRO целиком не пройти.
             trainers: (trainerKeys[num] ?? []).map((k) => ({ ...k, proLocked: !opts.hasPro && (lessonCount.get(k.tUnitId) ?? 0) > 1 })),
+            rambo: rambo[num]?.cells ?? [],
+            ramboAvailable: !!rambo[num]?.available,
         }
     })
     return { tasks, setTaskNum: opts.setTaskNum ?? null, test: egeMap?.test ?? 0, currentTaskNum: opts.currentTaskNum ?? null }

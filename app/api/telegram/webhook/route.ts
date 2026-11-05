@@ -10,6 +10,7 @@ import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnost
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards';
 import { sendShareCard } from '@/lib/telegramShareCard';
 import { getWeeklySummary, parentReportText } from '@/lib/weeklyReport';
+import { parentShareText } from '@/lib/parentShare';
 
 // Чат админа (тот же, куда по умолчанию шлёт sendMessageToTelegram) — получает вопросы поддержки.
 const SUPPORT_ADMIN_CHAT_ID = '1005641275';
@@ -132,6 +133,8 @@ async function performBind(chatId: string, firstName: string, rawCode: string | 
     try {
         const w = await getWeeklySummary(student.userId, { withForecast: true });
         await sendMessageToTelegram(parentReportText(student.userName, w), chatId);
+        const share = await parentShareText(student.userId);
+        if (share) await sendMessageToTelegram(share, chatId);
     } catch (e) {
         console.error('parent first report', e);
     }

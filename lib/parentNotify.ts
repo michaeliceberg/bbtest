@@ -2,11 +2,11 @@ import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { sendMessageToTelegram } from '@/utils/telegram'
-import { ZN_JOKES, znSource } from '@/lib/zaNauku'
+import { parentShareText } from '@/lib/parentShare'
 import type { EgeGain } from '@/lib/egeMap'
 
 // Сообщение родителю (parent_links), когда у ребёнка вырос прогноз ЕГЭ в тестовых баллах:
-// «+1 — и уже 83 балла», шутка и загадка физтехов из газеты «За науку» (рубрика «Задачи без ответов»).
+// «+1 — и уже 83 балла» и шутка; вторым сообщением — задача физтехов и ссылка на урок (lib/parentShare.ts).
 // Не чаще раза в 3 часа: если за это время балл вырос ещё, следующее сообщение покажет весь рост
 // от прошлого отправленного значения (user_progress.parent_gain_last_test).
 
@@ -23,7 +23,6 @@ const CHEERS = [
     'Это не магия, это тренажёр. Хотя похоже на магию ✨',
 ]
 
-const RIDDLES = ZN_JOKES.filter((j) => j.rubric === 'task' && j.text.length <= 240)
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
 const plural = (n: number, a: string, b: string, c: string) => {
     const m10 = n % 10, m100 = n % 100
@@ -47,13 +46,16 @@ export async function notifyParentsEgeGain(userId: string, gain: EgeGain | null)
     const d = gain.toTest - from
     await db.execute(sql`UPDATE user_progress SET parent_gain_last_test = ${gain.toTest} WHERE user_id = ${userId}`)
 
-    const riddle = RIDDLES.length ? pick(RIDDLES) : null
     const text = [
         `🎯 *${name}: +${d} ${plural(d, 'балл', 'балла', 'баллов')} к прогнозу ЕГЭ — уже ${gain.toTest}!*`,
         '',
         `Сейчас прокачивается задание №${gain.taskNum} «${gain.taskTitle}».`,
         pick(CHEERS),
-        ...(riddle ? ['', '🧩 *Загадка от физтехов* (ответа нет даже у них):', riddle.text, `_${znSource(riddle)}_`] : []),
     ].join('\n')
-    await Promise.all(links.map((l) => sendMessageToTelegram(text, l.parent_telegram_id).catch(() => null)))
+    // Вторым сообщением — задача физтехов и ссылка на урок (удобно переслать другим родителям).
+    const share = await parentShareText(userId).catch(() => null)
+    await Promise.all(links.map(async (l) => {
+        await sendMessageToTelegram(text, l.parent_telegram_id).catch(() => null)
+        if (share) await sendMessageToTelegram(share, l.parent_telegram_id).catch(() => null)
+    }))
 }

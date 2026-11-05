@@ -26,7 +26,7 @@ const ORANGE = GGEGE_PALETTE.orange.button
 const BLUE = GGEGE_PALETTE.blue.button
 const LEAF = GGEGE_PALETTE.green.button
 
-type Status = 'right' | 'wrong' | 'unknown' | 'timeout'
+export type Status = 'right' | 'wrong' | 'unknown' | 'timeout'
 
 type Item =
     | { kind: 'number'; answer: string; alsoOk?: string[] }
@@ -37,7 +37,7 @@ type Item =
 // text — обычный текст условия (по центру), formula — крупная формула по центру (KaTeX без $),
 // text2/formula2 — вторая строка (задание 6), words — слова-плашки (задание 13),
 // answerTex — верный ответ для итога.
-type Task = {
+export type Task = {
     id: string; label: string; topic: string; text: string
     formula?: string; text2?: string; formula2?: string; words?: string[]
     picture?: React.ReactNode; answerTex: string; item: Item
@@ -140,7 +140,8 @@ const PicIncircle = (
 
 // ── задания ─────────────────────────────────────────────────────────────────
 
-const TASKS: Task[] = [
+// Экспорт — новая премиальная версия (components/ege-diagnostic-v3.tsx) берёт те же задания.
+export const TASKS: Task[] = [
     { id: '1', label: '1', topic: 'Устный счёт', text: 'Посчитай в уме', formula: '5 \\cdot 5 = \\,?', answerTex: '25', item: { kind: 'number', answer: '25' } },
     { id: '2', label: '2', topic: 'Отрицательные числа', text: 'Посчитай в уме', formula: '19 - 26 = \\,?', answerTex: '-7', item: { kind: 'number', answer: '-7' } },
     { id: '3', label: '3', topic: 'Длина вектора', text: 'Найди длину вектора', formula: '\\vec a = (15;\\,-8)', answerTex: '17', item: { kind: 'number', answer: '17' } },
@@ -172,11 +173,11 @@ const TASKS: Task[] = [
     { id: '17', label: '17', topic: 'Вписанная окружность', text: 'Стороны треугольника 13, 14 и 15, площадь 84.\nНайди радиус вписанной окружности', picture: PicIncircle, answerTex: 'r = 4', item: { kind: 'number', answer: '4' } },
 ]
 
-const norm = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '').replace(/^-0$/, '0').replace(/,$/, '').replace(/^(-?)0+(\d)/, '$1$2')
+export const norm = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '').replace(/^-0$/, '0').replace(/,$/, '').replace(/^(-?)0+(\d)/, '$1$2')
 
 // ── экраны ──────────────────────────────────────────────────────────────────
 
-type Result = { id: string; status: Status }
+export type Result = { id: string; status: Status }
 
 type SaveFn = (rows: Result[]) => Promise<DiagResult | { error: string }>
 
@@ -430,7 +431,7 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
 const WORD_COLORS = [GGEGE_PALETTE.raspberry.button, ORANGE, BLUE, LEAF]
 
 // Крупная формула по центру, в рамке-«доске».
-const BigFormula = ({ tex }: { tex: string }) => (
+export const BigFormula = ({ tex }: { tex: string }) => (
     <div className="mt-3 flex justify-center">
         <div className="max-w-full overflow-x-auto rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-5 py-3 text-[28px] leading-none text-[#F2F7FB]"
             style={{ boxShadow: '0 4px 0 #10171B' }}>
