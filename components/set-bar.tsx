@@ -13,10 +13,11 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { motion, type PanInfo } from 'framer-motion'
-import { Check, ChevronDown, Lock, Swords, Utensils, UtensilsCrossed, type LucideIcon } from 'lucide-react'
+import { Check, ChevronDown, Swords, Utensils, UtensilsCrossed, type LucideIcon } from 'lucide-react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
 import type { SetBarData, SetPreview } from '@/lib/setBar'
+import { EGE_TASK_BLURB, pointsWord } from '@/lib/egeTaskBlurb'
 import { startEgeMove } from '@/actions/ege-move'
 import { useSetBarStore } from '@/store/use-set-bar-store'
 import { SET_BELL_SOUND, SET_BELL_VOLUME, playSound, preloadSound } from '@/lib/sound'
@@ -117,20 +118,25 @@ export const SET_GO_VARIANTS: { label: string; Icon: LucideIcon | null }[] = [
     { label: 'Начать', Icon: null },
 ]
 
-// Что ждёт в текущем блюде: финал урока тренажёра или задача из задачника
+// Что ждёт в текущем блюде, без подписей: картинка или формула из финала урока; для задач — сама задача
 function SetPreviewCard({ p }: { p: SetPreview }) {
-    return (
-        <div className="mt-3 flex gap-2.5 rounded-xl border-2 border-[#4A3A14] bg-[#1B1810] p-2.5">
-            {p.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image} alt="" className="h-16 w-16 shrink-0 rounded-lg bg-[#0F171B] object-contain" />
-            )}
-            <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-black uppercase text-[#F2C35B]">{p.kind === 'lesson' ? 'В финале урока' : 'Задача из сета'}</p>
-                <div className="mt-0.5 line-clamp-4 text-[13px] font-bold leading-snug text-[#E8D9B8]">
-                    {p.kind === 'lesson' ? p.text : <Latex>{p.question}</Latex>}
-                </div>
+    if (p.kind === 'task') {
+        return (
+            <div className="mt-3 flex gap-2.5 rounded-xl border-2 border-[#4A3A14] bg-[#1B1810] p-2.5">
+                {p.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image} alt="" className="h-16 w-16 shrink-0 rounded-lg bg-white object-contain" />
+                )}
+                <div className="line-clamp-4 min-w-0 flex-1 text-[13px] font-bold leading-snug text-[#E8D9B8]"><Latex>{p.question}</Latex></div>
             </div>
+        )
+    }
+    return (
+        <div className="mt-3 flex h-[150px] items-center justify-center overflow-hidden rounded-xl border-2 border-[#4A3A14] bg-[#1B1810] p-2">
+            {p.kind === 'image'
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={p.src} alt="" className="h-full w-full object-contain" />
+                : <div className="scene-tex max-w-full overflow-hidden text-[22px] text-[#F2F7FB]"><Latex>{p.tex}</Latex></div>}
         </div>
     )
 }
@@ -204,12 +210,19 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0 }: { d: SetB
                         {d.taskNum ? `ЕГЭ №${d.taskNum}` : 'От Команданте'}
                     </p>
                     <p className="text-[15px] font-black leading-tight text-[#F2F7FB]">{d.taskTitle ?? 'Обед из трёх блюд'}</p>
+                    {/* что это за задание ЕГЭ — коротко, место справа от Мигеля */}
+                    {d.taskNum && EGE_TASK_BLURB[d.taskNum] && (
+                        <p className="mt-1 text-[12px] font-bold leading-snug text-[#9AA7B0]">
+                            {EGE_TASK_BLURB[d.taskNum].text}
+                            <span className="ml-1 whitespace-nowrap text-[#F2C35B]">· {EGE_TASK_BLURB[d.taskNum].points} {pointsWord(EGE_TASK_BLURB[d.taskNum].points)}</span>
+                        </p>
+                    )}
                 </div>
                 {/* отступ сверху — над уровнями висит язычок с колокольчиком */}
                 <div className="mt-4"><ChestLevels setNumber={d.setNumber} /></div>
             </div>
             <div className="sm:col-start-2">
-                {d.preview && dish < 2 ? <SetPreviewCard p={d.preview} />
+                {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
                     : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
             </div>
             {/* Блюда стоят на бархатной скатерти (public/set-tablecloth/cloth-1.webp, исходник Leonardo —
@@ -231,7 +244,6 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0 }: { d: SetB
                                 <span className={`relative text-3xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
                                     {SET_DISH_ICONS[i]}
                                     {ok && <Check className="absolute -bottom-1 -right-2 h-5 w-5 rounded-full bg-[#78C93C] p-0.5 text-[#16240C]" strokeWidth={4} />}
-                                    {far && i < 2 && <Lock className="absolute -bottom-1 -right-2 h-4 w-4 text-[#9AA7B0]" />}
                                 </span>
                                 <span className="mt-0.5 line-clamp-2 text-[10px] font-bold leading-tight text-[#C9D3D9]">
                                     {i < 2 ? tiles[i].what : ''}

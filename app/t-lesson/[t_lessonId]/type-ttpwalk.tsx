@@ -973,7 +973,7 @@ const BounceMark = ({ d }: { d: string }) => (
     </motion.g>
 )
 
-const TheoremFigure = ({ stage }: { stage: number }) => {
+export const TheoremFigure = ({ stage }: { stage: number }) => {
     const Op = P3(O3.x, O3.y, 0)
     const top = aPoint(S_HIGH)
     const T = P3(top.x, top.y, top.z)

@@ -10,7 +10,7 @@ const BASE: SetBarData = {
     tLessonId: 499, trainerTitle: 'ТТП: разминка', tLessonId2: 497, trainer2Title: 'ТТП', tier: 'common', setNumber: 1,
     tasksDone: 2, tasksTotal: 5, caseClaimed: false, preview: null,
 }
-const LESSON_PREVIEW = { kind: 'lesson' as const, text: 'Теорема о трёх перпендикулярах: наклонная перпендикулярна прямой в плоскости ⇔ её проекция перпендикулярна этой прямой', image: '/unit-pics/similarity.svg' }
+const LESSON_PREVIEW = { kind: 'image' as const, src: '/lesson-previews/ttp-theorem.svg' }
 const TASK_PREVIEW = { kind: 'task' as const, question: 'В правильной треугольной пирамиде $SABC$ точка $M$ — середина ребра $AB$, $SM = 5$, $AB = 6$. Найдите площадь боковой поверхности.', image: null }
 
 export function PanelDemo() {

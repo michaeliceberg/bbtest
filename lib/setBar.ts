@@ -30,20 +30,32 @@ export type SetBarData = {
     preview: SetPreview | null // что ждёт в текущем блюде — показываем под Мигелем в панели
 }
 
-// Превью текущего блюда: урок тренажёра — чему научит в финале (ai_hint) + картинка темы;
-// задачи — первая задача сета из задачника
+// Превью текущего блюда — без текста, чтобы с одного взгляда было понятно, о чём урок:
+// урок тренажёра — своя картинка (t_lessons.preview_src) → рисунок из последнего задания с рисунком →
+// крупная формула-ответ последнего задания → картинка темы; задачи — первая задача сета из задачника
 export type SetPreview =
-    | { kind: 'lesson'; text: string; image: string | null }
+    | { kind: 'image'; src: string }
+    | { kind: 'formula'; tex: string }
     | { kind: 'task'; question: string; image: string | null }
 
 async function lessonPreview(tLessonId: number): Promise<SetPreview | null> {
     const r = (await db.execute(sql`
-        SELECT l.ai_hint, u.image_src FROM t_lessons l JOIN t_units u ON u.id = l.t_unit_id
+        SELECT l.preview_src, u.image_src AS unit_img,
+            (SELECT c.image_src FROM t_challenges c WHERE c.lesson_id = l.id AND c.image_src NOT IN ('', '0')
+             ORDER BY c."order" DESC LIMIT 1) AS ch_img,
+            (SELECT o.text FROM t_challenges c JOIN t_challenge_options o ON o.t_challenge_id = c.id
+             WHERE c.lesson_id = l.id AND o.correct AND o.text LIKE '%$%' AND length(o.text) >= 8
+             ORDER BY c."order" DESC, o.id LIMIT 1) AS formula
+        FROM t_lessons l JOIN t_units u ON u.id = l.t_unit_id
         WHERE l.id = ${tLessonId}`)) as unknown as Row[]
-    const hint = r[0]?.ai_hint ? String(r[0].ai_hint) : ''
-    if (!hint) return null
-    const img = r[0]?.image_src ? String(r[0].image_src) : ''
-    return { kind: 'lesson', text: hint.charAt(0).toUpperCase() + hint.slice(1), image: img.startsWith('/') ? img : null }
+    const row = r[0]
+    if (!row) return null
+    const str = (v: unknown) => (v ? String(v) : '')
+    if (str(row.preview_src)) return { kind: 'image', src: str(row.preview_src) }
+    if (str(row.ch_img)) return { kind: 'image', src: `/trainer-images/${str(row.ch_img)}` }
+    if (str(row.formula)) return { kind: 'formula', tex: str(row.formula) }
+    if (str(row.unit_img).startsWith('/')) return { kind: 'image', src: str(row.unit_img) }
+    return null
 }
 
 async function taskPreview(m: EgeMoveRow): Promise<SetPreview | null> {
