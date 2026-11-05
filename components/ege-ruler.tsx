@@ -8,7 +8,7 @@
 // линейка) / «Тренажёр» (бордовая). Колокольчик — задание текущего сета. Замок — подраздел только в PRO.
 // Данные — lib/egeRuler.ts.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
@@ -111,31 +111,65 @@ const rowHref = (t: RulerTask, mode: Mode) => {
     return t.lessons.length ? `/learn?task=${t.num}` : null
 }
 
-/** Стрелка «ты здесь» у задания, которое сейчас открыто. */
-function HereArrow({ size = 7, color = '#FFFFFF' }: { size?: number; color?: string }) {
-    return <span className="shrink-0" style={{ width: 0, height: 0, borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderLeft: `${size * 1.3}px solid ${color}`, filter: 'drop-shadow(0 0 3px #000a)' }} />
+/**
+ * «Ты здесь» — ползунок с пульта ангара: металлическая ручка с зелёной лампочкой и «носиком» к номеру. Стоит у строки
+ * с data-ruler-row={num} внутри контейнера (контейнер — position: relative). При смене задания плавно едет к новой строке
+ * с разгоном и торможением (transform, без перескока); при первом показе встаёт на место без анимации.
+ */
+function Knob({ containerRef, num, left, scale = 1 }: { containerRef: React.RefObject<HTMLElement>; num: number | null; left: number; scale?: number }) {
+    const [y, setY] = useState<number | null>(null)
+    const [animate, setAnimate] = useState(false)
+    const placed = useRef(false)
+    useLayoutEffect(() => {
+        const box = containerRef.current
+        const row = num !== null && box ? box.querySelector<HTMLElement>(`[data-ruler-row="${num}"]`) : null
+        if (!row || !box) { setY(null); return }
+        const measure = () => {
+            const top = row.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+            setY(top + row.offsetHeight / 2)
+        }
+        measure()
+        if (placed.current) setAnimate(true)
+        else { placed.current = true; requestAnimationFrame(() => setAnimate(true)) }
+        const ro = new ResizeObserver(measure)
+        ro.observe(box)
+        return () => ro.disconnect()
+    }, [containerRef, num])
+    if (y === null) return null
+    const h = 14 * scale
+    return (
+        <span aria-hidden className="pointer-events-none absolute z-10 flex items-center"
+            style={{ left, top: 0, height: h, transform: `translateY(${y - h / 2}px)`, transition: animate ? 'transform 0.6s cubic-bezier(0.65, 0, 0.35, 1)' : 'none' }}>
+            <span className="relative flex items-center justify-center rounded-[4px]"
+                style={{ width: 16 * scale, height: h, background: 'linear-gradient(180deg, #D6DADC, #8C949A 55%, #6A7177)', boxShadow: 'inset 0 1px 0 #ffffffaa, 0 2px 3px #000a', border: '1px solid #3A4045' }}>
+                <span className="rounded-full" style={{ width: 6 * scale, height: 6 * scale, background: 'radial-gradient(circle at 35% 35%, #E8FFC9, #7BD64A 60%, #3F8A1E)', boxShadow: '0 0 6px #8EE85A' }} />
+            </span>
+            <span style={{ width: 0, height: 0, borderTop: `${4 * scale}px solid transparent`, borderBottom: `${4 * scale}px solid transparent`, borderLeft: `${5 * scale}px solid #6A7177` }} />
+        </span>
+    )
 }
 
 /** Узкая свёрнутая линейка: только риски и мелкие номера. */
 function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here: Set<number>; onOpen: () => void }) {
     const s = SKIN[mode]
+    const ref = useRef<HTMLButtonElement>(null)
     return (
-        <button type="button" onClick={onOpen} aria-label="Открыть линейку ЕГЭ"
-            className="flex w-[30px] flex-col items-stretch rounded-l-lg border-y border-l pb-2 pt-1.5 shadow-[-3px_3px_10px_#0007]"
+        <button ref={ref} type="button" onClick={onOpen} aria-label="Открыть линейку ЕГЭ"
+            className="relative flex w-[30px] flex-col items-stretch rounded-l-lg border-y border-l pb-2 pt-1.5 shadow-[-3px_3px_10px_#0007]"
             style={{ background: `linear-gradient(90deg, ${s.light}, ${s.body} 40%, ${s.edge})`, borderColor: s.edge }}>
             <span className="mb-1 text-center text-[8px] font-black tracking-wider" style={{ color: TICK }}>ЕГЭ</span>
             {data.tasks.map((t) => {
                 const p = taskProgress(t, mode)
                 return (
-                    <span key={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`}
+                    <span key={t.num} data-ruler-row={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`}
                         style={{ borderColor: `${TICK}66`, ...(here.has(t.num) ? { background: '#FFFFFF33' } : {}) }}>
                         <span className="w-[12px] text-right font-mono text-[8px] font-bold leading-none" style={{ color: here.has(t.num) ? '#FFFFFF' : `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
                         <span className="h-[2px] rounded-full" style={{ width: 3 + 10 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
                         {data.setTaskNum === t.num && <span className="absolute right-[2px] h-[6px] w-[6px] rounded-full" style={{ background: '#F2C35B', boxShadow: '0 0 6px #F2C35B' }} />}
-                        {here.has(t.num) && <span className="absolute -left-[12px]"><HereArrow size={6} /></span>}
                     </span>
                 )
             })}
+            <Knob containerRef={ref as React.RefObject<HTMLElement>} num={here.size ? Math.min(...here) : null} left={-27} scale={1.25} />
         </button>
     )
 }
@@ -144,6 +178,7 @@ function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here
 function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: Mode; setMode: (m: Mode) => void; here: Set<number>; onClose?: () => void }) {
     const s = SKIN[mode]
     const router = useRouter()
+    const listRef = useRef<HTMLDivElement>(null)
     const go = (href: string | null) => { if (!href) return; onClose?.(); router.push(href) }
     // Тренажёр: сколько тем уже с медалью (бронза и выше) из всех тем, привязанных к заданиям.
     const topics = new Map<number, number>()
@@ -191,7 +226,8 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                     {hint ?? 'Рэмбо — смесь тренажёра и задачника. Клетка 1 — самое простое, 4 — сложное. Проходи по кругу, чтобы не забывать.'}
                 </div>
             )}
-            <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+            <div ref={listRef} className="relative min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+                <Knob containerRef={listRef as React.RefObject<HTMLElement>} num={here.size ? Math.min(...here) : null} left={3} scale={0.9} />
                 {data.tasks.map((t) => {
                     const p = taskProgress(t, mode)
                     const isSet = data.setTaskNum === t.num
@@ -206,11 +242,11 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                                     <span className="h-px flex-1" style={{ background: `${TICK}66` }} />
                                 </div>
                             )}
-                            <div role={href ? 'button' : undefined} onClick={() => go(href)}
+                            <div data-ruler-row={t.num} role={href ? 'button' : undefined} onClick={() => go(href)}
                                 className={`flex items-center gap-1.5 rounded-lg px-1 py-[5px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
                                 style={isHere ? { background: '#FFFFFF14', boxShadow: 'inset 0 0 0 1px #FFFFFF55' } : isSet ? { background: '#F2C35B1A', boxShadow: 'inset 0 0 0 1px #F2C35B66' } : undefined}>
-                                <span className="flex w-[34px] shrink-0 items-center gap-[3px]">
-                                    {isHere ? <HereArrow size={5} /> : <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />}
+                                <span className="flex w-[40px] shrink-0 items-center justify-end gap-[3px]">
+                                    {isHere ? null : <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />}
                                     <span className="font-mono text-[13px] font-black leading-none" style={{ color: isHere ? '#FFFFFF' : p > 0 ? TICK : `${TICK}88` }}>{t.num}</span>
                                 </span>
                                 {/* Колокольчик — между номером и названием: задание текущего сета */}

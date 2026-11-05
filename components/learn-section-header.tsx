@@ -24,8 +24,7 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
                 <ArrowLeft className="h-4 w-4" />В ангар
             </Link>
             <div className="mt-3 flex items-center gap-3 rounded-2xl border-2 border-[#2A363C] bg-[#151F23] p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pic} alt="" aria-hidden draggable={false} className="h-16 w-16 flex-shrink-0 object-contain" />
+                <ItemBadge pic={pic} />
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-black uppercase tracking-wide text-[#53ADEF]">Задание {num}</p>
                     <p className="truncate text-lg font-black text-[#F2F7FB]">{title}</p>
@@ -47,5 +46,22 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
                 </div>
             </div>
         </div>
+    )
+}
+
+// Предмет ангара на светлом круге: картинки рисованы для светлого пола ангара, и на тёмной карточке тёмные вещи
+// (провода, бочка) почти не видны. Круг — пыльно-бежевый, как пол ангара, с объёмной нижней гранью; под предметом
+// мягкая тень, сам предмет чуть выходит за круг сверху.
+function ItemBadge({ pic }: { pic: string }) {
+    return (
+        <span className="relative h-[72px] w-[72px] flex-shrink-0">
+            <span className="absolute inset-x-0 bottom-0 top-[6px] rounded-full border-b-4"
+                style={{ background: 'radial-gradient(circle at 50% 30%, #EFE4C8, #C9B98F 70%, #A8976C)', borderBottomColor: '#7A6A45', boxShadow: '0 6px 14px -6px #000c' }} />
+            <span className="absolute bottom-[10px] left-1/2 h-[10px] w-[60%] -translate-x-1/2 rounded-[50%]"
+                style={{ background: 'radial-gradient(closest-side, rgba(40,28,10,.45), rgba(40,28,10,0))' }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pic} alt="" aria-hidden draggable={false} className="relative h-full w-full object-contain p-1.5"
+                style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.35))' }} />
+        </span>
     )
 }
