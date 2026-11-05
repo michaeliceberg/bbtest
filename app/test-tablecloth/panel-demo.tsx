@@ -2,7 +2,7 @@
 
 // Настоящая полоска и панель сета с выдуманными данными: блюда, превью, варианты кнопки «начать»
 import { useState } from 'react'
-import { BarButton, BellTongue, SET_GO_VARIANTS, SetPanel } from '@/components/set-bar'
+import { BarButton, BellTongue, SET_BAR_LAYOUTS, SET_GO_VARIANTS, SetPanel } from '@/components/set-bar'
 import type { SetBarData } from '@/lib/setBar'
 
 const BASE: SetBarData = {
@@ -30,6 +30,18 @@ export function PanelDemo() {
                 {SET_GO_VARIANTS.map((g, i) => (
                     <button key={i} onClick={() => setV(i)}
                         className={`rounded-lg px-2.5 py-1 text-xs font-bold ${v === i ? 'bg-[#78C93C] text-[#16240C]' : 'bg-[#26333B]'}`}>Кнопка {i + 1}: {g.label}</button>
+                ))}
+            </div>
+            {/* все раскладки полоски рядом, язычок всегда справа */}
+            <div className="mb-6 flex flex-col gap-5">
+                {SET_BAR_LAYOUTS.map((name, i) => (
+                    <div key={i}>
+                        <p className="mb-2 text-xs font-bold text-[#9AA7B0]">Полоска {i + 1}: {name}</p>
+                        <div className="relative h-[58px]">
+                            <BarButton d={d} dish={dish} onClick={() => {}} layout={i} />
+                            <BellTongue n={d.setNumber} open={false} onToggle={() => {}} />
+                        </div>
+                    </div>
                 ))}
             </div>
             <div className="relative">

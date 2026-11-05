@@ -273,42 +273,88 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0 }: { d: SetB
     )
 }
 
-function FreshStamp() {
+function FreshStamp({ className = '' }: { className?: string }) {
     return (
         <motion.span initial={{ scale: 2.2, opacity: 0, rotate: -4 }} animate={{ scale: 1, opacity: 1, rotate: -12 }}
             transition={{ type: 'spring', stiffness: 520, damping: 14, delay: 0.25 }}
-            className="shrink-0 select-none rounded-md border-2 px-1.5 py-[1px] text-[11px] font-black italic leading-tight tracking-wider"
-            style={{ color: '#7BE0B6', borderColor: '#5CC99F', background: '#5CC99F1F', boxShadow: 'inset 0 0 0 2px #0F171B, inset 0 0 0 3px #5CC99F88', textShadow: '0 0 6px #5CC99F66' }}>
+            className={`shrink-0 select-none rounded-md border-2 px-1.5 py-[1px] text-[11px] font-black italic leading-tight tracking-wider ${className}`}
+            style={{ color: '#7BE0B6', borderColor: '#5CC99F', background: '#0F171B', boxShadow: 'inset 0 0 0 2px #0F171B, inset 0 0 0 3px #5CC99F88', textShadow: '0 0 6px #5CC99F66' }}>
             FRESH
         </motion.span>
     )
 }
 
-export function BarButton({ d, dish, onClick }: { d: SetBarData; dish: number; onClick: () => void }) {
+// Раскладки полоски (язычок с колокольчиком всегда справа); выбираем на /test-tablecloth
+export const SET_BAR_LAYOUTS = [
+    'Сундук и блюда слева, надпись по центру, FRESH справа от неё',
+    'Надпись слева, FRESH над ней, блюда и сундук у колокольчика',
+    'FRESH слева, надпись по центру, блюда и сундук у колокольчика',
+    'Блюда слева, надпись по центру, сундук у колокольчика, FRESH на верхнем крае',
+    'Сундук слева, надпись по центру, блюда у колокольчика, FRESH на левом углу',
+]
+
+export function BarButton({ d, dish, onClick, layout = 0 }: { d: SetBarData; dish: number; onClick: () => void; layout?: number }) {
     const eaten = dish === 2
+    const active = dish < 2
+    const chest = (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-7 w-7 shrink-0 ${eaten ? 'animate-bounce' : ''}`} />
+    )
+    const dishes = active && (
+        <span className="flex shrink-0 items-center gap-0.5 text-[19px] leading-none">
+            {SET_DISH_ICONS.map((f, i) => (
+                <span key={i} className={i < dish ? '' : i === dish ? 'animate-bounce' : 'opacity-30 grayscale'}>{f}</span>
+            ))}
+        </span>
+    )
+    const text = (align: string) => (
+        <span className={`min-w-0 truncate text-[13px] font-black text-[#F2F7FB] ${align}`}>
+            {active ? <>Сет дня <span className="text-[#F2C35B]">· <span className="hidden min-[400px]:inline">ЕГЭ </span>№{d.taskNum}</span></>
+                : eaten ? <span className="text-[#FFE58A]">Всё съедено! Забрать сундук</span>
+                    : 'Команданте накрыл стол 🍽'}
+        </span>
+    )
+    const stamp = active && <FreshStamp />
+    const L = active ? layout : 0
     return (
         <button type="button" onClick={onClick}
-            className="flex h-[44px] w-full items-center gap-2 rounded-xl border-2 pl-2.5 pr-[58px] shadow-lg shadow-black/40"
+            className="relative flex h-[44px] w-full items-center gap-2 rounded-xl border-2 pl-2.5 pr-[58px] shadow-lg shadow-black/40"
             style={{ borderColor: eaten ? '#B8862E' : '#2A363C', background: eaten ? 'linear-gradient(90deg,#3A2E0C,#1D1A0C)' : '#0F171B' }}>
-            {/* Награды (блюда и сундук) — слева, текст — справа; язычок с колокольчиком — у правого края, под правый палец */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-7 w-7 shrink-0 ${eaten ? 'animate-bounce' : ''}`} />
-            {dish < 2 && (
-                <span className="flex items-center gap-0.5 text-[19px] leading-none">
-                    {SET_DISH_ICONS.map((f, i) => (
-                        <span key={i} className={i < dish ? '' : i === dish ? 'animate-bounce' : 'opacity-30 grayscale'}>{f}</span>
-                    ))}
-                </span>
+            {L === 1 ? (
+                <>
+                    <span className="relative flex min-w-0 flex-1 items-center">
+                        {text('text-left')}
+                        {active && <FreshStamp className="absolute -top-[22px] left-10" />}
+                    </span>
+                    {dishes}{chest}
+                </>
+            ) : L === 2 ? (
+                <>
+                    {stamp}
+                    <span className="flex min-w-0 flex-1 justify-center">{text('text-center')}</span>
+                    {dishes}{chest}
+                </>
+            ) : L === 3 ? (
+                <>
+                    {dishes}
+                    <span className="flex min-w-0 flex-1 justify-center">{text('text-center')}</span>
+                    {chest}
+                    {/* центрирование — на статичной обёртке: framer перезаписывает transform у штампа */}
+                    {active && <span className="absolute -top-[22px] left-1/2 -translate-x-1/2"><FreshStamp /></span>}
+                </>
+            ) : L === 4 ? (
+                <>
+                    {chest}
+                    <span className="flex min-w-0 flex-1 justify-center">{text('text-center')}</span>
+                    {dishes}
+                    {active && <FreshStamp className="absolute -left-2 -top-3" />}
+                </>
+            ) : (
+                <>
+                    {chest}{dishes}
+                    <span className="flex min-w-0 flex-1 items-center justify-center gap-2">{text('text-center')}{stamp}</span>
+                </>
             )}
-            {/* По центру — «Сет дня · ЕГЭ №N», справа от надписи штамп «FRESH» наискосок: сет свежий, его надо «выпить» сегодня */}
-            <span className="flex min-w-0 flex-1 items-center justify-center gap-2">
-                <span className="min-w-0 truncate text-center text-[13px] font-black text-[#F2F7FB]">
-                    {dish < 2 ? <>Сет дня <span className="text-[#F2C35B]">· <span className="hidden min-[400px]:inline">ЕГЭ </span>№{d.taskNum}</span></>
-                        : dish === 2 ? <span className="text-[#FFE58A]">Всё съедено! Забрать сундук</span>
-                            : 'Команданте накрыл стол 🍽'}
-                </span>
-                {dish < 2 && <FreshStamp />}
-            </span>
         </button>
     )
 }
