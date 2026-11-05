@@ -323,7 +323,7 @@ export function BarButton({ d, dish, onClick, layout = 0 }: { d: SetBarData; dis
     const stamp = active && <FreshStamp />
     const dessertChest = (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-6 w-6 shrink-0 ${eaten ? 'animate-bounce' : 'opacity-40 grayscale'}`} />
+        <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`ml-[3px] h-[18px] w-[19px] shrink-0 object-contain ${eaten ? 'animate-bounce' : 'opacity-40 grayscale'}`} />
     )
     const L = active ? layout : 0
     return (
