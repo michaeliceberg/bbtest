@@ -204,7 +204,7 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
             animate={closing ? { y: -14, opacity: 0, scaleY: 0.9 } : { y: 0, opacity: 1, scaleY: 1 }}
             transition={closing ? { duration: 0.26, ease: [0.4, 0, 1, 1] } : { type: 'spring', stiffness: 420, damping: 32 }}
             style={{ transformOrigin: 'top' }}
-            className="absolute inset-x-0 top-full z-10 mt-1 grid max-h-[calc(100dvh-110px)] overflow-y-auto rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60 sm:max-w-[680px] sm:grid-cols-[270px_1fr] sm:grid-rows-[auto_auto_1fr] sm:gap-x-5">
+            className="absolute inset-x-0 top-full z-10 mt-1 grid max-h-[calc(100dvh-110px)] overflow-y-auto overscroll-contain rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60 sm:max-w-[680px] sm:grid-cols-[270px_1fr] sm:grid-rows-[auto_auto_1fr] sm:gap-x-5">
             {/* Телефон: шапка → превью → стол → кнопка. Шире — слева стол, справа Мигель, превью и кнопка */}
             <div className="flex items-start gap-2 sm:col-start-2">
                 {/* Мигель по пояс, как на карте тренажёра; поза — по блюду (SET_MIGUEL) */}
@@ -424,6 +424,14 @@ export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?:
         const t = window.setTimeout(() => setLoading(false), 15000)
         return () => window.clearTimeout(t)
     }, [loading])
+    // открыта панель — страница под ней не листается (иначе палец по столу двигал карту тренажёра)
+    useEffect(() => {
+        if (!sheet) return
+        const html = document.documentElement, body = document.body
+        const prev = [html.style.overflow, body.style.overflow, body.style.overscrollBehavior]
+        html.style.overflow = 'hidden'; body.style.overflow = 'hidden'; body.style.overscrollBehavior = 'none'
+        return () => { html.style.overflow = prev[0]; body.style.overflow = prev[1]; body.style.overscrollBehavior = prev[2] }
+    }, [sheet])
     const store = useSetBarStore()
     const setStore = store.set
     const lastY = useRef(0)
@@ -484,7 +492,7 @@ export function SetBar({ data, backdropZ = 30 }: { data: SetBarData; backdropZ?:
             </div>
             {loading && <SetLoadingScreen />}
             {sheet && typeof document !== 'undefined' && createPortal(
-                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} style={{ zIndex: backdropZ }} />,
+                <button aria-label="Свернуть сет" onClick={() => setSheet(false)} className={`fixed inset-0 touch-none bg-black/45 transition-opacity duration-300 ${closing ? 'opacity-0' : 'opacity-100'}`} style={{ zIndex: backdropZ }} />,
                 document.body,
             )}
         </>
