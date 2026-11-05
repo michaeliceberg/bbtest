@@ -14,7 +14,7 @@ const DATA: SetBarData = {
 export function PanelDemo() {
     const [dish, setDish] = useState(1)
     return (
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-[720px]">
             <div className="mb-3 flex justify-center gap-2">
                 {[0, 1, 2, 3].map((i) => (
                     <button key={i} onClick={() => setDish(i)}

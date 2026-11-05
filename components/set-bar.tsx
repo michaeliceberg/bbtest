@@ -65,21 +65,20 @@ function BellIcon({ n, size = 22, pressed = false }: { n: number; size?: number;
     )
 }
 
-// Уровни сундука столбиком: «ур1 🔔 обычный», «ур2 🔔 редкий», «ур3+ 🔔 мифический»; текущий — в рамке, остальные бледные
+// Уровни сета столбиком: «ур1 🔔», «ур2 🔔», «ур3+ 🔔» (колокольчик = какой сундук в десерте); текущий — в рамке, остальные бледные
 function ChestLevels({ setNumber }: { setNumber: number }) {
     const cur = Math.min(Math.max(setNumber, 1), 3)
     return (
-        <div className="flex shrink-0 flex-col gap-0.5">
+        <div className="flex w-[68px] shrink-0 flex-col gap-1">
             {SET_BELLS.slice(0, 3).map((b, i) => {
                 const n = i + 1
                 const here = n === cur
                 return (
-                    <div key={n} className={`flex items-center gap-1 rounded-lg border-2 px-1 py-0.5 ${here ? '' : 'opacity-40'}`}
+                    <div key={n} title={`${LESSON_CASE_TIER_LABEL[b.tier]} сундук`}
+                        className={`flex h-[26px] items-center justify-between rounded-lg border-2 pl-1.5 pr-1 ${here ? '' : 'opacity-40'}`}
                         style={{ borderColor: here ? b.color : 'transparent', background: here ? `${b.color}1F` : 'transparent' }}>
-                        <span className="w-[26px] text-[10px] font-black leading-none" style={{ color: b.color }}>ур{n}{n === 3 ? '+' : ''}</span>
-                        <BellIcon n={n} size={18} />
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={LESSON_CASE_TIER_ICON[b.tier]} alt={LESSON_CASE_TIER_LABEL[b.tier]} className="h-6 w-6" />
+                        <span className="text-[11px] font-black leading-none" style={{ color: b.color }}>ур{n}{n === 3 ? '+' : ''}</span>
+                        <BellIcon n={n} size={20} />
                     </div>
                 )
             })}
@@ -166,8 +165,9 @@ export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: n
             animate={closing ? { y: -14, opacity: 0, scaleY: 0.9 } : { y: 0, opacity: 1, scaleY: 1 }}
             transition={closing ? { duration: 0.26, ease: [0.4, 0, 1, 1] } : { type: 'spring', stiffness: 420, damping: 32 }}
             style={{ transformOrigin: 'top' }}
-            className="absolute inset-x-0 top-full z-10 mt-1 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60">
-            <div className="flex items-start gap-2">
+            className="absolute inset-x-0 top-full z-10 mt-1 grid rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-2xl shadow-black/60 sm:max-w-[680px] sm:grid-cols-[1fr_270px] sm:grid-rows-[auto_auto_1fr] sm:gap-x-5">
+            {/* Телефон: шапка → фраза → стол → кнопки. Шире — слева шапка, фраза и кнопки, справа стол */}
+            <div className="flex items-start gap-2 sm:col-start-1">
                 {/* Мигель по пояс, как на карте тренажёра; поза — по блюду (SET_MIGUEL) */}
                 <div className="-mb-3.5 -ml-1 -mt-1"><PetBust src={SET_MIGUEL[dish]} size={124} width={84} flip={dish === 0} /></div>
                 <div className="min-w-0 flex-1">
@@ -178,13 +178,13 @@ export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: n
                 </div>
                 <ChestLevels setNumber={d.setNumber} />
             </div>
-            <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
+            <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8] sm:col-start-1">{shout(d, dish)}</p>
             {/* Блюда стоят на бархатной скатерти (public/set-tablecloth/cloth-1.webp, исходник Leonardo —
                 docs/miguel/leonardo/tablecloth): ряд блюд — на гладкой середине стола, между розой сверху и вилкой снизу */}
-            <div className="relative mx-auto mt-2 w-[92%]">
+            <div className="relative mx-auto mt-2 w-[min(86%,300px)] sm:col-start-2 sm:row-span-3 sm:row-start-1 sm:mt-0 sm:w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={SET_TABLECLOTH} alt="" draggable={false} className="block w-full select-none" />
-                <div className="absolute inset-x-[9%] top-[27%] flex h-[31%] items-stretch gap-1.5">
+                <div className="absolute inset-x-[9%] top-[27%] flex h-[31%] items-center gap-1.5">
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (
@@ -193,19 +193,19 @@ export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: n
                                 <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
                                     className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">{name}</motion.span>
                             )}
-                            <div className="flex h-full flex-col items-center gap-0.5 rounded-xl border-2 p-2 text-center"
+                            <div className="flex flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-1.5 text-center"
                                 style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322E6' : cur ? '#2A2410E6' : '#0F171BD9' }}>
-                                <span className={`relative text-4xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
+                                <span className={`relative text-3xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
                                     {SET_DISH_ICONS[i]}
                                     {ok && <Check className="absolute -bottom-1 -right-2 h-5 w-5 rounded-full bg-[#78C93C] p-0.5 text-[#16240C]" strokeWidth={4} />}
                                     {far && i < 2 && <Lock className="absolute -bottom-1 -right-2 h-4 w-4 text-[#9AA7B0]" />}
                                 </span>
-                                <span className="mt-1 text-[10px] font-bold leading-tight text-[#9AA7B0]">
+                                <span className="mt-0.5 line-clamp-2 text-[10px] font-bold leading-tight text-[#C9D3D9]">
                                     {i < 2 ? tiles[i].what : ''}
                                 </span>
                                 {i === 2 && (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-8 w-8 ${cur ? 'animate-bounce' : far ? 'opacity-60' : ''}`} />
+                                    <img src={LESSON_CASE_TIER_ICON[d.tier]} alt="" className={`h-7 w-7 ${cur ? 'animate-bounce' : far ? 'opacity-60' : ''}`} />
                                 )}
                             </div>
                         </div>
@@ -213,6 +213,7 @@ export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: n
                 })}
                 </div>
             </div>
+            <div className="sm:col-start-1 sm:row-start-3 sm:self-end">
             <button onClick={go} disabled={busy}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 py-2.5 text-sm font-black text-[#16240C] active:border-b-0"
                 style={{ background: dish === 2 ? 'linear-gradient(180deg,#FFD84D,#F2C35B)' : GREEN, borderBottomColor: dish === 2 ? '#B8862E' : '#60A12F' }}>
@@ -222,6 +223,7 @@ export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: n
             <button onClick={onClose} className="mx-auto mt-1.5 flex items-center gap-1 px-3 py-1 text-xs font-black text-[#6B7A83]" aria-label="Свернуть">
                 <ChevronDown className="h-4 w-4 rotate-180" />Свернуть
             </button>
+            </div>
         </motion.div>
     )
 }
