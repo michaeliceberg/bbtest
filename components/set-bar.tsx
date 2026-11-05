@@ -25,6 +25,7 @@ const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
+const SET_TABLECLOTH = '/set-tablecloth/cloth-1.webp'
 export const SET_DISH_ICONS = ['🍟', '🍔', '🍩']
 // Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
 // 3-й — фиолетовый (мифический), 4-й и дальше — огненный золотой (сундук тот же мифический).
@@ -131,7 +132,7 @@ function useBell(d: SetBarData, dish: number) {
 }
 
 // ── Панель сета: выезжает вниз прямо из полоски ─────────────────────────────────────────
-function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void }) {
+export function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; closing: boolean; onClose: () => void }) {
     const router = useRouter()
     const [busy, setBusy] = useState(false)
     const go = async () => {
@@ -178,7 +179,12 @@ function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; 
                 <ChestLevels setNumber={d.setNumber} />
             </div>
             <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>
-            <div className="mt-4 flex items-stretch gap-1.5">
+            {/* Блюда стоят на бархатной скатерти (public/set-tablecloth/cloth-1.webp, исходник Leonardo —
+                docs/miguel/leonardo/tablecloth): ряд блюд — на гладкой середине стола, между розой сверху и вилкой снизу */}
+            <div className="relative mx-auto mt-2 w-[92%]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={SET_TABLECLOTH} alt="" draggable={false} className="block w-full select-none" />
+                <div className="absolute inset-x-[9%] top-[27%] flex h-[31%] items-stretch gap-1.5">
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (
@@ -188,7 +194,7 @@ function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; 
                                     className="absolute -top-3 left-0 right-0 z-10 mx-auto w-fit whitespace-nowrap rounded-full bg-[#F2C35B] px-1.5 text-[10px] font-black text-[#3A2A08]">{name}</motion.span>
                             )}
                             <div className="flex h-full flex-col items-center gap-0.5 rounded-xl border-2 p-2 text-center"
-                                style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322' : cur ? '#2A2410' : '#0F171B' }}>
+                                style={{ borderColor: ok ? '#3D8A55' : cur ? GOLD : '#2A363C', background: ok ? '#163322E6' : cur ? '#2A2410E6' : '#0F171BD9' }}>
                                 <span className={`relative text-4xl leading-none ${far ? 'opacity-35 grayscale' : ''}`} aria-label={name}>
                                     {SET_DISH_ICONS[i]}
                                     {ok && <Check className="absolute -bottom-1 -right-2 h-5 w-5 rounded-full bg-[#78C93C] p-0.5 text-[#16240C]" strokeWidth={4} />}
@@ -205,6 +211,7 @@ function SetPanel({ d, dish, closing, onClose }: { d: SetBarData; dish: number; 
                         </div>
                     )
                 })}
+                </div>
             </div>
             <button onClick={go} disabled={busy}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 py-2.5 text-sm font-black text-[#16240C] active:border-b-0"

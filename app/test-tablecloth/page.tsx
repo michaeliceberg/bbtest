@@ -1,6 +1,8 @@
 // Выбор скатерти для панели сета: 4 варианта из Leonardo (public/set-tablecloth/cloth-N.webp),
 // на каждой — три блюда сета для примера. Исходники — docs/miguel/leonardo/tablecloth/.
 
+import { PanelDemo } from './panel-demo'
+
 const CLOTHS = [
     { src: '/set-tablecloth/cloth-1.webp', name: '1 · Бордовая скатерть со свисающим краем' },
     { src: '/set-tablecloth/cloth-2.webp', name: '2 · Зелёная, кружево по углам' },
@@ -13,6 +15,7 @@ export default function TestTableclothPage() {
     return (
         <div className="min-h-screen bg-[#161F23] px-4 py-6 text-[#F2F7FB]">
             <h1 className="mb-4 text-center text-xl font-extrabold">Скатерть для сета</h1>
+            <PanelDemo />
             <div className="mx-auto grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
                 {CLOTHS.map((c) => (
                     <div key={c.src}>
