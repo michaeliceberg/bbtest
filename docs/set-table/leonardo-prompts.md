@@ -8,14 +8,26 @@
 по углам — предметы «разоружились и сели есть».
 
 ## Как делать
-Модель FLUX.1 Kontext → Add Image: образец стиля (кусок ангара `public/hangar/bg.webp`), чтобы совпали контуры и цвета.
-Соотношение сторон 16:9 или 2:1. Потом Remove Background (Full, тень None).
+НЕ давать картинку ангара как образец: Kontext перерисовал весь ангар и поставил стол в перспективе (проверено 2026-11-05).
+Лучше править наш текущий стол: FLUX.1 Kontext → Add Image `public/set-tablecloth/cloth-1.webp` (он уже нарисован
+сверху) → команда «Edit this image: …» (ниже). Соотношение 16:9. Потом Remove Background (Full, тень None).
+
+## Команда правки текущего стола (рекомендую)
+Edit this image: keep the exact same strict top-down view from directly above and the same cartoon style and outlines.
+Make the table much wider and horizontal, about twice as wide as it is tall. Change the burgundy tablecloth to an
+olive-green army canvas tablecloth with darker stitched edges and a slightly frayed hem hanging down on all four sides.
+Keep the center of the table completely empty and flat. Move the vase with the red flower and a few red petals to the
+top-left corner. Keep the fork and napkin in the bottom-right corner and add a knife next to the fork. Put an old army
+helmet lying upside down in the top-right corner, seen from above. Put two tin cans of stew with blank labels and a cup
+of milk in the bottom-left corner, seen from above. White background, nothing around the table.
+Avoid: perspective, side view, room, walls, windows, floor, sky, hangar, background scenery, text, letters, people.
 
 ## Общий хвост стиля (дописывать к каждому)
 cartoon game illustration, thick uneven dark-brown outlines, flat cel shading, muted dusty colors, slightly worn and
-cozy military mess-hall mood, top-down three-quarter view of a long low table, isolated on pure white background,
+cozy military mess-hall mood, strict top-down view from directly above (flat lay, bird's-eye, orthographic), the table
+fills the whole frame, isolated on pure white background,
 no text, no letters, no people, kid-friendly.
-Avoid: realistic photo, gore, real weapon brands, logos, text, letters, people, hands, square table, round table,
+Avoid: perspective, side view, three-quarter view, room, walls, windows, floor, sky, background scenery, realistic photo, gore, real weapon brands, logos, text, letters, people, hands, square table, round table,
 cluttered center, food in the center of the table.
 
 ## Вариант 1 — армейский зелёный (рекомендую)
