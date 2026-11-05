@@ -12,7 +12,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Check, Dumbbell, Star, LogOut, Rocket, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, Lock, Star, LogOut, Rocket, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
@@ -809,11 +809,10 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
             <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
                 {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
                 {item.locked ? (
-                    // брезент снимается тренажёром — кнопка ведёт в первый непройденный
-                    <Link href={nextTrainer ? `/trainer?topic=${encodeURIComponent(nextTrainer.title)}` : '/trainer'}
-                        className={`${btn} mt-auto text-[#2A2410]`} style={{ background: '#C9B27A', borderBottomColor: '#8C7746' }}>
-                        Снять брезент
-                    </Link>
+                    // брезент снимается тренажёром: здесь нажимать нечего, действие — зелёная кнопка «Пройти» слева
+                    <span aria-disabled className="mt-auto flex w-full cursor-not-allowed items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center text-[13px] font-black leading-tight text-[#6B7A83]" style={{ background: '#1B252A' }}>
+                        <Lock className="h-3.5 w-3.5 shrink-0" />Снять брезент
+                    </span>
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
         </div>

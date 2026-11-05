@@ -1,12 +1,16 @@
+'use client'
+
 // components/trainer-path-stops.tsx
 //
 // Экран раздела задачника (/learn?task=N): тренажёры задания стоят первыми кружками дорожки, над уроками. Порядок виден
 // сам: сначала тренажёр, потом задачи. Кружок ведёт сразу в первый непройденный урок темы (?back=N — вернуться сюда).
 // Пройдена тема при серебре (≥50%): то же правило, что у починки предмета в ангаре. Бронза — кружок ещё цветной,
 // серебро и золото — спокойный, с медалью: тренировку можно улучшать, но она больше не первый шаг.
+// Все темы на золоте — кружки сами сворачиваются в одну строку с медалями, нажатие разворачивает их обратно.
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Dumbbell } from 'lucide-react'
+import { ChevronDown, Dumbbell } from 'lucide-react'
 import { NavMedal } from '@/components/nav-sheet-ui'
 import type { TrainerKey } from '@/lib/egeTrainerLinks'
 import { declensionRu } from '@/usefulFunctions'
@@ -15,9 +19,20 @@ export const TRAINER_STOP_DONE_PERCENT = 50
 
 export function TrainerPathStops({ num, keys, accent }: { num: number; keys: TrainerKey[]; accent: { button: string; bottom: string } }) {
     const curId = keys.find((k) => k.percent < TRAINER_STOP_DONE_PERCENT)?.tUnitId
+    const allGold = keys.length > 0 && keys.every((k) => k.percent >= 100)
+    const [open, setOpen] = useState(false)
     return (
         <div className="mt-5 flex flex-col items-center gap-4">
-            {keys.map((k) => {
+            {allGold && (
+                <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+                    className="flex items-center gap-2 rounded-xl border-b-4 px-3 py-1.5 text-[13px] font-black text-[#C9D3D9] active:border-b-0"
+                    style={{ background: '#1B252A', borderBottomColor: '#10171A' }}>
+                    <span className="flex -space-x-2">{keys.map((k) => <NavMedal key={k.tUnitId} percent={k.percent} size={28} />)}</span>
+                    {keys.length === 1 ? 'Тренажёр' : 'Тренажёры'} на золоте
+                    <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+                </button>
+            )}
+            {(!allGold || open) && keys.map((k) => {
                 const done = k.percent >= TRAINER_STOP_DONE_PERCENT
                 const cur = k.tUnitId === curId
                 return (

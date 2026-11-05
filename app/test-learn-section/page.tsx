@@ -7,6 +7,7 @@ import { useState, type ReactNode } from 'react'
 import { ArrowLeft, Check, ChevronRight, Dumbbell, Hammer, ListChecks, Lock, Play } from 'lucide-react'
 import { ItemBadge } from '@/components/learn-section-header'
 import { TinyMedal } from '@/components/nav-sheet-ui'
+import { TrainerPathStops } from '@/components/trainer-path-stops'
 import { hangarItemPic } from '@/lib/hangarModel'
 import { declensionRu } from '@/usefulFunctions'
 
@@ -250,6 +251,14 @@ export default function TestLearnSectionPage() {
                         <C s={s} />
                     </section>
                 ))}
+                <section className="min-w-0">
+                    <h2 className="text-base font-black">Все темы на золоте</h2>
+                    <p className="text-xs font-bold text-[#9AA7B0]">Настоящие кружки: сами свёрнуты, нажатие разворачивает</p>
+                    <TrainerPathStops num={1} accent={ACCENT} keys={[
+                        { tUnitId: 1, title: 'Окружность', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 503 },
+                        { tUnitId: 2, title: 'Треугольник', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 504 },
+                    ]} />
+                </section>
             </div>
         </div>
     )

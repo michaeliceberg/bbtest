@@ -105,3 +105,22 @@ Leonardo рисовать раскрытые крылья И руки сразу
 
 Отдельные картинки не нужны: предмет теперь стоит на светлом круге цвета пола ангара (`ItemBadge` в
 `components/learn-section-header.tsx`) — тёмные провода и бочка читаются на тёмном сайте.
+
+---
+
+## 4. Фронтальные позы Мигеля (зовут решать)
+
+Основа — из раздела 1 + «front view facing the camera, both eyes visible, looking directly at the viewer, eye contact»; в негатив добавить «side view, profile, looking away». Страница с копированием: https://claude.ai/artifact/FikmhjhqtqzihYJ8ECghTb.
+
+| Файл | Фраза | Поза |
+|---|---|---|
+| `miguel-megaphone` | «Боец! Урок сам себя не решит!» | facing the viewer and shouting straight at them through a big dented orange megaphone held in one hand, beak wide open, other hand clenched into a fist, small sound lines coming out of the megaphone, energetic and funny. |
+| `miguel-knock` | «Тук-тук! Есть кто живой?» | leaning very close to the viewer with a big head, as if behind the glass of a phone screen, one gloved hand raised and knocking on the glass with knuckles, one eyebrow raised, curious stare, strong forced perspective, small knock lines near the knuckles. |
+| `miguel-watch` | «Сколько можно ждать?» | standing and facing the viewer, one arm raised, tapping a wristwatch on that arm with the other hand, one eyebrow raised, impatient smirk. |
+| `miguel-arms-crossed` | «Я подожду. Но недолго» | standing and facing the viewer, feet apart, arms firmly crossed on the chest, one foot tapping with small motion lines, stern waiting stare, slight smirk. |
+| `miguel-beckon` | «Иди сюда, компаньеро» | standing and facing the viewer, one gloved hand stretched forward with the index finger curled, beckoning the viewer to come closer, other hand on the hip, sly confident smirk. |
+| `miguel-pencil` | «Бери. Пора решать» | standing and facing the viewer, stretching one arm forward with strong forced perspective, offering a big sharpened yellow pencil to the viewer, eraser end first, hand large in the foreground, serious encouraging look. |
+| `miguel-book` | «Открывай. Там про тебя» | standing and facing the viewer, holding an open thick book forward with both hands, pages toward the viewer are blank, proud teacher look, eyebrows raised. |
+| `miguel-shrug` | «И чего ждём?» | standing and facing the viewer, both arms spread to the sides with open palms up in a big shrug, shoulders raised, tilted head, funny questioning face. |
+| `miguel-sign` | Подпись на табличке ставлю кодом, фразы можно менять | standing and facing the viewer, holding up with both hands a big blank wooden sign board on a stick above the head, the board is completely empty with no text, determined stare, feet apart. |
+| `miguel-crate` | «Я тут посижу, пока ты решаешь» | sitting on a wooden ammo crate and facing the viewer, elbow on the knee, chin resting on one hand, bored but watching the viewer closely, one eyebrow raised. |
