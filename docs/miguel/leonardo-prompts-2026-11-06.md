@@ -13,11 +13,15 @@
 
 Основа (для удобства, копировать целиком перед позой):
 
-> Charismatic cartoon goose commander mascot sticker, same character as the reference image: long S-curved white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, black military cap with a red star, plain red bandana scarf, olive green field jacket with rolled sleeves and a red star patch on the shoulder, orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the beak, thick clean black outline, flat cel shading, isolated on pure white background, no text, kid-friendly, high quality vector sticker
+> Charismatic cartoon goose commander mascot character, same character as the reference image: long S-curved white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, black military cap with a red star, plain red bandana scarf, olive green field jacket with rolled sleeves and a red star patch on the shoulder, orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the beak, thick clean black outline, flat cel shading, cartoon character illustration, full body, isolated on a flat solid pure magenta background #FF00FF, no white border, no outline around the whole image, no text, kid-friendly
 
 Негатив:
 
-> smoke, steam, cigarette, cigar, ash, duck, eyelashes, blush, makeup, girly, text on bandana, letters, writing, realistic, photo, 3d render, gore, blood, real weapon, extra limbs, multiple characters, watermark, logo, cropped
+> sticker, die-cut, white border, white outline around the character, white frame, border, frame, badge, smoke, steam, cigarette, cigar, ash, duck, eyelashes, blush, makeup, girly, text on bandana, letters, writing, realistic, photo, 3d render, gore, blood, real weapon, extra limbs, multiple characters, watermark, logo, cropped
+
+**Почему так (2026-11-06):** слово «sticker» Leonardo понимает как вырезанную наклейку и сам рисует белую рамку вокруг.
+Поэтому «sticker» убрано из основы и добавлено в негатив, а фон — пурпурный: на белом фоне белая рамка сливается
+с фоном и её не видно в негативе, а на пурпурном Leonardo реже её рисует, и вырезать фон проще.
 
 ### «Мой путь» (общая картина: где ты, куда идёшь, какой вуз)
 
