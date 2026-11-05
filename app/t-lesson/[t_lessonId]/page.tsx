@@ -297,6 +297,7 @@ type Props = {
         stage?: string
         ref?: string
         move?: string
+        back?: string // номер задания ЕГЭ: урок открыт из задачника, вернуться туда
     }
 }
 
@@ -1992,6 +1993,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             topic={PUBLIC_TRIAL_T_LESSON_IDS.includes(t_lessonId) && !EXTRA_PUBLIC_LESSONS[t_lessonId] ? undefined : (PUBLIC_TOPICS.find((x) => x.lesson === t_lessonId)?.label ?? t_lesson.title)}>
         <TQuiz
             moveId={moveId}
+            backTask={!isGuest && Number(searchParams?.back) >= 1 && Number(searchParams?.back) <= 20 ? Number(searchParams?.back) : null}
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
             jokeTopic={jokeTopicOf(t_lesson.t_unit.title, t_lesson.title)}

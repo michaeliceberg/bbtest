@@ -1,10 +1,10 @@
 // components/learn-section-header.tsx
 //
-// Экран раздела задачника (/learn?task=N, ЕГЭ Математика): «← В ангар», предмет этого задания и где ученик сейчас:
-// тренажёры d/t → задачи s/25. Сами тренажёры (кнопки тем с медалями) и уроки — ниже.
+// Экран раздела задачника (/learn?task=N, ЕГЭ Математика): «← В ангар», предмет этого задания и сколько задач решено.
+// Тренажёры здесь не дублируем: они стоят первыми кружками дорожки (components/trainer-path-stops.tsx).
 
 import Link from 'next/link'
-import { ArrowLeft, Check, Dumbbell, ListChecks, Star } from 'lucide-react'
+import { ArrowLeft, ListChecks, Star } from 'lucide-react'
 
 export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = false, accent }: {
     num: number; title: string; pic: string
@@ -13,8 +13,6 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
     fixed?: boolean
     trainers: { title: string; percent: number }[]
 }) {
-    const tDone = trainers.filter((t) => t.percent >= 50).length // на серебре — нужно для починки
-    const tOk = trainers.length === 0 || tDone >= trainers.length
     const solved = Math.min(tasks?.solved ?? 0, tasks?.target ?? 0)
     const tGold = trainers.filter((t) => t.percent >= 100).length
     const gold = fixed && tGold >= trainers.length && (tasks?.solved ?? 0) >= (tasks?.full ?? 0)
@@ -30,9 +28,6 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
                     <p className="text-xs font-black uppercase tracking-wide" style={{ color: accent ?? '#53ADEF' }}>Задание {num}</p>
                     <p className="truncate text-lg font-black text-[#F2F7FB]">{title}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        {trainers.length > 0 && (
-                            <span className={chip(tOk)}>{tOk ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Dumbbell className="h-3.5 w-3.5" />}Тренажёры {tDone}/{trainers.length}</span>
-                        )}
                         {/* до починки — сколько задач нужно, чтобы починить; после — путь к золоту (весь раздел + тренажёры на золото) */}
                         {!fixed && tasks && tasks.target > 0 && (
                             <span className={chip(solved >= tasks.target)}><ListChecks className="h-3.5 w-3.5" />Задачи {solved}/{tasks.target}</span>

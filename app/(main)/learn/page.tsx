@@ -56,6 +56,8 @@ import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
 import { LearnUnitFold } from '@/components/learn-unit-fold';
 import { TrainerKeyChips } from '@/components/trainer-key-chips';
+import { TrainerPathStops } from '@/components/trainer-path-stops';
+import { Lock } from 'lucide-react';
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks';
 
 // Номер задания ЕГЭ из названия раздела («15. Стереометрия…» → 15).
@@ -406,7 +408,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
     ?? unitsWithFormattedLessons[0]?.id
     ?? null;
 
-  const renderUnit = (unit: (typeof unitsWithFormattedLessons)[number], index: number) => (
+  const renderUnit = (unit: (typeof unitsWithFormattedLessons)[number], index: number, showTrainerChips = true) => (
     <Unit
       id={unit.id}
       unitIndex={index}
@@ -430,7 +432,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
       isNextUnitUnlocked={unit.isNextUnitUnlocked}
       isAdmin={isAdmin}
       lastTouchedLessonId={lastTouchedLessonId}
-      belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} accent={getUnitButtonColor(index)} /> : null })()}
+      belowBanner={(() => { const n = unitNum(unit.title); return showTrainerChips && n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} accent={getUnitButtonColor(index)} /> : null })()}
     />
   )
 
@@ -531,15 +533,14 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               return (
                 <>
                   <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} accent={getUnitButtonColor(Math.max(idx, 0)).button} />
-                  {locked ? (
-                    <div className='mt-4 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4'>
-                      <p className='text-base font-black text-[#F2E3C2]'>🔒 Задачи откроются после тренажёров</p>
-                      <p className='mt-1 text-sm font-bold text-[#9AA7B0]'>Пройди тренажёры к этому заданию — так задачи пойдут легче.</p>
-                      {trainerKeys[item.num] && <div className='mt-3'><TrainerKeyChips num={item.num} keys={trainerKeys[item.num]} accent={getUnitButtonColor(Math.max(idx, 0))} /></div>}
-                    </div>
-                  ) : unit ? (
-                    // Баннер раздела (data-unit-banner) здесь дублирует шапку с предметом — прячем (unit.tsx не трогаем).
-                    <div className='mt-4 [&_[data-unit-banner]]:hidden'>{renderUnit(unit, idx)}</div>
+                  {/* Тренажёры — первые кружки дорожки; уроки ниже заперты, пока ни одна тема не начата */}
+                  {trainerKeys[item.num] && <TrainerPathStops num={item.num} keys={trainerKeys[item.num]} accent={getUnitButtonColor(Math.max(idx, 0))} />}
+                  {unit ? (
+                    <>
+                      {locked && <p className='mt-5 flex items-center justify-center gap-1.5 text-xs font-black text-[#C9D3D9]'><Lock className='h-3.5 w-3.5' />Задачи откроются после тренажёра</p>}
+                      {/* Баннер раздела (data-unit-banner) здесь дублирует шапку с предметом — прячем (unit.tsx не трогаем). */}
+                      <div aria-hidden={locked} className={`mt-4 [&_[data-unit-banner]]:hidden ${locked ? 'pointer-events-none opacity-35' : ''}`}>{renderUnit(unit, idx, false)}</div>
+                    </>
                   ) : (
                     <p className='mt-4 text-center text-sm font-bold text-[#9AA7B0]'>Задачи к этому заданию скоро появятся</p>
                   )}

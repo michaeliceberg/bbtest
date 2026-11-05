@@ -6,7 +6,8 @@ import db from '@/db/drizzle'
 // Процент темы — как у медали на карте тренажёра (GetTUnitCompletionPercent): доля уроков темы,
 // где верных ответов ≥ 50%.
 
-export type TrainerKey = { tUnitId: number; title: string; percent: number }
+// nextLessonId — первый урок темы, где ещё нет 50% верных (всё пройдено — первый урок темы).
+export type TrainerKey = { tUnitId: number; title: string; percent: number; doneLessons: number; totalLessons: number; nextLessonId: number | null }
 
 type Row = Record<string, unknown>
 
@@ -17,7 +18,12 @@ export async function getTrainerKeysByTask(userId: string | null, subject = 'mat
             (SELECT count(*) FROM t_lessons tl WHERE tl.t_unit_id = u.id) AS total,
             (SELECT count(*) FROM t_lessons tl WHERE tl.t_unit_id = u.id AND (
                 SELECT CASE WHEN sum(p.done_right) > 0 AND sum(p.done_right)::float / nullif(sum(p.done_right + p.done_wrong), 0) >= 0.5 THEN 1 ELSE 0 END
-                FROM t_lesson_progress p WHERE p.t_lesson_id = tl.id AND p.user_id = ${userId ?? ''}) = 1) AS done
+                FROM t_lesson_progress p WHERE p.t_lesson_id = tl.id AND p.user_id = ${userId ?? ''}) = 1) AS done,
+            (SELECT tl.id FROM t_lessons tl WHERE tl.t_unit_id = u.id AND (
+                SELECT CASE WHEN sum(p.done_right) > 0 AND sum(p.done_right)::float / nullif(sum(p.done_right + p.done_wrong), 0) >= 0.5 THEN 1 ELSE 0 END
+                FROM t_lesson_progress p WHERE p.t_lesson_id = tl.id AND p.user_id = ${userId ?? ''}) = 0
+                ORDER BY tl."order" LIMIT 1) AS next_lesson,
+            (SELECT tl.id FROM t_lessons tl WHERE tl.t_unit_id = u.id ORDER BY tl."order" LIMIT 1) AS first_lesson
         FROM ege_task_links l
         JOIN ege_tasks t ON t.id = l.task_id
         JOIN t_units u ON u.id = l.ref_id
@@ -30,6 +36,9 @@ export async function getTrainerKeysByTask(userId: string | null, subject = 'mat
             tUnitId: Number(r.t_unit_id),
             title: String(r.title),
             percent: total > 0 ? Math.round((Number(r.done) / total) * 100) : 0,
+            doneLessons: Number(r.done),
+            totalLessons: total,
+            nextLessonId: r.next_lesson != null ? Number(r.next_lesson) : r.first_lesson != null ? Number(r.first_lesson) : null,
         })
     }
     return out

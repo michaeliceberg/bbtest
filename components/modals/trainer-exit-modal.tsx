@@ -62,7 +62,11 @@ export const TrainerExitModal = ({ open, onOpenChange }: Props) => {
                             variant="dangerOutline"
                             className="w-full"
                             size="lg"
-                            onClick={() => { window.location.href = '/trainer' }}
+                            onClick={() => {
+                                // урок открыт из задачника (?back=N) — возвращаем к этому заданию
+                                const back = new URLSearchParams(window.location.search).get('back')
+                                window.location.href = back ? `/learn?task=${encodeURIComponent(back)}` : '/trainer'
+                            }}
                         >
                             Закончить
                         </Button>

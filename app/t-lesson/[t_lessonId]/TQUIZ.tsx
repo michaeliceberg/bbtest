@@ -178,6 +178,8 @@ type Props = {
   // «Ход» по башне ЕГЭ (/path → /move/[id], lib/egeMove.ts): урок — первый
   // шаг хода, на финале вместо «Следующий урок» — «Дальше — задачи».
   moveId?: number | null,
+  // Пришли из задачника (кружок тренажёра на /learn?task=N): после урока возвращаемся к этому заданию
+  backTask?: number | null,
   // «Штурм» (lib/storm.ts), если уже идёт — плашка с отсчётом
   storm?: StormInfo | null,
 }
@@ -202,6 +204,7 @@ export default function TQuiz({
   lessonAlreadyRated,
   invite,
   moveId,
+  backTask = null,
   storm: stormInitial = null,
 }: Props) {
   // Шутки «За науку» по теме урока и «Словарь физтеха» — на время урока
@@ -1010,9 +1013,9 @@ export default function TQuiz({
     // баг, пойманный пользователем именно на переходе /trainer → /learn.
     router.refresh()
     requestAnimationFrame(() => {
-      router.push('/trainer')
+      router.push(backTask ? `/learn?task=${backTask}` : '/trainer')
     })
-  }, [updateQuestProgress, router, t_lessonId])
+  }, [updateQuestProgress, router, t_lessonId, backTask])
 
   // "Следующий урок" на финальном экране — тот же сигнал для карты
   // скиллов, что и у "Завершить" выше (см. комментарий там), но переход
@@ -1027,9 +1030,9 @@ export default function TQuiz({
     }
     router.refresh()
     requestAnimationFrame(() => {
-      router.push(nextTLessonHref)
+      router.push(backTask ? `${nextTLessonHref}${nextTLessonHref.includes('?') ? '&' : '?'}back=${backTask}` : nextTLessonHref)
     })
-  }, [updateQuestProgress, router, t_lessonId, nextTLessonHref])
+  }, [updateQuestProgress, router, t_lessonId, nextTLessonHref, backTask])
 
   const handleMoveNext = useCallback(async () => {
     if (!moveId) return
@@ -1113,9 +1116,9 @@ export default function TQuiz({
         <TrainerQuestRewardsScreen
           data={questRewardsData}
           t_lessonId={t_lessonId}
-          primaryLabel={moveId ? 'Дальше — задачи ➜' : nextTLessonHref ? 'Следующий урок' : 'Завершить'}
+          primaryLabel={moveId ? 'Дальше — задачи ➜' : nextTLessonHref ? 'Следующий урок' : backTask ? 'В задачник' : 'Завершить'}
           onPrimary={moveId ? handleMoveNext : nextTLessonHref ? handleNextLesson : handleFinishLesson}
-          secondaryLabel={!moveId && nextTLessonHref ? 'Завершить' : undefined}
+          secondaryLabel={!moveId && nextTLessonHref ? (backTask ? 'В задачник' : 'Завершить') : undefined}
           onSecondary={!moveId && nextTLessonHref ? handleFinishLesson : undefined}
           theme={uiTheme}
         />
