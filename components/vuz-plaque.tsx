@@ -59,10 +59,14 @@ export const VuzPlaque = ({ vuzId, forecast }: { vuzId: string | null; forecast?
                     boxShadow: `0 4px 0 ${vuz ? '#7A5A1C' : '#10171B'}`,
                 }}
             >
-                {vuz?.logo ? <VuzLogo src={vuz.logo} size="h-11 w-11" /> : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: vuz ? GOLD : '#26333B' }}>
-                        <GraduationCap className="h-5 w-5" style={{ color: vuz ? '#3A2A08' : '#9AA7B0' }} />
+                {vuz?.logo ? <VuzLogo src={vuz.logo} size="h-11 w-11" /> : vuz ? (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: GOLD }}>
+                        <GraduationCap className="h-5 w-5" style={{ color: '#3A2A08' }} />
                     </span>
+                ) : (
+                    // вуз ещё не выбран — Мигель отдаёт честь университету
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src="/miguel/miguel-university.webp" alt="" className="-my-1 h-12 w-12 shrink-0 object-contain" />
                 )}
                 <span className="min-w-0 flex-1">
                     {vuz ? (

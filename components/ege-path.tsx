@@ -39,8 +39,15 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
     return (
         <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
           <div className="min-w-0">
-            <h1 className="text-2xl font-black text-[#F2F7FB]">{vuz ? `Мой путь в ${vuz.short}` : 'Мой путь к ЕГЭ'}</h1>
-            <p className="text-sm font-bold text-[#9AA7B0]">Профильная математика · 20 заданий (ЕГЭ-2027)</p>
+            <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                    <h1 className="text-2xl font-black text-[#F2F7FB]">{vuz ? `Мой путь в ${vuz.short}` : 'Мой путь к ЕГЭ'}</h1>
+                    <p className="text-sm font-bold text-[#9AA7B0]">Профильная математика · 20 заданий (ЕГЭ-2027)</p>
+                </div>
+                {/* цель взята — Мигель на вершине, иначе показывает дорогу */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={targetPrimary !== null && map.primary >= targetPrimary ? '/miguel/miguel-summit.webp' : '/miguel/miguel-path.webp'} alt="" className="h-24 w-24 shrink-0 object-contain" />
+            </div>
 
             {diagCard}
             {map.hasDiag && (

@@ -73,7 +73,8 @@ export function RamboRun({ taskNum, taskTitle, level, questions }: { taskNum: nu
             <Shell taskNum={taskNum} taskTitle={taskTitle} level={level} onClose={back}>
                 {result.passed && <Confetti recycle={false} numberOfPieces={260} />}
                 <div className="mt-6 flex flex-col items-center gap-3 text-center">
-                    <div className="text-6xl">{result.passed ? '🎖️' : '🪖'}</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={result.passed ? '/miguel/miguel-commando-win.webp' : '/miguel/miguel-commando-again.webp'} alt="" className="h-44 w-44 object-contain" />
                     <div className="text-4xl font-black" style={{ color: CREAM }}>{result.correct} из {result.total}</div>
                     <div className="text-lg font-bold" style={{ color: result.passed ? '#A1D151' : CREAM }}>
                         {result.passed ? `Клетка ${level} пройдена!` : `Нужно ${Math.ceil(result.total * 0.75)} верных — давай ещё раз`}
@@ -140,7 +141,8 @@ function Shell({ taskNum, taskTitle, level, onClose, children }: { taskNum: numb
         <div className="min-h-[100dvh] bg-[#11181C]">
             <div className="mx-auto flex min-h-[100dvh] w-full max-w-xl flex-col px-4 pt-3">
                 <div className="flex items-center gap-3 rounded-2xl px-3 py-2" style={{ background: `linear-gradient(90deg, ${OLIVE}, #2A3120)`, boxShadow: `inset 0 -3px 0 ${RED}` }}>
-                    <span className="text-2xl">🪖</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/miguel/miguel-commando.webp" alt="" className="-my-1 h-11 w-11 shrink-0 object-contain" />
                     <div className="min-w-0 flex-1 leading-tight">
                         <div className="text-[11px] font-black uppercase tracking-widest" style={{ color: RED }}>Рэмбо · клетка {level}/4</div>
                         <div className="truncate text-sm font-black" style={{ color: CREAM }}>№{taskNum} {taskTitle}</div>

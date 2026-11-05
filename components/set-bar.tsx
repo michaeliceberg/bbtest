@@ -29,7 +29,14 @@ const GREEN = '#78C93C'
 const GOLD = '#F2C35B'
 const DISHES = ['Закуска', 'Основное', 'Десерт']
 // Еда блюд вместо слов (временно эмодзи — заменить на картинки public/set-food/*.webp, когда будут)
-const SET_TABLECLOTH = '/set-tablecloth/cloth-green.webp'
+// Стол наряднее с каждым сетом за день (индекс — bellLevel − 1). У картинок разная высота и разный свободный центр,
+// поэтому рамка блюд своя у каждой; исходники — docs/set-table/leonardo, вырезка — docs/set-table/cut_tables.py.
+const SET_TABLES: { src: string; top: string; height: string }[] = [
+    { src: '/set-tablecloth/cloth-green.webp', top: '31%', height: '38%' },
+    { src: '/set-tablecloth/cloth-lvl2.webp', top: '31%', height: '36%' },
+    { src: '/set-tablecloth/cloth-lvl3.webp', top: '37%', height: '32%' },
+    { src: '/set-tablecloth/cloth-lvl4.webp', top: '29%', height: '35.5%' },
+]
 // Десерт — это сам сундук, отдельной еды у него нет
 export const SET_DISH_ICONS = ['🍟', '🍔']
 // Уровень колокольчика = какой это сет за день: 1-й — серебряный (обычный сундук), 2-й — синий (редкий),
@@ -190,6 +197,7 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
         onClose()
     }
     const go0 = SET_GO_VARIANTS[goVariant] ?? SET_GO_VARIANTS[0]
+    const table = SET_TABLES[bellLevel(d.setNumber) - 1]
     const label = dish < 2 ? go0.label : dish === 2 ? `Забрать ${tierLabel(d)} сундук 🎁` : busy ? 'Накрываем на стол…' : 'Накрыть стол'
     const GoIcon = dish < 2 ? go0.Icon : dish === 3 ? UtensilsCrossed : null
 
@@ -229,13 +237,12 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
                     : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
             </div>
-            {/* Блюда стоят на зелёном армейском столе (public/set-tablecloth/cloth-green.webp; исходники Leonardo —
-                docs/set-table/leonardo, каска вырезана и подогнана по тону скатерти docs/set-table/helmet_cut.py):
-                роза слева вверху, каска справа вверху, вилка с ножом справа внизу — блюда в свободной середине */}
+            {/* Блюда стоят на столе уровня колокольчика (SET_TABLES; каска зелёного стола подогнана по тону скатерти
+                docs/set-table/helmet_cut.py): вилка с ножом справа внизу — блюда в свободной середине */}
             <div className="relative mx-auto mt-2 w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={SET_TABLECLOTH} alt="" draggable={false} className="block w-full select-none" />
-                <div className="absolute left-[13%] right-[25%] top-[31%] flex h-[38%] items-stretch gap-1.5 py-[2%]">
+                <img src={table.src} alt="" draggable={false} className="block w-full select-none" />
+                <div className="absolute left-[13%] right-[25%] flex items-stretch gap-1.5 py-[2%]" style={{ top: table.top, height: table.height }}>
                 {DISHES.map((name, i) => {
                     const ok = dish < 3 && i < dish, cur = i === dish, far = dish === 3 || i > dish
                     return (

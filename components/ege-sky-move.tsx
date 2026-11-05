@@ -166,10 +166,16 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
             {/* шаги хода */}
             {mv && (
                 <div className="bg-[#161F23] p-4">
-                    <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GGEGE_PALETTE.orange.button }}>Твой следующий сет</p>
-                    <p className="mt-0.5 text-base font-black text-[#F2F7FB]">
-                        {mv.topic ? <>Фундамент · {mv.topic.title}</> : <>Задание №{mv.station.num} · {mv.station.title}</>}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GGEGE_PALETTE.orange.button }}>Твой следующий сет</p>
+                            <p className="mt-0.5 text-base font-black text-[#F2F7FB]">
+                                {mv.topic ? <>Фундамент · {mv.topic.title}</> : <>Задание №{mv.station.num} · {mv.station.title}</>}
+                            </p>
+                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/miguel/miguel-compass.webp" alt="" className="-my-2 h-16 w-16 shrink-0 object-contain" />
+                    </div>
                     {mv.reason && (
                         <p className="mt-1.5 flex items-start gap-1.5 rounded-xl bg-[#2A2414] px-2.5 py-1.5 text-xs font-bold leading-snug text-[#F2C35B]">
                             <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0" />

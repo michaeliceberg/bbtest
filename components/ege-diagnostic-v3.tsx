@@ -101,7 +101,9 @@ export const EgeDiagnosticV3 = ({ save, initialRows, initialResult }: { save?: S
             <Backdrop />
             {phase === 'intro' && <Intro onStart={() => { setCount(3); setPhase('count') }} />}
             {phase === 'count' && (
-                <div className="flex min-h-[100dvh] items-center justify-center">
+                <div className="flex min-h-[100dvh] flex-col items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/miguel/miguel-stopwatch-go.webp" alt="" className="h-44 w-44 object-contain" />
                     <div className="relative flex h-48 w-48 items-center justify-center">
                         <motion.span key={`ring-${count}`} initial={{ scale: 0.6, opacity: 0.9 }} animate={{ scale: 1.6, opacity: 0 }} transition={{ duration: 0.8 }}
                             className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 3px ${count === 0 ? GREEN : GOLD}` }} />
@@ -129,7 +131,7 @@ function Intro({ onStart }: { onStart: () => void }) {
             <div className="relative mx-auto mt-2 h-40 w-40">
                 <div className="absolute inset-3 rounded-full" style={{ background: `radial-gradient(circle, ${VIOLET}55, transparent 70%)` }} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <motion.img src="/miguel/miguel-think.webp" alt="Команданте Мигель" className="relative h-full w-full object-contain"
+                <motion.img src="/miguel/miguel-checkup.webp" alt="Команданте Мигель" className="relative h-full w-full object-contain"
                     initial={{ y: 30, opacity: 0, scale: 0.8 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.45 }} />
             </div>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center">
@@ -178,7 +180,7 @@ function TimerRing({ left }: { left: number }) {
 }
 
 const FLASH: Record<Status, { text: string; color: string; sticker: string }> = {
-    right: { text: 'Верно!', color: GREEN, sticker: '/miguel/miguel-happy.webp' },
+    right: { text: 'Верно!', color: GREEN, sticker: '/miguel/miguel-thumbs.webp' },
     wrong: { text: 'Мимо — разберёмся', color: RED, sticker: '/miguel/miguel-oops.webp' },
     unknown: { text: 'Научим 💜', color: VIOLET, sticker: '/miguel/miguel-salute.webp' },
     timeout: { text: 'Время вышло', color: GOLD, sticker: '/miguel/miguel-stopwatch.webp' },
@@ -380,6 +382,8 @@ function ResultsView({ results, result, saving, saveError, testMode }: { results
     return (
         <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
             <div className="flex flex-col items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/miguel/miguel-scan.webp" alt="" className="mb-1 h-28 w-28 object-contain" />
                 <div className="relative h-40 w-40">
                     <svg viewBox="0 0 128 128" className="absolute inset-0 -rotate-90">
                         <circle cx={64} cy={64} r={r} fill="none" stroke="#ffffff12" strokeWidth={10} />
