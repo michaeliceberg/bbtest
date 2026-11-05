@@ -1,3 +1,5 @@
+import { getEgeRulerData } from '@/lib/egeRuler'
+import { EgeRuler } from '@/components/ege-ruler'
 import { getSetBarData } from '@/lib/setBar';
 // app/(main)/trainer/page.tsx
 
@@ -216,6 +218,8 @@ const TLearnPage = async () => {
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
     const setBar = userId ? await getSetBarData(userId, activeTCourse?.title) : null;
+    // «Линейка ЕГЭ» у правого края — там же, где сет (только «ЕГЭ Математика»)
+    const egeRuler = setBar && userId ? await getEgeRulerData(userId, { hasPro: hasProFor(userProgress), setTaskNum: setBar.taskNum }).catch(() => null) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
     const currentPoints = userProgress.points;
@@ -299,6 +303,7 @@ const TLearnPage = async () => {
                 <GuestRewardClaimer />
                 {cashback.length > 0 && <ReferralCashbackScreen items={cashback} theme={uiTheme} />}
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} setBar={setBar} />
+                {egeRuler && <EgeRuler data={egeRuler} />}
 
                 <div className='mt-2 lg:mt-5'>
                     {/* «Штурм» (lib/storm.ts): идут горячие 10 минут — отсчёт и что дадут */}

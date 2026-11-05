@@ -1,3 +1,5 @@
+import { getEgeRulerData } from '@/lib/egeRuler'
+import { EgeRuler } from '@/components/ege-ruler'
 import { egeSectionOf, type EgeSection } from '@/lib/egeSections'
 import { hasProFor } from '@/lib/pro'
 import { ProBadge } from '@/components/pro-badge'
@@ -129,6 +131,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   await recalculateDailyStats(userId, activeCourseId);
   // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
   const setBar = await getSetBarData(userId, activeCourse.title);
+    // «Линейка ЕГЭ» у правого края — там же, где сет (только «ЕГЭ Математика»)
+    const egeRuler = setBar && userId ? await getEgeRulerData(userId, { hasPro: hasProFor(userProgress), setTaskNum: setBar.taskNum }).catch(() => null) : null;
 
   // generateHomework (автогенерация "Челлендж дня" — 2 ЖЁСТКО
   // ЗАФИКСИРОВАННЫЕ задачи курса каждый день, components/homework-list.tsx)
@@ -488,6 +492,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
           {/* на экране ангара полоска сета лежит поверх картинки ангара (иначе пульт ангара не влезает в экран телефона) */}
           <Header title={`Задачник ${activeCourse.title}`} setBar={onHangarScreen ? null : setBar} />
+                {egeRuler && <EgeRuler data={egeRuler} />}
           {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);

@@ -22,6 +22,7 @@ import { ALL_TRACK_LESSONS } from '@/lib/trialTracks';
 import { pickGuestNickname } from '@/lib/nickname';
 import { newAvatarUrl } from '@/lib/avatar';
 import { getEgeGain, type EgeGain } from '@/lib/egeMap';
+import { notifyParentsEgeGain } from '@/lib/parentNotify';
 
 const POINTS_TO_REFILL = 10
 
@@ -436,6 +437,7 @@ export const upsertTrainerLessonProgress = async (
 	if (trainingPts > 0 && bossWins === 1) {
 		const tl = await db.query.t_lessons.findFirst({ where: eq(t_lessons.id, t_lessonId), columns: { t_unitId: true } });
 		if (tl) egeGain = await getEgeGain(userId, 't_unit', tl.t_unitId).catch(() => null);
+		void notifyParentsEgeGain(userId, egeGain).catch(() => null);
 	}
 
 	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain };

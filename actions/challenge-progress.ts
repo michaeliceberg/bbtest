@@ -23,6 +23,7 @@ import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
 import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
 import { getEgeGain, type EgeGain } from '@/lib/egeMap';
+import { notifyParentsEgeGain } from '@/lib/parentNotify';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -332,6 +333,7 @@ export async function updateChallengeProgress({
 
     // «+N к прогнозу ЕГЭ» — задача впервые решена верно (повторно верную сюда не пускает ранний return выше).
     const egeGain = doneRight ? await getEgeGain(userId, 'unit', lesson.unitId).catch(() => null) : null;
+    void notifyParentsEgeGain(userId, egeGain).catch(() => null);
 
     return {
         egeGain,
