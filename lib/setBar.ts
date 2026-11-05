@@ -9,7 +9,7 @@ import 'server-only'
 import { sql, and, eq } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
-import { getActiveEgeMove, getUnclaimedMoveCase, getEgeMove, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf, type EgeMoveRow } from '@/lib/egeMove'
+import { getActiveEgeMove, getUnclaimedMoveCase, getEgeMove, moveChallengeIds, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf, type EgeMoveRow } from '@/lib/egeMove'
 import type { LessonCaseTier } from '@/lib/caseRewards'
 
 export type SetBarData = {
@@ -27,6 +27,32 @@ export type SetBarData = {
     tasksDone: number
     tasksTotal: number
     caseClaimed: boolean
+    preview: SetPreview | null // что ждёт в текущем блюде — показываем под Мигелем в панели
+}
+
+// Превью текущего блюда: урок тренажёра — чему научит в финале (ai_hint) + картинка темы;
+// задачи — первая задача сета из задачника
+export type SetPreview =
+    | { kind: 'lesson'; text: string; image: string | null }
+    | { kind: 'task'; question: string; image: string | null }
+
+async function lessonPreview(tLessonId: number): Promise<SetPreview | null> {
+    const r = (await db.execute(sql`
+        SELECT l.ai_hint, u.image_src FROM t_lessons l JOIN t_units u ON u.id = l.t_unit_id
+        WHERE l.id = ${tLessonId}`)) as unknown as Row[]
+    const hint = r[0]?.ai_hint ? String(r[0].ai_hint) : ''
+    if (!hint) return null
+    const img = r[0]?.image_src ? String(r[0].image_src) : ''
+    return { kind: 'lesson', text: hint.charAt(0).toUpperCase() + hint.slice(1), image: img.startsWith('/') ? img : null }
+}
+
+async function taskPreview(m: EgeMoveRow): Promise<SetPreview | null> {
+    const id = moveChallengeIds(m)[0]
+    if (!id) return null
+    const r = (await db.execute(sql`SELECT question, image_src FROM challenges WHERE id = ${id}`)) as unknown as Row[]
+    if (!r[0]?.question) return null
+    const img = r[0].image_src ? String(r[0].image_src) : ''
+    return { kind: 'task', question: String(r[0].question), image: img.startsWith('/') ? img : null }
 }
 
 type Row = Record<string, unknown>
@@ -73,7 +99,7 @@ export async function getSetBarData(userId: string, courseTitle?: string | null)
         }
         if (!m) {
             const n = await setNumberToday(userId, null)
-            return { moveId: null, taskNum: null, taskTitle: null, step: 'none', hasTrainer: false, tLessonId: null, trainerTitle: null, tLessonId2: null, trainer2Title: null, tier: setTierOf(n), setNumber: n, tasksDone: 0, tasksTotal: 0, caseClaimed: false }
+            return { moveId: null, taskNum: null, taskTitle: null, step: 'none', hasTrainer: false, tLessonId: null, trainerTitle: null, tLessonId2: null, trainer2Title: null, tier: setTierOf(n), setNumber: n, tasksDone: 0, tasksTotal: 0, caseClaimed: false, preview: null }
         }
         m = await catchUp(m, userId)
         const [titleRows, title2Rows, taskRows, st, n] = await Promise.all([
@@ -83,6 +109,9 @@ export async function getSetBarData(userId: string, courseTitle?: string | null)
             moveTaskStatus(m, userId),
             setNumberToday(userId, m),
         ])
+        const preview = await (m.step === 'trainer' && m.tLessonId ? lessonPreview(m.tLessonId)
+            : m.step === 'trainer2' && m.tLessonId2 ? lessonPreview(m.tLessonId2)
+                : m.step === 'tasks' ? taskPreview(m) : Promise.resolve(null)).catch(() => null)
         const t = (titleRows as unknown as Row[])[0]
         const t2 = (title2Rows as unknown as Row[])[0]
         const task = (taskRows as unknown as Row[])[0]
@@ -101,6 +130,7 @@ export async function getSetBarData(userId: string, courseTitle?: string | null)
             tasksDone: Math.min(st.correct, st.target),
             tasksTotal: st.target,
             caseClaimed: m.caseClaimed,
+            preview,
         }
     } catch (e) {
         console.error('getSetBarData', e)
