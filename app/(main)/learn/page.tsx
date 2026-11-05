@@ -1,3 +1,4 @@
+import { getUnitButtonColor } from '@/src/constants/lessonButtonColors'
 import { getEgeRulerData } from '@/lib/egeRuler'
 import { EgeRuler } from '@/components/ege-ruler'
 import { egeSectionOf, type EgeSection } from '@/lib/egeSections'
@@ -429,7 +430,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
       isNextUnitUnlocked={unit.isNextUnitUnlocked}
       isAdmin={isAdmin}
       lastTouchedLessonId={lastTouchedLessonId}
-      belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
+      belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} accent={getUnitButtonColor(index)} /> : null })()}
     />
   )
 
@@ -534,10 +535,11 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                     <div className='mt-4 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4'>
                       <p className='text-base font-black text-[#F2E3C2]'>🔒 Задачи откроются после тренажёров</p>
                       <p className='mt-1 text-sm font-bold text-[#9AA7B0]'>Пройди тренажёры к этому заданию — так задачи пойдут легче.</p>
-                      {trainerKeys[item.num] && <div className='mt-3'><TrainerKeyChips num={item.num} keys={trainerKeys[item.num]} /></div>}
+                      {trainerKeys[item.num] && <div className='mt-3'><TrainerKeyChips num={item.num} keys={trainerKeys[item.num]} accent={getUnitButtonColor(Math.max(idx, 0))} /></div>}
                     </div>
                   ) : unit ? (
-                    <div className='mt-4'>{renderUnit(unit, idx)}</div>
+                    // Баннер раздела (data-unit-banner) здесь дублирует шапку с предметом — прячем (unit.tsx не трогаем).
+                    <div className='mt-4 [&_[data-unit-banner]]:hidden'>{renderUnit(unit, idx)}</div>
                   ) : (
                     <p className='mt-4 text-center text-sm font-bold text-[#9AA7B0]'>Задачи к этому заданию скоро появятся</p>
                   )}

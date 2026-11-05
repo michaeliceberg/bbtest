@@ -74,24 +74,28 @@ export function TrainerGoDialog({ num, keys, open, initialId, onClose }: {
     )
 }
 
-export function TrainerKeyChips({ num, keys }: { num: number; keys: TrainerKeyChip[] }) {
+// accent — цвет раздела задачника (getUnitButtonColor): на экране раздела карточка нейтральная, а значок и кнопки
+// «Пройти» — в цвет кружков уроков этого раздела, без кислотно-зелёного.
+export function TrainerKeyChips({ num, keys, accent }: { num: number; keys: TrainerKeyChip[]; accent?: { button: string; bottom: string } }) {
     const [ask, setAsk] = useState<number | null>(null)
     if (!keys.length) return null
     const done = keys.filter(trainerKeyDone).length
     const left = keys.length - done
     const all = left === 0
+    const btn = accent ? { top: accent.button, bottom: accent.button, edge: accent.bottom, text: '#FFFFFF' } : TRAINER_GREEN
+    const doneColor = accent ? '#C9D3D9' : '#8BDB4C'
 
     return (
         <div className="-mt-1 mb-5 overflow-hidden rounded-2xl border-2"
-            style={{ borderColor: all ? '#3A4A2E' : 'rgba(139,219,76,0.45)', background: all ? '#161F23' : 'linear-gradient(180deg, rgba(139,219,76,0.10), rgba(22,31,35,1) 60%)' }}>
+            style={accent ? { borderColor: '#2A363C', background: '#151F23' } : { borderColor: all ? '#3A4A2E' : 'rgba(139,219,76,0.45)', background: all ? '#161F23' : 'linear-gradient(180deg, rgba(139,219,76,0.10), rgba(22,31,35,1) 60%)' }}>
             <div className="flex items-center gap-2.5 px-3 pb-2 pt-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                    style={{ background: `linear-gradient(180deg, ${TRAINER_GREEN.top}, ${TRAINER_GREEN.bottom})`, boxShadow: `0 3px 0 ${TRAINER_GREEN.edge}` }}>
-                    <Dumbbell className="h-5 w-5" style={{ color: TRAINER_GREEN.text }} strokeWidth={2.6} />
+                    style={{ background: `linear-gradient(180deg, ${btn.top}, ${btn.bottom})`, boxShadow: `0 3px 0 ${btn.edge}` }}>
+                    <Dumbbell className="h-5 w-5" style={{ color: btn.text }} strokeWidth={2.6} />
                 </span>
                 <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-black leading-tight text-[#F2F7FB]">Тренажёры к заданию №{num}</span>
-                    <span className="block text-xs font-bold leading-tight" style={{ color: all ? '#8BDB4C' : '#F2C35B' }}>
+                    <span className="block text-xs font-bold leading-tight" style={{ color: accent ? '#9AA7B0' : all ? '#8BDB4C' : '#F2C35B' }}>
                         {all
                             ? 'Все пройдены — задачи пойдут легче 🔥'
                             : `Внимание: ещё ${left} ${declensionRu(left, 'тренажёр', 'тренажёра', 'тренажёров')} не ${left === 1 ? 'пройден' : 'пройдены'} — начни с них`}
@@ -109,10 +113,10 @@ export function TrainerKeyChips({ num, keys }: { num: number; keys: TrainerKeyCh
                             <TinyMedal percent={k.percent} size={26} boost />
                             <span className={`min-w-0 flex-1 text-sm font-extrabold leading-tight ${ok ? 'text-[#C9D4DA]' : 'text-[#F2F7FB]'}`}>{k.title}</span>
                             {ok ? (
-                                <span className="flex shrink-0 items-center gap-1 text-[11px] font-black text-[#8BDB4C]"><Check className="h-3.5 w-3.5" strokeWidth={3} />{MEDAL_WORD[medalFor(k.percent)]}</span>
+                                <span className="flex shrink-0 items-center gap-1 text-[11px] font-black" style={{ color: doneColor }}><Check className="h-3.5 w-3.5" strokeWidth={3} />{MEDAL_WORD[medalFor(k.percent)]}</span>
                             ) : (
                                 <span className="flex shrink-0 items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-black uppercase"
-                                    style={{ background: `linear-gradient(180deg, ${TRAINER_GREEN.top}, ${TRAINER_GREEN.bottom})`, color: TRAINER_GREEN.text }}>
+                                    style={{ background: `linear-gradient(180deg, ${btn.top}, ${btn.bottom})`, color: btn.text, boxShadow: accent ? `0 2px 0 ${btn.edge}` : undefined }}>
                                     Пройти<ChevronRight className="h-3.5 w-3.5" strokeWidth={3} />
                                 </span>
                             )}

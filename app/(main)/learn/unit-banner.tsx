@@ -36,7 +36,7 @@ export const UnitBanner = ({
     // Заблокированный юнит
     if (!isUnlocked && !isCompleted) {
         return (
-            <div className="relative mb-6 md:mb-8">
+            <div data-unit-banner className="relative mb-6 md:mb-8">
                 <div className="bg-[#232F34] rounded-2xl p-4 md:p-6 border-2 border-dashed border-[#3A464E]">
                     <div className="flex items-center gap-3 md:gap-5">
                         <div className="bg-[#2E3A40] rounded-2xl p-3 md:p-4 flex-shrink-0">
@@ -67,7 +67,7 @@ export const UnitBanner = ({
 
     // Открытый юнит
     return (
-        <div
+        <div data-unit-banner
             className="relative mb-6 md:mb-8 overflow-hidden rounded-2xl p-4 md:p-6 text-white"
             style={{
                 background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,

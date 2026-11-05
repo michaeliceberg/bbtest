@@ -51,17 +51,14 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
 
 // Предмет ангара на светлом круге: картинки рисованы для светлого пола ангара, и на тёмной карточке тёмные вещи
 // (провода, бочка) почти не видны. Круг — пыльно-бежевый, как пол ангара, с объёмной нижней гранью; под предметом
-// мягкая тень, сам предмет чуть выходит за круг сверху.
+// своей тени нет — у картинок ангара тень уже нарисована.
 function ItemBadge({ pic }: { pic: string }) {
     return (
         <span className="relative h-[72px] w-[72px] flex-shrink-0">
             <span className="absolute inset-x-0 bottom-0 top-[6px] rounded-full border-b-4"
                 style={{ background: 'radial-gradient(circle at 50% 30%, #EFE4C8, #C9B98F 70%, #A8976C)', borderBottomColor: '#7A6A45', boxShadow: '0 6px 14px -6px #000c' }} />
-            <span className="absolute bottom-[10px] left-1/2 h-[10px] w-[60%] -translate-x-1/2 rounded-[50%]"
-                style={{ background: 'radial-gradient(closest-side, rgba(40,28,10,.45), rgba(40,28,10,0))' }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={pic} alt="" aria-hidden draggable={false} className="relative h-full w-full object-contain p-1.5"
-                style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.35))' }} />
+            <img src={pic} alt="" aria-hidden draggable={false} className="relative h-full w-full object-contain p-1.5" />
         </span>
     )
 }
