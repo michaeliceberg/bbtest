@@ -23,6 +23,8 @@ import {
 import { redirect } from 'next/navigation';
 import { Header } from '../trainer/header';
 import { getSetBarData } from '@/lib/setBar';
+import { getBallometerData } from '@/lib/ballometer';
+import { BallometerCard, BallometerChip, BallometerHello } from '@/components/ballometer';
 import { LearnUnitNav } from '@/components/learn-unit-nav';
 import { Unit } from './unit';
 import { format } from 'date-fns';
@@ -131,6 +133,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   await recalculateDailyStats(userId, activeCourseId);
   // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
   const setBar = await getSetBarData(userId, activeCourse.title);
+  // Баллометр — там же, где сет; у остальных курсов пока старая карточка Promo
+  const ballometer = setBar ? await getBallometerData(userId).catch(() => null) : null;
     // «Линейка ЕГЭ» у правого края — там же, где сет (только «ЕГЭ Математика»)
     const egeRuler = setBar && userId ? await getEgeRulerData(userId, { hasPro: hasProFor(userProgress), setTaskNum: setBar.taskNum }).catch(() => null) : null;
 
@@ -442,10 +446,12 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
             completedHomework={completedHomework}
           />
 
-          <Promo 
-            YourDaysLate={daysLate} 
-            formattedDate={formattedFinishDate}
-          />
+          {ballometer ? <BallometerCard d={ballometer} /> : (
+            <Promo
+              YourDaysLate={daysLate}
+              formattedDate={formattedFinishDate}
+            />
+          )}
           
           {/* «Домашнее задание» — только если ДЗ на сегодня выдано */}
           {hwAssigned > 0 && (
@@ -485,7 +491,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                 <>
                   <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, sourcream: userProgress.catSourcream, fish: userProgress.catFish, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
                     cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
-                    cornerRight={<StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />} />
+                    cornerRight={<div className='flex flex-col items-start gap-1.5'><StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />{ballometer && <BallometerChip d={ballometer} className='h-8 bg-[#151F23]/90 shadow-lg' />}</div>} />
+                  {ballometer && <BallometerHello d={ballometer} />}
                   {levelCase && (
                     <div className='mt-4'>
                       <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />

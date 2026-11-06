@@ -1,43 +1,63 @@
-// lib/egeMeter.ts — оценка скорости подготовки к ЕГЭ для прибора (пока только проба: /test-ege-meter).
-// Идея: сколько первичных баллов в неделю ученик набирает сейчас и сколько нужно, чтобы взять цель
-// за месяц до экзамена. Оценка = 5 × (скорость / нужная скорость), не больше 5.
+// lib/egeMeter.ts — математика Баллометра (без обращения к базе, работает и в браузере).
+// Сравниваем, сколько первичных баллов в неделю ученик набирает, со скоростью, нужной, чтобы взять цель к своей дате.
+// Оценка = 5 × (скорость / нужная скорость), не больше 5. Данные ученика — lib/ballometer.ts.
 
 import { testToPrimary } from '@/lib/egeScale'
 
 export const EGE_EXAM_DATE = new Date(2027, 5, 1) // точная дата экзамена 2027 ещё не объявлена
-export const EGE_BUFFER_DAYS = 30 // запас: цель взята за месяц до экзамена
+export const EGE_DEADLINE = new Date(2027, 4, 1) // запас: цель взята за месяц до экзамена
 export const EGE_DEFAULT_TARGET = 90 // пока ученик не выбрал вуз
 export const METER_GREEN_FROM = 4.3 // примерно столько нужно, чтобы успеть к самому экзамену без запаса
 export const METER_YELLOW_FROM = 3
+export const MAX_SETS_WEEK = 21 // больше трёх сетов в день не предлагаем
+
+const WEEK_MS = 7 * 86400000
+// Без этого ровно 3,001 сета округлялось бы до 4: время с момента калибровки немного ушло.
+const SETS_TOLERANCE = 0.05
 
 export type MeterZone = 'green' | 'yellow' | 'red' | 'new'
 
 export type MeterResult = {
     zone: MeterZone
     score: number | null // 0…5, null — данных пока мало
+    targetTest: number
     targetPrimary: number
     needPrimary: number
     requiredPerWeek: number
     readyDate: Date | null // когда возьмёт цель с такой скоростью
     addSetsPerWeek: number // сколько сетов в неделю прибавить, чтобы идти по плану
+    goalDate: Date
 }
 
-const WEEK_MS = 7 * 86400000
+export const dateForSets = (needPrimary: number, setsPerWeek: number, setGain: number, now: Date) =>
+    new Date(now.getTime() + (needPrimary / Math.max(0.01, setsPerWeek * setGain)) * WEEK_MS)
 
-export function computeMeter(p: { primary: number; perWeek: number | null; targetTest?: number; setGain?: number; now?: Date }): MeterResult {
+// Минимальное целое число сетов в неделю, чтобы успеть к дате.
+export const setsForDate = (needPrimary: number, date: Date, setGain: number, now: Date) => {
+    const weeks = Math.max(1 / 7, (date.getTime() - now.getTime()) / WEEK_MS)
+    return Math.max(1, Math.min(MAX_SETS_WEEK, Math.ceil(needPrimary / weeks / setGain - SETS_TOLERANCE)))
+}
+
+export function computeMeter(p: { primary: number; perWeek: number | null; targetTest?: number; setGain?: number; goalDate?: Date | null; now?: Date }): MeterResult {
     const now = p.now ?? new Date()
-    const targetPrimary = testToPrimary(p.targetTest ?? EGE_DEFAULT_TARGET)
+    const targetTest = p.targetTest ?? EGE_DEFAULT_TARGET
+    const targetPrimary = testToPrimary(targetTest)
     const needPrimary = Math.max(0, targetPrimary - p.primary)
-    const deadline = new Date(EGE_EXAM_DATE.getTime() - EGE_BUFFER_DAYS * 86400000)
-    const weeksLeft = Math.max(1 / 7, (deadline.getTime() - now.getTime()) / WEEK_MS)
+    const goalDate = p.goalDate ?? EGE_DEADLINE
+    const weeksLeft = Math.max(1 / 7, (goalDate.getTime() - now.getTime()) / WEEK_MS)
     const requiredPerWeek = needPrimary / weeksLeft
+    const base = { targetTest, targetPrimary, needPrimary, requiredPerWeek, goalDate }
 
-    if (needPrimary === 0) return { zone: 'green', score: 5, targetPrimary, needPrimary, requiredPerWeek: 0, readyDate: now, addSetsPerWeek: 0 }
-    if (p.perWeek === null) return { zone: 'new', score: null, targetPrimary, needPrimary, requiredPerWeek, readyDate: null, addSetsPerWeek: 0 }
+    if (needPrimary === 0) return { ...base, zone: 'green', score: 5, readyDate: now, addSetsPerWeek: 0 }
+    if (p.perWeek === null) return { ...base, zone: 'new', score: null, readyDate: null, addSetsPerWeek: 0 }
 
     const score = Math.round(Math.min(5, (5 * p.perWeek) / requiredPerWeek) * 10) / 10
     const zone: MeterZone = score >= METER_GREEN_FROM ? 'green' : score >= METER_YELLOW_FROM ? 'yellow' : 'red'
     const readyDate = p.perWeek > 0 ? new Date(now.getTime() + (needPrimary / p.perWeek) * WEEK_MS) : null
-    const addSetsPerWeek = Math.max(0, Math.ceil((requiredPerWeek - p.perWeek) / (p.setGain ?? 0.2)))
-    return { zone, score, targetPrimary, needPrimary, requiredPerWeek, readyDate, addSetsPerWeek }
+    const addSetsPerWeek = Math.max(0, Math.ceil((requiredPerWeek - p.perWeek) / (p.setGain ?? 0.2) - SETS_TOLERANCE))
+    return { ...base, zone, score, readyDate, addSetsPerWeek }
 }
+
+export const formatScore = (s: number | null) => (s === null ? '–' : s.toFixed(1).replace('.', ','))
+export const dateRu = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(' г.', ' года')
+export const dateShort = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })

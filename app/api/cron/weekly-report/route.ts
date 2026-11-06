@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getWeeklySummary, parentReportText } from '@/lib/weeklyReport'
+import { ballometerReportLine } from '@/lib/ballometer'
 import { parentShareText } from '@/lib/parentShare'
 import { sendMessageToTelegram } from '@/utils/telegram'
 
@@ -35,10 +36,11 @@ export async function GET(req: Request) {
         const w = await getWeeklySummary(userId, { withForecast: true })
         const name = String(u.user_name ?? 'ученика')
         const to: string[] = []
+        const meterLine = parents.length ? await ballometerReportLine(userId).catch(() => null) : null
         const share = parents.length && !dry ? await parentShareText(userId).catch(() => null) : null
         for (const p of parents) {
             to.push(`parent:${p}`)
-            if (!dry) await sendMessageToTelegram(parentReportText(name, w), p).catch(() => {})
+            if (!dry) await sendMessageToTelegram(parentReportText(name, w, meterLine), p).catch(() => {})
             // Второе сообщение — задача физтехов + ссылка на урок, удобно переслать (lib/parentShare.ts)
             if (share) await sendMessageToTelegram(share, p).catch(() => {})
         }

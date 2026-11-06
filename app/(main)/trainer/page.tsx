@@ -1,6 +1,8 @@
 import { getEgeRulerData } from '@/lib/egeRuler'
 import { EgeRuler } from '@/components/ege-ruler'
 import { getSetBarData } from '@/lib/setBar';
+import { getBallometerData } from '@/lib/ballometer';
+import { BallometerChip, BallometerHello } from '@/components/ballometer';
 // app/(main)/trainer/page.tsx
 
 import { hasProFor } from '@/lib/pro'
@@ -214,6 +216,8 @@ const TLearnPage = async () => {
     // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
     const setBar = userId ? await getSetBarData(userId, activeTCourse?.title) : null;
     // «Линейка ЕГЭ» у правого края — там же, где сет (только «ЕГЭ Математика»)
+    // Баллометр — там же, где сет
+    const ballometer = setBar && userId ? await getBallometerData(userId).catch(() => null) : null;
     const egeRuler = setBar && userId ? await getEgeRulerData(userId, { hasPro: hasProFor(userProgress), setTaskNum: setBar.taskNum }).catch(() => null) : null;
 
     const currentPoints = userProgress.points;
@@ -289,6 +293,7 @@ const TLearnPage = async () => {
                 {cashback.length > 0 && <ReferralCashbackScreen items={cashback} theme={uiTheme} />}
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} setBar={setBar} />
                 {egeRuler && <EgeRuler data={egeRuler} />}
+                {ballometer && <BallometerHello d={ballometer} />}
 
                 <div className='mt-2 lg:mt-5'>
                     {/* «Штурм» (lib/storm.ts): идут горячие 10 минут — отсчёт и что дадут */}
@@ -301,11 +306,13 @@ const TLearnPage = async () => {
                                 streak={currentStreakForRisk}
                                 streakToday={hasExtendedStreakToday}
                                 streakFreezes={userProgress.streakFreezes}
+                                extraChip={ballometer ? <BallometerChip d={ballometer} className="h-11 shrink-0" /> : undefined}
                                 pizzaPanel={<PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />}
                             />
                         </>
                     )}
                     {!simple && (<>
+                    {ballometer && <div className='mb-3 flex justify-end'><BallometerChip d={ballometer} className="h-11" /></div>}
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
                     <div className='mb-4'>

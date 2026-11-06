@@ -14,6 +14,7 @@ type Props = {
     xp: number
     pizzaSlices: number
     pizzaPanel: ReactNode
+    extraChip?: ReactNode // Баллометр
     // Серия дней по курсу (lib/streak.ts): огонёк серый, пока сегодня ещё не занимался.
     streak?: number
     streakToday?: boolean
@@ -23,7 +24,7 @@ type Props = {
 const RING_R = 17
 const RING_C = 2 * Math.PI * RING_R
 
-export const TrainerTopBar = ({ xp, pizzaSlices, pizzaPanel, streak = 0, streakToday = false, streakFreezes = 0 }: Props) => {
+export const TrainerTopBar = ({ xp, pizzaSlices, pizzaPanel, extraChip, streak = 0, streakToday = false, streakFreezes = 0 }: Props) => {
     const info = getLevelInfo(xp)
     const [open, setOpen] = useState<null | 'pizza' | 'streak'>(null)
     const toggle = (k: 'pizza' | 'streak') => setOpen((cur) => (cur === k ? null : k))
@@ -49,6 +50,7 @@ export const TrainerTopBar = ({ xp, pizzaSlices, pizzaPanel, streak = 0, streakT
                 <LevelRing level={info.level} percent={info.progressPercent} />
                 {chip('streak', <><span style={streakToday ? undefined : { filter: 'grayscale(1)', opacity: 0.55 }}>🔥</span> {streak}</>, streakToday && streak > 0, '#FFB347')}
                 {chip('pizza', <>🍕 {pizzaSlices}/8</>, pizzaSlices >= 8)}
+                {extraChip}
             </div>
 
             {open && (

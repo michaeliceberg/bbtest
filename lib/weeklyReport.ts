@@ -63,7 +63,7 @@ const plural = (n: number, a: string, b: string, c: string) => {
 }
 
 // Текст отчёта родителю (Telegram, обычный Markdown). name — имя ученика.
-export function parentReportText(name: string, w: WeeklySummary): string {
+export function parentReportText(name: string, w: WeeklySummary, ballometerLine?: string | null): string {
     const lines = [`📊 *Неделя ученика ${name} в ggege*`, '']
     lines.push(`📚 Уроков тренажёра: *${w.lessons}*`)
     lines.push(`✅ Верно решённых задач: *${w.tasks}*`)
@@ -74,7 +74,8 @@ export function parentReportText(name: string, w: WeeklySummary): string {
             lines.push(`🎯 Прогноз ЕГЭ: *${w.testBefore} → ${w.testNow}* (${d > 0 ? '+' : ''}${d})`)
         } else lines.push(`🎯 Прогноз ЕГЭ: *≈${w.testNow}* баллов`)
     }
+    if (ballometerLine) lines.push(ballometerLine)
     if (w.lessons === 0 && w.tasks === 0) lines.push('', 'На этой неделе занятий не было — самое время вернуться 💪')
-    else lines.push('', 'Так держать! 💪')
+    else lines.push('', ballometerLine && !ballometerLine.startsWith('🟢') ? 'Занимается, но темп стоит прибавить 💪' : 'Так держать! 💪')
     return lines.join('\n')
 }

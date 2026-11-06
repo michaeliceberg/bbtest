@@ -69,6 +69,9 @@ export const userProgress = pgTable('user_progress', {
 	userName: text('user_name').notNull().default('User'),
 	// Цель на ЕГЭ (тестовый балл), выбранная на экране «Мой путь»; null — ещё не выбрана.
 	egeTarget: integer('ege_target'),
+	// Баллометр: откалиброванная дата цели и программа (сетов в неделю)
+	ballometerGoalDate: timestamp('ballometer_goal_date'),
+	ballometerSetsWeek: integer('ballometer_sets_week'),
 	// Вуз-цель (id из lib/vuzList.ts) — табличка на вершине «Башни ЕГЭ».
 	targetVuz: text('target_vuz'),
 	// Котик в ангаре (components/hangar-cat.tsx): 0 — нет, 1 — мяукает у входа (после первой задачи задачника), 2 — живёт на картонке.
