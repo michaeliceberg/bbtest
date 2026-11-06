@@ -48,9 +48,9 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
 // Предмет ангара на светлом круге: картинки рисованы для светлого пола ангара, и на тёмной карточке тёмные вещи
 // (провода, бочка) почти не видны. Круг — пыльно-бежевый, как пол ангара, с объёмной нижней гранью; под предметом
 // своей тени нет — у картинок ангара тень уже нарисована.
-export function ItemBadge({ pic }: { pic: string }) {
+export function ItemBadge({ pic, size = 72 }: { pic: string; size?: number }) {
     return (
-        <span className="relative h-[72px] w-[72px] flex-shrink-0">
+        <span className="relative flex-shrink-0" style={{ width: size, height: size }}>
             <span className="absolute inset-x-0 bottom-0 top-[6px] rounded-full border-b-4"
                 style={{ background: 'radial-gradient(circle at 50% 30%, #EFE4C8, #C9B98F 70%, #A8976C)', borderBottomColor: '#7A6A45', boxShadow: '0 6px 14px -6px #000c' }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}

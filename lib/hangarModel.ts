@@ -120,6 +120,15 @@ export const placeStyle = (p: Place): CSSProperties => ({
     transformOrigin: '50% 100%',
 })
 
+type TarpKind = 'square' | 'cube' | 'tall' | 'wide-rope' | 'wide-straps' | 'hang-tall' | 'hang-square'
+// id картинки предмета → форма брезента
+export const TARP_OF_ITEM: Record<number, TarpKind> = {
+    1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
+    8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
+}
+/** Брезент задания: пока он не снят, предмет нигде не показываем. */
+export const hangarTarpPic = (task: number): string => `/hangar/tarp-${TARP_OF_ITEM[itemOf(task)] ?? 'square'}.webp`
+
 /** Картинка предмета задания для списка разделов задачника (раздел 7 — компьютер и т.п.).
  *  Вентилятор — лопасти, задания второй части — ракета (сломано — каркас, починено — целиком). */
 export const hangarItemPic = (task: number, fixed: boolean): string => {

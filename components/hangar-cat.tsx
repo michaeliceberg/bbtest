@@ -391,6 +391,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // Коробка Шрёдингера: idle — открыта и пуста; closed — котик внутри, закрыта («спит или нет?»);
     // peek — открыли, котик выглядывает; sleep — открыли, котик спит внутри (Zzz), потом выглядывает.
     const [sbox, setSbox] = useState<'idle' | 'closed' | 'peek' | 'sleep'>('idle')
+    const sboxStateRef = useRef(sbox) // котик в коробке: домик пуст, мурлыкать там некому
+    sboxStateRef.current = sbox
     const [sboxSay, setSboxSay] = useState<string | null>(null)
     const sboxRef = useRef<Place | null>(null)
     const sboxResume = useRef<(() => void) | null>(null) // продолжение прогулки после открытия: выпрыгнуть и домой
@@ -490,7 +492,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         if (phase !== 'home' || bare || night) return
         // иногда сам мяукает, иногда жмурится от удовольствия («котику хорошо»)
         // на ходу не мяукает (облачко не успевало бы за котиком)
-        const t = setInterval(() => { if (strollingRef.current) return; const r = Math.random(); if (r < 0.3) doReact('meow'); else if (r < 0.6) doReact('happy') }, 12000)
+        const t = setInterval(() => { if (strollingRef.current || sboxStateRef.current !== 'idle') return; const r = Math.random(); if (r < 0.3) doReact('meow'); else if (r < 0.6) doReact('happy') }, 12000)
         return () => clearInterval(t)
     }, [phase, bare, night])
     useEffect(() => {
@@ -578,7 +580,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 leaveBox(front)
                 walk(boxFloor, front)
                 jump(front, top, front.x > top.x, {}, { ky: sb.y })
-                at(() => { setStroll(null); setSbox('closed'); setSboxSay('Котик спит или нет? 🤔') })
+                at(() => { setStroll(null); setReact(null); setSbox('closed'); setSboxSay('Котик спит или нет? 🤔') })
                 const opened = t
                 // продолжение: котик выглядывает, выпрыгивает и идёт домой
                 sboxResume.current = () => {

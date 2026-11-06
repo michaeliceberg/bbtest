@@ -45,7 +45,7 @@ import { LearnSectionHeader } from '@/components/learn-section-header';
 import { getHangarItems } from '@/lib/hangar';
 import { getEgeMap } from '@/lib/egeMap';
 import { getHangarLayout } from '@/actions/hangar-layout';
-import { hangarItemPic } from '@/lib/hangarModel';
+import { hangarItemPic, hangarTarpPic } from '@/lib/hangarModel';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
@@ -532,7 +532,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const locked = !!item.locked && !isAdmin
               return (
                 <>
-                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} accent={getUnitButtonColor(Math.max(idx, 0)).button} />
+                  <LearnSectionHeader num={item.num} title={item.title} pic={item.locked ? hangarTarpPic(item.num) : hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} accent={getUnitButtonColor(Math.max(idx, 0)).button} />
                   {/* Тренажёры — первые кружки дорожки; уроки ниже заперты, пока ни одна тема не начата */}
                   {trainerKeys[item.num] && <TrainerPathStops num={item.num} keys={trainerKeys[item.num]} accent={getUnitButtonColor(Math.max(idx, 0))} />}
                   {unit ? (

@@ -17,7 +17,8 @@ import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, hangarTarpPic, TARP_OF_ITEM, type LayoutOverrides } from '@/lib/hangarModel'
+import { ItemBadge } from '@/components/learn-section-header'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
@@ -87,20 +88,17 @@ const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 2
 // Значок задания — жёлтая плашка с номером (как номер задания на карточке юнита /trainer), без ключика и подложки.
 // Раздел решён — плашка подпрыгивает. Наводишь или жмёшь — предмет, который починится, подсвечивается;
 // по нажатию — окошко «Перейти в задачник».
-const LABEL_EDGE = 150 // в пикселях картинки 1024×1024
 function KeyBadge({ x, y, n, ready, active, locked = false, label, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; label?: string; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
-    // плашка с подписью широкая: у края картинки прижимаем её внутрь, чтобы не обрезалась
-    const anchor = label && x < LABEL_EDGE ? '' : label && x > 1024 - LABEL_EDGE ? '-translate-x-full' : '-translate-x-1/2'
     return (
-        <span className={`absolute -translate-y-1/2 ${anchor}`} style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+        <span className="absolute -translate-x-1/2 -translate-y-[12px]" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
-                className={`relative flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
+                className={`relative flex min-h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] flex-col items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${label ? 'py-1' : ''} ${ready ? 'animate-bounce' : ''}`}
                 style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
                     boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
                 {n}
-                {label && <span className="ml-1 whitespace-nowrap border-l border-[#B8862E] pl-1">{label}</span>}
+                {label?.split(' ').map((w) => <span key={w} className="mt-0.5 block text-[clamp(8px,1.8cqw,10px)] leading-[1.05]">{w}</span>)}
             </button>
         </span>
     )
@@ -628,8 +626,8 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                     style={scrollMode ? { zIndex: 1300 } : panelX !== null ? { left: panelX } : undefined}>
                 <div className={`${scrollMode ? '' : 'mt-3'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full`} style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={hangarItemPic(panelItem.num, panelItem.state === 'fixed')} alt="" aria-hidden draggable={false} className="h-9 w-9 shrink-0 object-contain" />
+                        {/* под брезентом предмет не показываем; круг — чтобы тёмные предметы читались на тёмной плашке */}
+                        <ItemBadge size={48} pic={panelItem.locked ? hangarTarpPic(panelItem.num) : hangarItemPic(panelItem.num, panelItem.state === 'fixed')} />
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
@@ -773,12 +771,6 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
 // исходники docs/hangar/leonardo/tarp-*), у каждого предмета свой по форме (TARP_OF_ITEM), растянут по размеру предмета.
 // Красная трафаретная звезда запечена в картинки (docs/hangar/tools/bake_tarp_stars.py, без звезды — docs/hangar/tarp-nostar/):
 // раньше рисовалась SVG-фильтром feTurbulence, и на iPhone приближение к предмету подвешивало страницу. Замок — только у номера.
-type TarpKind = 'square' | 'cube' | 'tall' | 'wide-rope' | 'wide-straps' | 'hang-tall' | 'hang-square'
-// id картинки предмета → форма брезента
-const TARP_OF_ITEM: Record<number, TarpKind> = {
-    1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
-    8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
-}
 function Tarp({ item, style, shadow, flying = false, onClick, onHover }: { item: number; style: React.CSSProperties; shadow?: string; flying?: boolean; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     const kind = TARP_OF_ITEM[item] ?? 'square'
