@@ -16,7 +16,7 @@ import { buyCatFood, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
 import { CAT_FOOD, CAT_FOODS, type CatFood, type CatFoodStock } from '@/lib/catFood'
-import { playJustClick, playSound, CASE_PRIZE_SOUND, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
 // снежинки: место по x, размер, длительность и задержка (фиксированные — без рассинхрона сервера и браузера)
@@ -55,26 +55,33 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
     }
     // Лампочка изредка барахлит, как старая лампа: каждый раз по-разному — короткая дрожь из 2–4 вспышек,
     // одно долгое затухание (~0,35 с) или «почти погасла» (тускнеет не до конца). dark — насколько темно, 0…1.
+    // Каждое мигание трещит электричеством: сколько раз мигнула — столько и щелчков.
     const [dark, setDark] = useState(0)
     useEffect(() => {
         let alive = true
         const timers: ReturnType<typeof setTimeout>[] = []
         const at = (ms: number, v: number) => timers.push(setTimeout(() => alive && setDark(v), ms))
+        const flick = (ms: number, v: number) => timers.push(setTimeout(() => {
+            if (!alive) return
+            setDark(v)
+            if (!document.hidden) playSound(FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME)
+        }, ms))
+        preloadSound(FRIDGE_SPARK_SOUND)
         const loop = () => {
             let t = 5000 + Math.random() * 8000
             const kind = Math.random()
             if (kind < 0.35) {
                 // долгое затухание: гаснет, держится ~треть секунды, моргнув, загорается
-                at(t, 1); t += 280 + Math.random() * 120
-                at(t, 0.35); t += 60; at(t, 1); t += 70
+                flick(t, 1); t += 280 + Math.random() * 120
+                at(t, 0.35); t += 60; flick(t, 1); t += 70
             } else if (kind < 0.6) {
                 // почти погасла и не сразу ожила
-                at(t, 0.6); t += 150; at(t, 0.85); t += 120
+                flick(t, 0.6); t += 150; at(t, 0.85); t += 120
             } else {
                 // дрожь: 2–4 вспышки разной длины и глубины
                 const n = 2 + Math.floor(Math.random() * 3)
                 for (let i = 0; i < n; i++) {
-                    at(t, 0.7 + Math.random() * 0.3); t += 40 + Math.random() * 110
+                    flick(t, 0.7 + Math.random() * 0.3); t += 40 + Math.random() * 110
                     at(t, Math.random() < 0.3 ? 0.25 : 0); t += 40 + Math.random() * 90
                 }
             }
@@ -104,7 +111,8 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
         const shown = Math.max(1, Math.min(n, 3))
         const pile = kind === 'sausage' || kind === 'fish'
         // ширина одного пакета в % колонки: чем больше пакетов, тем чуть меньше, чтобы ряд влезал
-        const size = pile ? w : w * [1, 0.8, 0.68][shown - 1]
+        // (сметанка и так низкая, чтобы стоять под полкой: ряд из трёх банок влезает без уменьшения)
+        const size = pile || kind === 'sourcream' ? w : w * [1, 0.8, 0.68][shown - 1]
         return (
             <div className="relative flex h-full items-end justify-center">
                 <motion.div key={`${kind}-${n}`} className="relative flex h-full w-full items-end justify-center"
@@ -115,7 +123,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
                             {Array.from({ length: shown }, (_, i) => (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img key={i} src={f.src} alt={i === 0 ? f.title : ''} draggable={false} className="select-none"
-                                    style={{ width: '100%', position: i === 0 ? 'relative' : 'absolute', left: i === 0 ? undefined : `${i * 6}%`, bottom: i === 0 ? undefined : `${i * 22}%`,
+                                    style={{ width: '100%', position: i === 0 ? 'relative' : 'absolute', left: i === 0 ? undefined : `${i * 6}%`, bottom: i === 0 ? undefined : `${i * (kind === 'fish' ? 12 : 22)}%`,
                                         zIndex: shown - i, filter: n > 0 ? (i > 0 ? `brightness(${1 - i * 0.08})` : undefined) : 'brightness(0) opacity(0.22)' }} />
                             ))}
                         </div>
@@ -143,7 +151,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
         <div className="flex flex-col items-center gap-0.5">
             <span className="rounded bg-[#FFF6E4]/90 px-1.5 text-[11px] font-black leading-tight text-[#3A2A1E]">{CAT_FOOD[kind].title}</span>
             <button type="button" onClick={() => void buy(kind)} disabled={busy !== null} aria-label={`Купить: ${CAT_FOOD[kind].title}`}
-                className="flex items-center gap-0.5 rounded-lg border-b-4 border-[#B8862E] bg-[#FFE58A] py-0.5 pl-2 pr-0.5 text-sm font-black text-[#3A2A08] shadow-md active:border-b-0 disabled:opacity-70">
+                className="flex items-center gap-0.5 rounded-lg border-b-4 border-[#CDBB98] bg-[#FFF6E4] py-0.5 pl-2 pr-0.5 text-sm font-black text-[#3A2A1E] shadow-md active:border-b-0 disabled:opacity-70">
                 {CAT_FOOD[kind].price}
                 <Lottie animationData={LottieCoins} loop autoplay className="-my-2 h-7 w-7 -translate-y-[14%]" />
             </button>
@@ -155,7 +163,8 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
     // и сосульки уже нарисованы; исходник docs/hangar/leonardo/cat-fridge-inside-2.webp). Координаты — % этой картинки:
     // камера x 14.4–85.1%, y 13.5–88%; полки — верх 34.4%, 49.8%, 64%; низ нижней 71%; лампочка (50%, 16%).
     // Продукты — на верхней и нижней полке, подписи и ценники — на краю полок. Лампочка иногда мигает — всё внутри на миг тускнеет.
-    // Пасхалка «SG was here» нацарапана справа под нижней полкой.
+    // Продукты нижнего ряда стоят строго под средней полкой (её край кончается на 55,5%), поэтому они мельче и не перекрывают её.
+    // Пасхалка «SG was here» нацарапана на дне холодильника, справа.
     return (
         <div className="fixed inset-0 z-[3000] flex justify-center overflow-y-auto bg-black/65 p-4" onClick={onClose}>
             <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
@@ -170,7 +179,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
                             background: 'radial-gradient(closest-side, rgba(255,246,200,0.75), rgba(255,240,190,0.25) 55%, transparent)' }} />
                     {/* пасхалка: нажал на нацарапанную надпись — ачивка «Сол Гудман был здесь!» (в зале ачивок — кусочек пиццы) */}
                     <button type="button" aria-label="SG was here" onClick={() => { playJustClick(); setSgTapped(true); if (!offline) reportAchievement('fridge_sg') }}
-                        className="absolute" style={{ left: '54%', top: '77%', width: '25%', height: '6%' }}>
+                        className="absolute" style={{ left: '57%', top: '80.5%', width: '24%', height: '6%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/hangar/life/cat-fridge-sg.webp" alt="" draggable={false} className="pointer-events-none h-full w-full select-none object-contain"
                             style={{ rotate: '-4deg', opacity: sgTapped ? 0.9 : 0.7, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
@@ -185,11 +194,11 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
                         {tag('sausage')}
                     </div>
                     {/* нижняя полка: сметанка и рыбка */}
-                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '50.6%', height: '13.6%' }}>
-                        {item('sourcream', 46)}
-                        {item('fish', 62)}
+                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '55.8%', height: '10.7%' }}>
+                        {item('sourcream', 37)}
+                        {item('fish', 57)}
                     </div>
-                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '64.8%' }}>
+                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '67%' }}>
                         {tag('sourcream')}
                         {tag('fish')}
                     </div>
