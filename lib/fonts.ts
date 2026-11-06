@@ -5,6 +5,9 @@
 // приложения (app/layout.tsx) грузит Nunito только с subsets: ['latin'] —
 // русский текст там рисуется системным фолбэком, поэтому для надписи
 // кириллицей нужен отдельный экземпляр. Не подключается глобально.
-import { Nunito } from 'next/font/google'
+import { Nunito, Russo_One } from 'next/font/google'
 
 export const nunitoCyrillicBlack = Nunito({ subsets: ['cyrillic', 'latin'], weight: ['900'], display: 'swap' })
+
+// Армейская надпись на «Линейке ЕГЭ»: рубленый шрифт с кириллицей. Подгружается только там, где используется.
+export const stencilFont = Russo_One({ subsets: ['cyrillic', 'latin'], weight: '400', display: 'swap', preload: false })

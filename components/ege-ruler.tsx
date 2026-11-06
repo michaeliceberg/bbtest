@@ -16,6 +16,7 @@ import { Lock, Plus, Repeat, Swords, X } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import type { RulerData, RulerTask } from '@/lib/egeRuler'
 import { declensionRu } from '@/usefulFunctions'
+import { stencilFont } from '@/lib/fonts'
 import { PetBust } from './trainer-pet'
 
 type Mode = 'learn' | 'trainer' | 'rambo'
@@ -38,6 +39,10 @@ const SKIN: Record<Mode, { body: string; edge: string; light: string; fill: stri
 const TICK = '#D9D2B0'
 const MEDAL = { bronze: '#C98A4B', silver: '#C9D4DA', gold: '#F2C35B' }
 const MODE_KEY = 'egeRulerMode'
+
+// Царапины на армейской надписи: дырки в маске (evenodd), сквозь них виден фон линейки. Маска статичная — процессор не грузит.
+const SCRATCHES = "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 26' preserveAspectRatio='none'%3E%3Cpath fill-rule='evenodd' d='M0 0H200V26H0Z M8 5L46 13L46 14.2L8 6.2Z M38 22L74 4L74.8 5L39 23.2Z M70 3L96 25L95 25.6L69 3.8Z M104 16L150 11L150 12.2L104 17.2Z M122 2L139 24L138 24.6L121 2.8Z M158 21L194 7L194.6 8L158.6 22.2Z M172 3L180 25L179 25.4L171 3.4Z M20 18L30 16L30 16.8L20 18.8Z M86 9L92 8L92 8.8L86 9.8Z'/%3E%3C/svg%3E"
+const SCRATCH_MASK = `url("data:image/svg+xml,${SCRATCHES}") center / 100% 100% no-repeat`
 
 const pct = (n: number, d: number) => (d > 0 ? n / d : 0)
 
@@ -171,7 +176,7 @@ function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here
 }
 
 /** Выдвижная линейка: 20 строк, переключатель задачник/тренажёр, замки PRO. */
-function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: Mode; setMode: (m: Mode) => void; here: Set<number>; onClose?: () => void }) {
+function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight = false }: { data: RulerData; mode: Mode; setMode: (m: Mode) => void; here: Set<number>; onClose?: () => void; active?: boolean; fixedHeight?: boolean }) {
     const s = SKIN[mode]
     const router = useRouter()
     const listRef = useRef<HTMLDivElement>(null)
@@ -195,8 +200,23 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
         : t.trainers.filter((k) => k.proLocked && k.percent < 100).length), 0)
     return (
         <div className="flex max-h-full w-[min(340px,92vw)] flex-col rounded-l-2xl border-y border-l shadow-[-6px_6px_24px_#000a]"
-            style={{ background: `linear-gradient(90deg, ${s.light}, ${s.body} 18%, ${s.body} 85%, ${s.edge})`, borderColor: s.edge }}>
-            <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+            style={{
+                background: `linear-gradient(90deg, ${s.light}, ${s.body} 18%, ${s.body} 85%, ${s.edge})`, borderColor: s.edge,
+                // Высота одна на все режимы: иначе при смене режима линейка меняла бы высоту и переключатель уезжал бы из-под пальца
+                height: fixedHeight ? 'min(100%, 800px)' : undefined,
+            }}>
+            <div className="relative flex h-10 shrink-0 items-center justify-center px-10 pt-2">
+                {onClose && (
+                    <button type="button" onClick={onClose} aria-label="Закрыть" className="absolute left-2 top-2 rounded-full p-1" style={{ color: TICK }}>
+                        <X className="h-5 w-5" />
+                    </button>
+                )}
+                <span className={`${stencilFont.className} whitespace-nowrap px-1 text-[17px] uppercase leading-none tracking-[0.14em]`}
+                    style={{ color: TICK, WebkitMask: SCRATCH_MASK, mask: SCRATCH_MASK }}>
+                    Линейка ЕГЭ
+                </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 pb-2 pt-1">
                 <div className="flex min-w-0 flex-1 rounded-full p-[3px]" style={{ background: '#0006' }}>
                     {MODES.map((m) => (
                         <button key={m} type="button" onClick={() => setMode(m)}
@@ -211,18 +231,14 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                     : mode === 'learn'
                     ? <span className="shrink-0 text-right leading-none" title="Прогноз баллов ЕГЭ"><span className="font-mono text-base font-black" style={{ color: TICK }}>≈{data.test}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(data.test, 'балл', 'балла', 'баллов')}</span></span>
                     : <span className="shrink-0 text-right leading-none" title="Тем тренажёра с медалью"><span className="font-mono text-base font-black" style={{ color: TICK }}>{medaled}/{topics.size}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>тем</span></span>}
-                {onClose && (
-                    <button type="button" onClick={onClose} aria-label="Закрыть" className="rounded-full p-1" style={{ color: TICK }}>
-                        <X className="h-5 w-5" />
-                    </button>
-                )}
             </div>
             {mode === 'rambo' && (
-                <div className="mx-3 mb-2 flex items-end overflow-hidden rounded-xl pl-3" style={{ background: '#0006' }}>
-                    <div className="min-w-0 flex-1 self-center py-2">
+                <div className="relative mx-3 mb-2 flex items-end overflow-hidden rounded-xl pl-3" style={{ background: '#0006', boxShadow: 'inset 0 0 0 1px #E0484855' }}>
+                    {active && <RamboFx />}
+                    <div className="relative min-w-0 flex-1 self-center py-2">
                         {hint ? <p className="text-[12px] font-bold leading-snug" style={{ color: '#F2A19D' }}>{hint}</p> : <RamboLegend />}
                     </div>
-                    <PetBust src="/miguel/miguel-commando.webp" size={120} width={92} />
+                    <div className="relative"><PetBust src="/miguel/miguel-commando.webp" size={120} width={92} /></div>
                 </div>
             )}
             <div ref={listRef} className="relative min-h-0 flex-1 overflow-y-auto px-2 pb-2">
@@ -268,6 +284,32 @@ function Panel({ data, mode, setMode, here, onClose }: { data: RulerData; mode: 
                 </Link>
             )}
         </div>
+    )
+}
+
+// Движуха за спиной бойца: красное зарево, искры и звёзды летят вверх, по блоку пробегает блик. Только transform/opacity,
+// рисуется лишь пока линейка открыта на режиме «Рэмбо», поэтому процессор в остальное время не занят.
+const RAMBO_EMBERS = [
+    { right: 8, size: 5, dur: 2.6, delay: 0, star: false, color: '#F2C35B' },
+    { right: 22, size: 9, dur: 3.4, delay: 0.5, star: true, color: '#F2C35B' },
+    { right: 36, size: 4, dur: 2.2, delay: 1.1, star: false, color: '#F09B38' },
+    { right: 50, size: 11, dur: 3.8, delay: 1.7, star: true, color: '#FF6B5E' },
+    { right: 64, size: 5, dur: 2.8, delay: 0.9, star: false, color: '#FF6B5E' },
+    { right: 78, size: 8, dur: 3.2, delay: 2.2, star: true, color: '#F2C35B' },
+    { right: 90, size: 4, dur: 2.4, delay: 1.5, star: false, color: '#F09B38' },
+]
+function RamboFx() {
+    return (
+        <span aria-hidden className="rambo-fx pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
+            <span className="rambo-glow absolute -bottom-10 -right-8 h-[170px] w-[190px]"
+                style={{ background: 'radial-gradient(circle, #E04848AA 0%, #E0484855 38%, #E0484800 70%)' }} />
+            {RAMBO_EMBERS.map((e) => (
+                <span key={e.right} className={`rambo-ember absolute bottom-0 ${e.star ? 'rambo-ember-star' : 'rounded-full'}`}
+                    style={{ right: e.right, width: e.size, height: e.size, background: e.color, animationDuration: `${e.dur}s`, animationDelay: `${e.delay}s` }} />
+            ))}
+            <span className="rambo-sweep absolute inset-y-0 left-0 w-1/3"
+                style={{ background: 'linear-gradient(100deg, #FFFFFF00, #FFFFFF22 50%, #FFFFFF00)' }} />
+        </span>
     )
 }
 
@@ -321,9 +363,9 @@ export function EgeRuler({ data, inline = false }: { data: RulerData; inline?: b
                 <Strip data={data} mode={mode} here={here} onOpen={() => setOpen(true)} />
             </div>
             {open && <div className="fixed inset-0 z-[119] bg-black/40" onClick={() => setOpen(false)} />}
-            <div className="fixed bottom-4 right-0 top-[64px] z-[120] flex items-start transition-transform duration-300 ease-out"
+            <div className="fixed inset-y-3 right-0 z-[120] flex items-center transition-transform duration-300 ease-out"
                 style={{ transform: open ? 'translateX(0)' : 'translateX(105%)' }}>
-                <Panel data={data} mode={mode} setMode={setMode} here={here} onClose={() => setOpen(false)} />
+                <Panel data={data} mode={mode} setMode={setMode} here={here} onClose={() => setOpen(false)} active={open} fixedHeight />
             </div>
         </>,
         document.body,
