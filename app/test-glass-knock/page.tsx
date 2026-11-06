@@ -6,7 +6,7 @@ import { useRef, useState } from 'react'
 import { GlassKnockIntro } from '@/components/glass-knock-intro'
 import { PetBust } from '@/components/trainer-pet'
 
-const SRCS = ['/miguel/miguel-glass-stop.webp', '/miguel/miguel-glass-fist.webp', '/miguel/miguel-danger-pencil.webp', '/miguel/miguel-danger-pencil-2.webp']
+const SRCS = ['/miguel/miguel-glass-stop.webp', '/miguel/miguel-glass-fist.webp', '/miguel/miguel-knock.webp']
 
 export default function TestGlassKnockPage() {
     const ref = useRef<HTMLDivElement>(null)

@@ -24,8 +24,9 @@ import { liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
-import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
+import { playSound, playJustClick, preloadSound, CASE_PRIZE_SOUND, CAT_MEW_SOUNDS, CAT_PURR_SOUND } from '@/lib/sound'
 
+const CAT_PURR_CHANCE = 0.75
 type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'eat-bowl' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
@@ -437,6 +438,16 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         setSay(r === 'meow' && !fridgeOk && Math.random() < 0.4 ? pick(PHRASES.hungry) : pick(PHRASES[r]))
         setReact(r)
     }
+    // Нажали на котика: чаще мурчит, иногда мяукает; подпись и звук совпадают
+    const petCat = () => {
+        const purr = Math.random() < CAT_PURR_CHANCE
+        doReact(purr ? (Math.random() < 0.5 ? 'pet' : 'happy') : 'meow')
+        playSound(purr ? CAT_PURR_SOUND : pick(CAT_MEW_SOUNDS))
+    }
+    useEffect(() => {
+        if (bare || stage < 1) return
+        ;[CAT_PURR_SOUND, ...CAT_MEW_SOUNDS].forEach((s) => preloadSound(s))
+    }, [bare, stage])
     const [fridgeOpen, setFridgeOpen] = useState(false)
     const [fridgeBusy, setFridgeBusy] = useState(false)
     const [noCoins, setNoCoins] = useState(false)
@@ -775,7 +786,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     animate={{ ...box(strollBox, { x: stroll.x, y: stroll.y, k: strollK }),
                         rotate: stroll.perch && !stroll.jump ? BARREL_TILT : 0, scaleY: stroll.perch && !stroll.jump && !stroll.land ? 0.9 : 1 }}
                     transition={{ duration: stroll.walking || stroll.jump ? stroll.dur : 0, ease: stroll.jump ? [0.3, 0, 0.4, 1] : 'linear' }}
-                    onClick={stroll.walking || bare ? undefined : () => { playJustClick(); const r = Math.random(); doReact(r < 0.5 ? 'pet' : 'meow') }}>
+                    onClick={stroll.walking || bare ? undefined : petCat}>
                     {!stroll.perch && !stroll.jump && <CatShadow />}
                     {/* прыжок — дугой: кроме перелёта к точке, картинка подлетает вверх и опускается */}
                     <motion.div className="absolute inset-0"
@@ -788,7 +799,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: catZ }}
-                onClick={() => { playJustClick(); if (night) { nextDream(); return } const r = Math.random(); doReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
+                onClick={() => { if (night) { playJustClick(); nextDream(); return } petCat() }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
             )}

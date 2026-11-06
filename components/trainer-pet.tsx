@@ -27,13 +27,14 @@ type Props = {
 
 // На карте Команданте Мигель. Картинки — стикеры public/miguel/*, стоит — miguel-point (тычет в ученика).
 const GAGA_STAND = '/miguel/miguel-point.webp'
-// Позы на карте: у каждой вес (сколько раз встречается в пуле). Стекло — любимый приём, поэтому чаще; карандаш крупно
-// выглядит угрожающе, поэтому реже. big — поза сначала на весь экран со стуком по стеклу (components/glass-knock-intro.tsx).
+// Позы на карте: у каждой вес (сколько раз встречается в пуле). Стекло — любимый приём, поэтому чаще, кулак у стекла — реже
+// стука клювом; карандаш крупно выглядит угрожающе, поэтому редко. big — только позы за стеклом: сначала на весь экран со
+// стуком (components/glass-knock-intro.tsx).
 const POSE_POOL: { src: string; weight: number; big?: boolean }[] = [
     { src: '/miguel/miguel-glass-stop.webp', weight: 8, big: true },
-    { src: '/miguel/miguel-glass-fist.webp', weight: 8, big: true },
+    { src: '/miguel/miguel-knock.webp', weight: 8, big: true },
+    { src: '/miguel/miguel-glass-fist.webp', weight: 4, big: true },
     { src: GAGA_STAND, weight: 2 },
-    { src: '/miguel/miguel-knock.webp', weight: 2 },
     { src: '/miguel/miguel-watch.webp', weight: 2 },
     { src: '/miguel/miguel-arms-crossed.webp', weight: 2 },
     { src: '/miguel/miguel-beckon.webp', weight: 2 },
@@ -41,8 +42,8 @@ const POSE_POOL: { src: string; weight: number; big?: boolean }[] = [
     { src: '/miguel/miguel-book-small.webp', weight: 2 },
     { src: '/miguel/miguel-shrug.webp', weight: 2 },
     { src: '/miguel/miguel-crate.webp', weight: 2 },
-    { src: '/miguel/miguel-danger-pencil.webp', weight: 1, big: true },
-    { src: '/miguel/miguel-danger-pencil-2.webp', weight: 1, big: true },
+    { src: '/miguel/miguel-danger-pencil.webp', weight: 1 },
+    { src: '/miguel/miguel-danger-pencil-2.webp', weight: 1 },
 ]
 // poseKey приходит с сервера: SSR и браузер выбирают одну и ту же позу
 const pickPose = (key: number) => {

@@ -193,6 +193,9 @@ export const LEVEL_UP_SOUND = '/snd-lvlup.mp3'
 export const CHEST_DROP_SOUND = '/snd-drop-chest.mp3'
 // колокольчик со стойки ресторана: сет перешёл к новому блюду (zapsplat, reception bell «ding»)
 export const SET_BELL_SOUND = '/snd-set-bell.mp3'
+// Котик в ангаре: нажали — мурчит или мяукает (оригиналы WAV — public/sounds-originals/cat)
+export const CAT_PURR_SOUND = '/cat-sounds/purr-1.m4a'
+export const CAT_MEW_SOUNDS = ['/cat-sounds/mew-1.m4a', '/cat-sounds/mew-2.m4a', '/cat-sounds/mew-3.m4a', '/cat-sounds/mew-4.m4a']
 export const KNOCK_GLASS_SOUND = '/snd-knock-glass.mp3' // Мигель стучит по стеклу экрана
 // Колокольчик сета звучит еле слышно — громкий звон раздражал
 export const SET_BELL_VOLUME = 0.12
