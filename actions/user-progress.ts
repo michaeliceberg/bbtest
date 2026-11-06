@@ -1,5 +1,6 @@
 'use server';
 
+import { notifyUnveilReady } from '@/lib/hangar';
 import db from '@/db/drizzle';
 import { getCourseById, getUserProgress, getGangMembership } from '@/db/queries';
 import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress, gangMembers } from '@/db/schema';
@@ -352,6 +353,7 @@ export const upsertTrainerLessonProgress = async (
 	let questStreak: number | undefined;
 	let questPointsReward: number | undefined;
 	let referralGift: ReferralWelcomeGift | null = null;
+	let unveilReady: { num: number; title: string }[] = [];
 
 	if (trainingPts > 0) {
 		const earnedXp = xpForAmount(trainingPts);
@@ -412,6 +414,9 @@ export const upsertTrainerLessonProgress = async (
 		if (ALL_TRACK_LESSONS.includes(t_lessonId)) {
 			referralGift = await grantReferralChainRewards(userId).catch(() => null);
 		}
+
+		// Тема начата — в ангаре можно снять брезент: скажем об этом на финальном экране урока
+		unveilReady = await notifyUnveilReady(userId, t_lessonId).catch(() => []);
 	}
 
 	revalidatePath('/trainer');
@@ -440,7 +445,7 @@ export const upsertTrainerLessonProgress = async (
 		void notifyParentsEgeGain(userId, egeGain).catch(() => null);
 	}
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain, unveilReady };
 };
 
 

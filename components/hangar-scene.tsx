@@ -21,12 +21,13 @@ import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeS
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
-import { fixHangarItem, claimHangarGold } from '@/actions/hangar'
+import { unveilHangarItem, fixHangarItem, claimHangarGold } from '@/actions/hangar'
 import { openKeyCase } from '@/actions/open-key-case'
 import { CaseReel } from '@/components/CaseReel'
 import { getLessonCasePool } from '@/lib/caseRewards'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 import { ZaNaukuArchive } from '@/components/za-nauku-archive'
+import Confetti from 'react-confetti'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
 export type SceneItem = {
@@ -34,6 +35,7 @@ export type SceneItem = {
     tasks?: { solved: number; target: number; full?: number }
     trainers?: { title: string; percent: number }[]
     locked?: boolean // «под брезентом»: сначала тренажёры к заданию
+    canUnveil?: boolean // тренажёры начаты: ученик может снять брезент сам
     mastered?: boolean // золото: раздел решён весь, тренажёры на золоте
     goldClaimed?: boolean // кейс за золото уже открыт
 }
@@ -163,7 +165,7 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, cornerTop, phoneReserve = 116 }: {
+export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, cornerTop, phoneReserve = 116 }: {
     /** плашка в правом верхнем углу ангара (серия на /learn) */
     cornerRight?: React.ReactNode
     cornerTop?: React.ReactNode // сверху по центру поверх картинки (полоска «Сета» на /learn); тогда ключ и cornerRight — столбиком слева под ней
@@ -189,6 +191,11 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
 }) {
     const router = useRouter()
     const [pending, start] = useTransition()
+    // Снятый только что брезент: предмет открыт сразу, пока сервер обновляет страницу; flying — брезент ещё улетает
+    const [unveiledNow, setUnveiledNow] = useState<number[]>([])
+    const [flying, setFlying] = useState<number | null>(null)
+    const [party, setParty] = useState(0)
+    const items = unveiledNow.length ? itemsProp.map((i) => (unveiledNow.includes(i.num) ? { ...i, locked: false, canUnveil: false } : i)) : itemsProp
     const [justFixed, setJustFixed] = useState<number | null>(null)
     const [time, setTime] = useState<Time>('day')
     const [hover, setHover] = useState<number | null>(null)
@@ -285,6 +292,20 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         start(async () => {
             const r = await claimHangarGold(num)
             if (r.keyId) { setOpenNum(null); setGoldKey(r.keyId) } else setGoldError(r.error ?? 'Не получилось')
+        })
+    }
+    const unveil = (num: number) => {
+        const show = () => {
+            setFlying(num)
+            setUnveiledNow((l) => [...l, num])
+            fixed(num)
+            setParty((p) => p + 1)
+            setTimeout(() => setFlying(null), 1200)
+        }
+        if (onFix) { show(); return }
+        start(async () => {
+            const r = await unveilHangarItem(num)
+            if (r.ok) { show(); setTimeout(() => router.refresh(), 1300) }
         })
     }
     const fix = (num: number) => {
@@ -525,8 +546,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
-                            {i.locked && !done && <Tarp item={id} shadow={floorShadow} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
-                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {((i.locked && !done) || flying === i.num) && <Tarp item={id} shadow={floorShadow} flying={flying === i.num} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
+                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
@@ -552,7 +573,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
                 {fan && goldWaiting(fan) && !bare && <GoldBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} onOpen={() => openTask(FAN_NUM)} />}
-                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} locked={!!fan.locked} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
+                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready' || !!fan.canUnveil} locked={!!fan.locked && !fan.canUnveil} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
@@ -590,6 +611,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 // пульт с тремя кнопками: листать влево / к ракете / вправо (картинки Leonardo, public/hangar/ui)
                 <HangarControlPanel canLeft={edge.l} canRight={edge.r} onLeft={() => slide(-1)} onRocket={() => { centerRocket(); toggleTray() }} onRight={() => slide(1)} />
             )}
+            {party > 0 && createPortal(
+                <div className="pointer-events-none fixed inset-0 z-[3000]">
+                    <Confetti key={party} width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={260} />
+                </div>, document.body)}
             {!bare && panelItem && inBody((
                 // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
                 // там плашка висит внизу экрана поверх (центрирование — на обёртке, анимация — на самой плашке)
@@ -604,12 +629,12 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
-                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.locked ? 'Под брезентом что-то спрятано… 🤫 Пройди тренажёр — и узнаешь, что там' : panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
+                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.canUnveil ? 'Тренажёр взят, боец! Тяни брезент, посмотрим, что там 👀' : panelItem.locked ? 'Под брезентом что-то спрятано… 🤫 Пройди тренажёр — и узнаешь, что там' : panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
                     {!panelItem.locked && UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
                     {panelItem.state === 'fixed' ? (
                         <GoldClaim error={goldError} pending={pending} onClaim={() => claimGold(panelItem.num)} />
                     ) : (
-                        <TaskSteps item={panelItem} fixLabel={label(panelItem)} pending={pending}
+                        <TaskSteps item={panelItem} fixLabel={label(panelItem)} pending={pending} onUnveil={() => unveil(panelItem.num)}
                             onFix={() => { setOpenNum(null); fix(panelItem.num) }}
                             onGo={onGoTask ? () => { setOpenNum(null); onGoTask(panelItem.num) } : undefined} />
                     )}
@@ -750,13 +775,13 @@ const TARP_OF_ITEM: Record<number, TarpKind> = {
     1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
     8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
 }
-function Tarp({ item, style, shadow, onClick, onHover }: { item: number; style: React.CSSProperties; shadow?: string; onClick: () => void; onHover: (on: boolean) => void }) {
+function Tarp({ item, style, shadow, flying = false, onClick, onHover }: { item: number; style: React.CSSProperties; shadow?: string; flying?: boolean; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     const kind = TARP_OF_ITEM[item] ?? 'square'
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
-            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: shadow }}>
+            className={`absolute cursor-pointer ${flying ? 'hangar-tarp-off' : ''}`} style={{ ...style, zIndex: flying ? 1099 : z, scale: '1.12', filter: flying ? undefined : shadow }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="hangar-tarp-rustle absolute inset-0 h-full w-full select-none"
                 style={{ objectFit: 'fill', animationDelay: `${-((item * 1.7) % 7)}s` }} />
@@ -765,7 +790,7 @@ function Tarp({ item, style, shadow, onClick, onHover }: { item: number; style: 
 }
 
 // Плашка задания: три шага — «Тренажёры → Задачи → Починить». Каждый шаг со своей кнопкой.
-function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; fixLabel: string; pending: boolean; onFix: () => void; onGo?: () => void }) {
+function TaskSteps({ item, fixLabel, pending, onFix, onGo, onUnveil }: { item: SceneItem; fixLabel: string; pending: boolean; onFix: () => void; onGo?: () => void; onUnveil: () => void }) {
     const trainers = item.trainers ?? []
     const tDone = trainers.filter((t) => t.percent >= 50).length // на серебре — нужно для починки
     const nextTrainer = trainers.find((t) => t.percent < 50) ?? trainers[0]
@@ -808,15 +833,20 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
             )}
             <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
                 {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
-                {item.locked ? (
-                    // брезент снимается тренажёром: здесь нажимать нечего, действие — зелёная кнопка «Пройти» слева
+                {item.canUnveil ? (
+                    <button type="button" disabled={pending} onClick={onUnveil} className={`${btn} mt-auto text-[#3A2A08]`}
+                        style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                        Снять брезент!
+                    </button>
+                ) : item.locked ? (
+                    // брезент откроется после тренажёра: здесь нажимать нечего, действие — зелёная кнопка «Пройти» слева
                     <span aria-disabled className="mt-auto flex w-full cursor-not-allowed items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center text-[13px] font-black leading-tight text-[#6B7A83]" style={{ background: '#1B252A' }}>
                         <Lock className="h-3.5 w-3.5 shrink-0" />Снять брезент
                     </span>
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
         </div>
-        {item.locked ? (
+        {item.canUnveil ? null : item.locked ? (
             <p className="mt-2 text-sm font-bold leading-snug text-[#F2C35B]">
                 🔒 Чтобы снять брезент и открыть задачи — {trainers.length > 1 ? 'пройди хотя бы 1 урок в каждом тренажёре' : 'пройди хотя бы 1 урок тренажёра'}
             </p>

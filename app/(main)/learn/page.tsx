@@ -91,7 +91,7 @@ interface LessonStat {
   percentageDoneLesson: number;
 }
 
-const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; hangar?: string } }) => {
+const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; hangar?: string; unveil?: string } }) => {
   const session = await auth();
   
   if (!session?.user) {
@@ -517,7 +517,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const item = taskNum ? hangarItems.find((h) => h.num === taskNum) : null
               if (!item) return (
                 <>
-                  <HangarInline items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
+                  <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
                     cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
                     cornerRight={<StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />} />
                   {levelCase && (
@@ -537,7 +537,10 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                   {trainerKeys[item.num] && <TrainerPathStops num={item.num} keys={trainerKeys[item.num]} accent={getUnitButtonColor(Math.max(idx, 0))} />}
                   {unit ? (
                     <>
-                      {locked && <p className='mt-5 flex items-center justify-center gap-1.5 text-xs font-black text-[#C9D3D9]'><Lock className='h-3.5 w-3.5' />Задачи откроются после тренажёра</p>}
+                      {locked && item.canUnveil && (
+                        <Link href={`/learn?unveil=${item.num}`} className='mx-auto mt-5 block w-fit rounded-xl border-b-4 px-4 py-2 text-sm font-black text-[#3A2A08] active:border-b-0' style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>Снять брезент в ангаре</Link>
+                      )}
+                      {locked && !item.canUnveil && <p className='mt-5 flex items-center justify-center gap-1.5 text-xs font-black text-[#C9D3D9]'><Lock className='h-3.5 w-3.5' />Задачи откроются после тренажёра</p>}
                       {/* Баннер раздела (data-unit-banner) здесь дублирует шапку с предметом — прячем (unit.tsx не трогаем). */}
                       <div aria-hidden={locked} className={`mt-4 [&_[data-unit-banner]]:hidden ${locked ? 'pointer-events-none opacity-35' : ''}`}>{renderUnit(unit, idx, false)}</div>
                     </>

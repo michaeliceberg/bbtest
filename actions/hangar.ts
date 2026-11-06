@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
 import { getEgeMap } from '@/lib/egeMap'
-import { repairStatus, getFixedNums } from '@/lib/hangar'
+import { repairStatus, getFixedNums, getHangarItems } from '@/lib/hangar'
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
 import { grantCaseKey } from '@/lib/caseKeys'
 
@@ -23,6 +23,21 @@ export async function fixHangarItem(num: number): Promise<{ ok: boolean }> {
     if (!(await statusOf(userId, num))?.canFix) return { ok: false }
     await db.execute(sql`INSERT INTO hangar_fixed (user_id, task_num) VALUES (${userId}, ${num}) ON CONFLICT (user_id, task_num) DO NOTHING`)
     revalidatePath('/path')
+    return { ok: true }
+}
+
+// «Снять брезент»: ученик сам открывает предмет, когда все темы тренажёра к заданию начаты.
+export async function unveilHangarItem(num: number): Promise<{ ok: boolean }> {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return { ok: false }
+    const [map, keys] = await Promise.all([getEgeMap(userId, 'math_profile'), getTrainerKeysByTask(userId)])
+    const item = (await getHangarItems(userId, map, keys)).find((i) => i.num === num)
+    if (!item?.canUnveil) return { ok: false }
+    await db.execute(sql`INSERT INTO hangar_unveiled (user_id, task_num, unveiled_at) VALUES (${userId}, ${num}, now())
+        ON CONFLICT (user_id, task_num) DO UPDATE SET unveiled_at = now()`)
+    revalidatePath('/path')
+    revalidatePath('/learn')
     return { ok: true }
 }
 

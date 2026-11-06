@@ -80,7 +80,13 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
 
 /** Задачник «ЕГЭ Математика»: ангар — целый экран (на телефоне ровно по высоте, пульт виден без прокрутки).
  *  «К задачам» в плашке предмета ведёт на экран раздела /learn?task=N. */
-export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight, cornerTop }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode }) {
+export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight, cornerTop, openNum = null }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode; openNum?: number | null }) {
+    // /learn?unveil=N (экран в конце урока): сразу приближаем предмет, кнопка «Снять брезент» уже перед учеником
+    useEffect(() => {
+        if (!openNum) return
+        const t = window.setTimeout(() => window.dispatchEvent(new CustomEvent('hangar-open', { detail: openNum })), 400)
+        return () => window.clearTimeout(t)
+    }, [openNum])
     return (
         // На телефоне — во всю ширину экрана и вплотную к шапке (страница задачника даёт px-6 и сверху ~32px)
         <div id="learn-hangar" className="-mx-6 -mt-8 lg:mx-0 lg:mt-0">

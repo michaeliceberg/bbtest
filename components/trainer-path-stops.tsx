@@ -16,6 +16,7 @@ import type { TrainerKey } from '@/lib/egeTrainerLinks'
 import { declensionRu } from '@/usefulFunctions'
 
 export const TRAINER_STOP_DONE_PERCENT = 50
+const MAX_LESSON_DOTS = 12
 
 export function TrainerPathStops({ num, keys, accent }: { num: number; keys: TrainerKey[]; accent: { button: string; bottom: string } }) {
     const curId = keys.find((k) => k.percent < TRAINER_STOP_DONE_PERCENT)?.tUnitId
@@ -43,7 +44,13 @@ export function TrainerPathStops({ num, keys, accent }: { num: number; keys: Tra
                             {k.percent > 0 ? <NavMedal percent={k.percent} size={50} /> : <Dumbbell className="h-8 w-8 text-white" strokeWidth={2.6} />}
                         </span>
                         <span className="text-[13px] font-black leading-tight text-[#E2EAF0]">Тренажёр: {k.title}</span>
-                        <span className="text-[11px] font-bold text-[#9AA7B0]">{k.doneLessons}/{k.totalLessons} {declensionRu(k.totalLessons, 'урок', 'урока', 'уроков')}</span>
+                        {/* Кружок — это тема, внутри неё несколько уроков: видно, сколько пройдено и какой откроется сейчас */}
+                        <span className="flex items-center gap-1" title={`${k.doneLessons}/${k.totalLessons} ${declensionRu(k.totalLessons, 'урок', 'урока', 'уроков')}`}>
+                            {Array.from({ length: Math.min(k.totalLessons, MAX_LESSON_DOTS) }, (_, i) => (
+                                <span key={i} className="h-2 w-2 rounded-full" style={{ background: i < Math.round(k.doneLessons * Math.min(k.totalLessons, MAX_LESSON_DOTS) / k.totalLessons) ? '#F2C35B' : '#3A464E' }} />
+                            ))}
+                        </span>
+                        {k.nextLessonTitle && <span className="text-[12px] font-bold leading-tight text-[#9AA7B0]">Откроется: {k.nextLessonTitle}</span>}
                     </Link>
                 )
             })}

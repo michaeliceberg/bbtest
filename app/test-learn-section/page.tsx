@@ -255,8 +255,8 @@ export default function TestLearnSectionPage() {
                     <h2 className="text-base font-black">Все темы на золоте</h2>
                     <p className="text-xs font-bold text-[#9AA7B0]">Настоящие кружки: сами свёрнуты, нажатие разворачивает</p>
                     <TrainerPathStops num={1} accent={ACCENT} keys={[
-                        { tUnitId: 1, title: 'Окружность', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 503 },
-                        { tUnitId: 2, title: 'Треугольник', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 504 },
+                        { tUnitId: 1, title: 'Окружность', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 503, nextLessonTitle: null },
+                        { tUnitId: 2, title: 'Треугольник', percent: 100, doneLessons: 3, totalLessons: 3, nextLessonId: 504, nextLessonTitle: null },
                     ]} />
                 </section>
             </div>

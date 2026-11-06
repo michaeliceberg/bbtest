@@ -51,6 +51,7 @@ import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 import { ReferralGiftScreen } from "@/components/referral-screens"
+import { HangarUnveilReadyScreen, type UnveilTask } from "@/components/hangar-unveil-ready-screen"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
 import { shareInviteLink } from "@/components/share-story-button"
@@ -423,6 +424,9 @@ export default function TQuiz({
   // перед итогами; один раз на урок (lessonAlreadyRated приходит с сервера).
   const [showLessonRating, setShowLessonRating] = useState(false)
   // Реферальная пицца (lib/referralRewards.ts): экран после итогов урока.
+  // Брезент можно снять: экран покажем последним, после кейсов и квестов, чтобы переход в ангар ничего не обрывал
+  const pendingUnveilRef = useRef<UnveilTask[]>([])
+  const [unveilScreen, setUnveilScreen] = useState<{ tasks: UnveilTask[]; later: () => void } | null>(null)
   const pendingReferralGiftRef = useRef<{ slices: number; lucky: boolean; nickname: string; pizzaNow: number } | null>(null)
   const [referralGift, setReferralGift] = useState<{ slices: number; lucky: boolean; nickname: string; pizzaNow: number } | null>(null)
   const lessonRatedRef = useRef(!!lessonAlreadyRated)
@@ -690,6 +694,7 @@ export default function TQuiz({
           })
         bossWinsRef.current = progressResult?.bossWins ?? 0
         if (progressResult?.referralGift) pendingReferralGiftRef.current = progressResult.referralGift
+        if (progressResult?.unveilReady?.length) pendingUnveilRef.current = progressResult.unveilReady
         if (progressResult?.leveledUp && progressResult.newLevel) {
           const gained = progressResult.levelsGained ?? 1
           pendingLevelUpRef.current = { oldLevel: progressResult.newLevel - gained, newLevel: progressResult.newLevel, gems: progressResult.levelUpGems ?? 0 }
@@ -1072,6 +1077,14 @@ export default function TQuiz({
     return <StormStartScreen onGo={() => { setShowStormStart(false); continueAfterSummary() }} />
   }
 
+  if (unveilScreen) {
+    return (
+      <HangarUnveilReadyScreen tasks={unveilScreen.tasks}
+        onGo={() => { router.refresh(); router.push(`/learn?unveil=${unveilScreen.tasks[0].num}`) }}
+        onLater={() => { const later = unveilScreen.later; setUnveilScreen(null); later() }} />
+    )
+  }
+
   if (referralGift) {
     return (
       <ReferralGiftScreen
@@ -1111,15 +1124,22 @@ export default function TQuiz({
     if (isGuest) {
       return <GuestRewardScreen t_lessonId={t_lessonId} nickname={guestNickname} vibes={guestVibes} theme={uiTheme} subject={inviteSubject} />
     }
+    // Кнопка выхода с экрана квестов: сперва экран про брезент, если он ждёт, потом то, что нажали
+    const thenUnveil = (fn: () => void) => () => {
+      const tasks = pendingUnveilRef.current
+      if (!tasks.length) return fn()
+      pendingUnveilRef.current = []
+      setUnveilScreen({ tasks, later: fn })
+    }
     return (
       <div className="w-full max-w-xl mx-auto">
         <TrainerQuestRewardsScreen
           data={questRewardsData}
           t_lessonId={t_lessonId}
           primaryLabel={moveId ? 'Дальше — задачи ➜' : nextTLessonHref ? 'Следующий урок' : backTask ? 'В задачник' : 'Завершить'}
-          onPrimary={moveId ? handleMoveNext : nextTLessonHref ? handleNextLesson : handleFinishLesson}
+          onPrimary={thenUnveil(moveId ? handleMoveNext : nextTLessonHref ? handleNextLesson : handleFinishLesson)}
           secondaryLabel={!moveId && nextTLessonHref ? (backTask ? 'В задачник' : 'Завершить') : undefined}
-          onSecondary={!moveId && nextTLessonHref ? handleFinishLesson : undefined}
+          onSecondary={!moveId && nextTLessonHref ? thenUnveil(handleFinishLesson) : undefined}
           theme={uiTheme}
         />
       </div>

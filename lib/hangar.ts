@@ -9,6 +9,8 @@ import type { EgeMap, EgeStation } from '@/lib/egeMap'
 //  2) Золото (долгая цель): решён весь раздел (TARGET_SOLVED задач) и все тренажёры на золоте — предмет блестит,
 //     за него редкий кейс (case_keys source='hangar_gold', source_ref = номер задания, один раз).
 // Починка — отдельное действие ученика (кнопка «Починить …»), хранится в hangar_fixed.
+// Брезент тоже снимает сам ученик: когда все темы к заданию начаты, предмет остаётся под брезентом, но появляется кнопка
+// «Снять брезент» (canUnveil). Таблица hangar_unveiled: notified_at — показали экран в конце урока, unveiled_at — снял.
 
 export const FIX_TASKS = 5
 // для починки тема тренажёра должна быть на серебре: бронза ставится уже за один урок — это слишком мало
@@ -24,6 +26,7 @@ export type HangarItem = {
     trainers?: { title: string; percent: number }[]
     // «под брезентом»: тренажёры к заданию ещё не пройдены, а задач ещё не решал — задачи раздела закрыты
     locked?: boolean
+    canUnveil?: boolean // тренажёры начаты: брезент можно снять своими руками
     // золото: раздел решён весь и тренажёры на золоте (только у починенных); goldClaimed — кейс за него забран
     mastered?: boolean
     goldClaimed?: boolean
@@ -46,23 +49,48 @@ export async function getFixedNums(userId: string): Promise<number[]> {
     return rows.map((r) => Number(r.task_num))
 }
 
+export async function getUnveiledNums(userId: string): Promise<Set<number>> {
+    const rows = (await db.execute(sql`SELECT task_num FROM hangar_unveiled WHERE user_id = ${userId} AND unveiled_at IS NOT NULL`)) as unknown as { task_num: number }[]
+    return new Set(rows.map((r) => Number(r.task_num)))
+}
+
 export async function getHangarItems(userId: string, map: EgeMap, keys: Record<number, TrainerKeyLite[]>): Promise<HangarItem[]> {
     const fixed = new Set(await getFixedNums(userId))
+    const unveiled = await getUnveiledNums(userId)
     const claimed = new Set(((await db.execute(sql`SELECT source_ref FROM case_keys WHERE user_id = ${userId} AND source = 'hangar_gold' AND used_at IS NOT NULL`)) as unknown as { source_ref: string }[]).map((r) => Number(r.source_ref)))
     return map.stations.map((s) => {
         const trainers = keys[s.num] ?? []
         const { canFix, mastered, need } = repairStatus(s, trainers)
         const state: HangarItemState = fixed.has(s.num) ? 'fixed' : canFix ? 'ready' : 'broken'
         const tDone = trainers.filter((k) => k.percent > 0).length
+        const underTarp = state === 'broken' && trainers.length > 0 && s.courseSolved === 0 && !unveiled.has(s.num)
         return {
             num: s.num, title: s.title, state,
             progress: need > 0 ? Math.min(1, s.courseSolved / need) : trainers.length ? tDone / trainers.length : 0,
             href: s.lessonHref ?? s.trainerHref,
             tasks: { solved: s.courseSolved, target: need, full: s.courseTarget },
             trainers,
-            locked: state === 'broken' && trainers.length > 0 && tDone < trainers.length && s.courseSolved === 0,
+            locked: underTarp,
+            canUnveil: underTarp && tDone === trainers.length,
             mastered: state === 'fixed' && mastered,
             goldClaimed: claimed.has(s.num),
         }
     })
+}
+
+/** После урока тренажёра: какие задания этой темы только что стали готовы к снятию брезента. Каждое — один раз. */
+export async function notifyUnveilReady(userId: string, tLessonId: number): Promise<{ num: number; title: string }[]> {
+    const [lesson] = (await db.execute(sql`SELECT t_unit_id FROM t_lessons WHERE id = ${tLessonId}`)) as unknown as { t_unit_id: number }[]
+    if (!lesson) return []
+    const { getEgeMap } = await import('@/lib/egeMap')
+    const { getTrainerKeysByTask } = await import('@/lib/egeTrainerLinks')
+    const [map, keys] = await Promise.all([getEgeMap(userId, 'math_profile'), getTrainerKeysByTask(userId)])
+    const items = await getHangarItems(userId, map, keys)
+    const out: { num: number; title: string }[] = []
+    for (const it of items) {
+        if (!it.canUnveil || !keys[it.num]?.some((k) => k.tUnitId === Number(lesson.t_unit_id))) continue
+        const r = (await db.execute(sql`INSERT INTO hangar_unveiled (user_id, task_num) VALUES (${userId}, ${it.num}) ON CONFLICT (user_id, task_num) DO NOTHING RETURNING task_num`)) as unknown as unknown[]
+        if (r.length) out.push({ num: it.num, title: it.title })
+    }
+    return out
 }
