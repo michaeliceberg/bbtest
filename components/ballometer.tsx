@@ -78,11 +78,11 @@ export const BallometerGauge = ({ m, className = '' }: { m: MeterResult; classNa
 const dateColor = (d: Date | null, goal: Date) => (!d || d > EGE_EXAM_DATE ? ZONE_COLOR.red : d > goal ? ZONE_COLOR.yellow : ZONE_COLOR.green)
 
 // Карта подготовки: высота и положение дороги на ней.
-const MAP_H = 226
-const ROUTE_Y = 152
-const PLAN_POLE = 142
-const FORECAST_POLE = 88
-const MAP_EDGE = 50 // сколько на экране занимает нерастянутый край картинки карты
+const MAP_H = 188
+const ROUTE_Y = 120
+const PLAN_POLE = 114
+const FORECAST_POLE = 70
+const MAP_EDGE = 40 // сколько на экране занимает нерастянутый край картинки карты
 const MAP_SLICE = 110 // тот же край в пикселях файла (public/meter/map.webp)
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
 const INK = '#3A2A1E'
@@ -94,9 +94,13 @@ const routePath = (p0: number, p1: number) => {
 }
 
 // Геометрия флажков-картинок в px на экране: шапка (навершие + полотнище), древко тянем кодом, остриё снизу.
+// FLAG_K — общий масштаб: окно должно влезать в экран телефона, поэтому флажки чуть меньше нарисованных.
+const FLAG_K = 0.82
+const scaleFlag = <T extends Record<string, number | string>>(f: T) =>
+    Object.fromEntries(Object.entries(f).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v * FLAG_K * 10) / 10 : v])) as T
 const FLAG = {
-    plan: { base: 'flag-plan', w: 103, h: 60.5, poleX: 6.6, poleW: 10.6, pinW: 12.5, pinH: 18, textL: 12, textR: 78, textT: 13, textB: 58 },
-    forecast: { base: 'flag-forecast', w: 97, h: 64.5, poleX: 4.8, poleW: 8, pinW: 9.7, pinH: 17, textL: 9, textR: 70, textT: 12, textB: 59 },
+    plan: scaleFlag({ base: 'flag-plan', w: 103, h: 60.5, poleX: 6.6, poleW: 10.6, pinW: 12.5, pinH: 18, textL: 12, textR: 78, textT: 13, textB: 58 }),
+    forecast: scaleFlag({ base: 'flag-forecast', w: 97, h: 64.5, poleX: 4.8, poleW: 8, pinW: 9.7, pinH: 17, textL: 9, textR: 70, textT: 12, textB: 59 }),
 }
 
 // Флажок на карте: остриё в точке дороги, полотнище вправо, а у правого края — влево (отражаем картинку, не текст).
@@ -110,8 +114,8 @@ function MapFlag({ kind, src, pole, ink, title, value, flip }: { kind: keyof typ
             <img src={`/meter/${f.base}-pin.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: -f.pinW / 2, top: pole - f.pinH, width: f.pinW, height: f.pinH }} />
             <img src={`/meter/${src}.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: flip ? f.poleX - f.w : -f.poleX, top: 0, width: f.w, height: f.h, transform: flip ? 'scaleX(-1)' : undefined }} />
             <div className="absolute flex flex-col items-center justify-center whitespace-nowrap text-center leading-[1.15]" style={{ left: textLeft, width: f.textR - f.textL, top: f.textT, height: f.textB - f.textT, color: ink }}>
-                <span className="text-[9.5px] font-black uppercase tracking-wide opacity-90">{title}</span>
-                <span className="font-black" style={{ fontSize: value.length >= 9 ? 10 : 11.5 }}>{value}</span>
+                <span className="text-[8px] font-black uppercase tracking-wide opacity-90">{title}</span>
+                <span className="font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</span>
             </div>
         </div>
     )
@@ -155,9 +159,9 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
     const greenEnd = Math.min(planP, examP)
 
     return (
-        <div className="mt-3">
+        <div className="mt-2">
         {/* подсказка: пока ученик не тронул карту */}
-        <div className={`mb-1 flex items-center justify-center gap-1 text-xs font-black text-[#F1E4C3] transition-opacity duration-300 ${touched ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`mb-0.5 flex items-center justify-center gap-1 text-[11px] font-black text-[#F1E4C3] transition-opacity duration-300 ${touched ? 'opacity-0' : 'opacity-100'}`}>
             <Hand className="h-3.5 w-3.5" strokeWidth={2.6} />Тащи флажок или нажми на карту
         </div>
         <div ref={mapRef} className="relative select-none overflow-hidden"
@@ -195,16 +199,17 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
             ))}
             {/* сегодня */}
             <div className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-[#F2F7FB]" style={{ left: '5%', top: routeY(0), borderColor: INK }} />
-            <span className="pointer-events-none absolute left-3 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-[11px] font-black leading-tight" style={{ top: MAP_H - 44, color: INK }}>Сегодня<br /><span className="font-bold">{dateShort(now)}</span></span>
+            <span className="pointer-events-none absolute left-3 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-[11px] font-black leading-tight" style={{ top: MAP_H - 40, color: INK }}>Сегодня<br /><span className="font-bold">{dateShort(now)}</span></span>
             {/* экзамен */}
             <span className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${5 + 90 * examP}%`, top: routeY(examP) }}><ExamStar /></span>
-            <span className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-center text-[11px] font-black leading-tight" style={{ left: `${5 + 90 * examP}%`, top: MAP_H - 44, color: '#8E2A22' }}>Экзамен<br /><span className="font-bold">{dateShort(EGE_EXAM_DATE)}</span></span>
+            <span className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-center text-[11px] font-black leading-tight" style={{ left: `${5 + 90 * examP}%`, top: MAP_H - 40, color: '#8E2A22' }}>ЕГЭ<br /><span className="font-bold">{dateShort(EGE_EXAM_DATE)}</span></span>
             {/* слой флажков */}
             <div className="pointer-events-none absolute inset-y-0 left-[5%] right-[5%]">
                 {hoverP !== null && dragP === null && (
                     <div className="absolute inset-0" style={{ transform: `translate(${hoverP * 100}%, ${routeY(hoverP)}px)` }}>
                         <span className="absolute -left-px w-0.5 border-l-2 border-dashed" style={{ top: -PLAN_POLE, height: PLAN_POLE, borderColor: INK, opacity: 0.5 }} />
-                        <span className="absolute whitespace-nowrap rounded bg-[#3A2A1E] px-1 text-[10px] font-bold text-[#F1E4C3]" style={{ top: -PLAN_POLE - 16, [hoverP > 0.6 ? 'right' : 'left']: 0 } as React.CSSProperties}>{dateShort(dateOf(hoverP))}</span>
+                        {/* дата — под линией маршрута: сверху она уезжала за край карты */}
+                        <span className="absolute whitespace-nowrap rounded bg-[#3A2A1E] px-1 text-[10px] font-bold text-[#F1E4C3]" style={{ top: 9, left: 0, transform: `translateX(${hoverP < 0.1 ? -10 : hoverP > 0.88 ? -90 : -50}%)` }}>{dateShort(dateOf(hoverP))}</span>
                     </div>
                 )}
                 {showForecast && (
@@ -240,7 +245,7 @@ const GoalBlock = ({ target, demo }: { target: number; demo?: boolean }) => (
     <div className="min-w-0">
         <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель</p>
         <div className="flex items-center gap-1.5">
-            <span className={`${stencilFont.className} text-5xl leading-none text-[#F2C35B]`}>{target}</span>
+            <span className={`${stencilFont.className} text-[44px] leading-none text-[#F2C35B]`}>{target}</span>
             <span className="text-sm font-black leading-tight text-[#F2F7FB]">{declensionRu(target, 'балл', 'балла', 'баллов')}<br />ЕГЭ</span>
         </div>
         {!demo && <Link href="/path" className="mt-1 block text-[11px] font-bold text-[#7FC8F2] underline">Сменить цель</Link>}
@@ -252,17 +257,17 @@ const TodaySets = ({ done, goal }: { done: number; goal: number }) => {
     const total = Math.max(goal, done)
     const complete = total > 0 && done >= total
     return (
-        <div className="min-w-0 text-right">
+        <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Сегодня</p>
             {total === 0 ? (
                 <p className="mt-1 text-sm font-black leading-tight text-[#78C93C]">Норма недели<br />закрыта</p>
             ) : (
                 <>
                     <p className="leading-none">
-                        <span className={`${stencilFont.className} text-4xl`} style={{ color: complete ? '#78C93C' : '#F2F7FB' }}>{done}</span>
+                        <span className={`${stencilFont.className} text-3xl`} style={{ color: complete ? '#78C93C' : '#F2F7FB' }}>{done}</span>
                         <span className="text-sm font-black text-[#E8D9B8]"> из {total} {total % 10 === 1 && total % 100 !== 11 ? 'сета' : 'сетов'}</span>
                     </p>
-                    <div className="mt-1.5 flex justify-end gap-1">
+                    <div className="mt-1 flex gap-1">
                         {Array.from({ length: Math.min(total, 8) }, (_, i) => (
                             <span key={i} className="h-2.5 w-2.5 rounded-[3px] border-2" style={{ borderColor: i < done ? '#78C93C' : '#5C6B73', background: i < done ? '#78C93C' : 'transparent' }} />
                         ))}
@@ -270,6 +275,59 @@ const TodaySets = ({ done, goal }: { done: number; goal: number }) => {
                 </>
             )}
         </div>
+    )
+}
+
+// Настроение Команданте по показанию прибора. Картинки — public/miguel; пока новых поз нет (промпты —
+// docs/miguel/leonardo-prompts-ballometer.md), стоят ближайшие из готовых — поменять src, когда придут.
+type Mood = 'chill' | 'calm' | 'mobilize' | 'alarm' | 'angry' | 'new'
+const MOOD: Record<Mood, { src: string; motion: 'bob' | 'shake' | 'jitter' | 'none' }> = {
+    chill: { src: '/miguel/miguel-coffee.webp', motion: 'bob' }, // шезлонг и коктейль: успеваем раньше срока
+    calm: { src: '/miguel/miguel-thumbs.webp', motion: 'bob' }, // идём по плану
+    mobilize: { src: '/miguel/miguel-binoculars.webp', motion: 'none' }, // жёлтая: собраться
+    alarm: { src: '/miguel/miguel-stopwatch.webp', motion: 'jitter' }, // красная: паника, часы
+    angry: { src: '/miguel/miguel-danger-pencil.webp', motion: 'shake' }, // почти стоим: злится крупным планом
+    new: { src: '/miguel/miguel-think.webp', motion: 'none' },
+}
+const moodOf = (m: MeterResult): Mood => {
+    if (m.needPrimary === 0) return 'chill'
+    if (m.zone === 'new' || m.score === null) return 'new'
+    if (m.score >= 4.8) return 'chill'
+    if (m.zone === 'green') return 'calm'
+    if (m.zone === 'yellow') return 'mobilize'
+    return m.score >= 1.5 ? 'alarm' : 'angry'
+}
+const MOOD_MOTION = {
+    bob: { animate: { y: [0, -4, 0] }, transition: { duration: 2.6, repeat: Infinity, ease: 'easeInOut' as const } },
+    jitter: { animate: { rotate: [0, -3, 3, -2, 0, 0, 0] }, transition: { duration: 1.4, repeat: Infinity } },
+    shake: { animate: { x: [0, -3, 3, -3, 0, 0, 0, 0] }, transition: { duration: 1.2, repeat: Infinity } },
+    none: { animate: {}, transition: {} },
+}
+
+// Что говорит Команданте: настроение + факт (дата прогноза или сколько прибавить).
+function moodLine(mood: Mood, m: MeterResult) {
+    // после ЕГЭ — с годом, иначе «10 марта» выглядит как «успеваем»
+    const date = m.readyDate ? <b style={{ color: dateColor(m.readyDate, m.goalDate) }}>{m.readyDate > EGE_EXAM_DATE ? dateRu(m.readyDate) : dateShort(m.readyDate)}</b> : null
+    const add = m.addSetsPerWeek > 0 ? <> Прибавь <b className="text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
+    switch (mood) {
+        case 'chill': return m.needPrimary === 0 ? <>Цель в кармане, амиго. Отдыхаю, но форму держим!</> : <>Чилим, амиго. Цель возьмём к {date}, раньше срока.</>
+        case 'calm': return <>Идём по плану, боец. Цель к {date}.</>
+        case 'mobilize': return <>Собраться, боец! С таким темпом цель только к {date}.{add}</>
+        case 'alarm': return date ? <>Тревога! Цель только к {date}, {m.readyDate! > EGE_EXAM_DATE ? 'это после ЕГЭ' : 'не успеваем к сроку'}!{add}</> : <>Тревога! Скорость нулевая!{add}</>
+        case 'angry': return <>Боец! Так мы к экзамену не успеем.{add ?? ' Закрой сет сегодня.'}</>
+        default: return <>Прибор прогревается. Закрой первый сет, и я скажу, успеваем ли.</>
+    }
+}
+
+const CommandanteMood = ({ mood }: { mood: Mood }) => {
+    const mo = MOOD_MOTION[MOOD[mood].motion]
+    return (
+        <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }} className="h-[112px] w-[112px]">
+            <motion.div animate={mo.animate} transition={mo.transition} className="h-full w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={MOOD[mood].src} alt="" draggable={false} className="h-full w-full object-contain" />
+            </motion.div>
+        </motion.div>
     )
 }
 
@@ -291,62 +349,50 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
         setSaved(r.ok ? 'done' : 'idle')
     }
     const reached = m.needPrimary === 0
+    const mood = moodOf(m)
+    const nowRate = d.perWeek !== null ? String(Math.round((d.perWeek / d.setGain) * 10) / 10).replace('.', ',') : null
+    const tone = planLate ? ZONE_COLOR.red : ZONE_COLOR.green
 
     return (
-        <div className="w-full">
-            <div className="mb-2 flex items-center justify-between">
-                <span className={`${stencilFont.className} text-lg text-[#F2F7FB]`}>{NAME}</span>
-                {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="-mr-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
-            </div>
-            <div className="flex items-start justify-between gap-2">
-                <GoalBlock target={m.targetTest} demo={demo} />
-                {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
-            </div>
-            <BallometerGauge m={m} className="mx-auto mt-2 h-[190px] w-[190px]" />
-            <p className="mt-1.5 text-center text-sm font-bold leading-snug text-[#E8D9B8]">
-                {reached ? 'Цель уже в кармане. Держи форму!'
-                    : m.zone === 'new' ? 'Прибор прогревается. Закрой первый сет, и он покажет твою скорость.'
-                    : m.readyDate ? <>С такой скоростью возьмёшь цель к <b style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateRu(m.readyDate)}</b></>
-                    : 'Скорость нулевая: цель не приближается.'}
-            </p>
-            {!reached && (
-                <>
-                    <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan}
-                        onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
-                    <div className="mb-3 mt-1.5 space-y-0.5 text-[11px] font-bold leading-snug text-[#9AA7B0]">
-                        {m.zone !== 'new' && <p><b className="text-[#F4DE9F]">Прогноз</b>: куда придёшь с нынешней скоростью</p>}
-                        <p><b className="text-[#8FD460]">План</b>: куда хочешь успеть, его ставишь ты</p>
-                    </div>
-                    {/* рецепт */}
-                    {m.zone !== 'new' && m.addSetsPerWeek > 0 && (
-                        <div className="mb-3 rounded-lg border-l-4 px-3 py-2 text-sm font-bold text-[#2B2118]" style={{ borderColor: ZONE_COLOR[m.zone], background: 'linear-gradient(180deg,#F1E4C3,#E6D3A8)' }}>
-                            <span className="block text-[10px] font-black uppercase tracking-wide text-[#6B5634]">Рецепт Команданте</span>
-                            Прибавь +{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)} в неделю, и будешь успевать.
+        <div className="relative w-full">
+            {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute -right-1.5 -top-1.5 z-10 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
+            {/* слева цель и сегодня, справа Команданте; ниже прибор и темп */}
+            <div className="grid grid-cols-[148px_minmax(0,1fr)] gap-x-2 gap-y-1">
+                <div className="flex min-w-0 flex-col gap-2">
+                    <GoalBlock target={m.targetTest} demo={demo} />
+                    {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
+                </div>
+                <div className={`flex items-end justify-end ${onClose ? 'pr-5' : ''}`}><CommandanteMood mood={mood} /></div>
+                <BallometerGauge m={m} className="h-[148px] w-[148px] self-center" />
+                {!reached ? (
+                    <div className="flex flex-col justify-center rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
+                        <div className="flex items-baseline justify-between gap-1">
+                            <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Твой темп</span>
+                            {nowRate && <span className="text-[10px] font-bold text-[#9AA7B0]">сейчас ≈{nowRate}</span>}
                         </div>
-                    )}
-                    {/* темп */}
-                    <div className="rounded-xl border-2 border-[#2C3A41] bg-black/20 p-3">
-                        <p className="text-xs font-black uppercase tracking-wide text-[#C9B98F]">Твой темп</p>
-                        {d.perWeek !== null && <p className="mt-0.5 text-xs font-bold text-[#9AA7B0]">{`Сейчас: примерно ${Math.round((d.perWeek / d.setGain) * 10) / 10} в неделю.`.replace(/(\d)\.(\d)/, '$1,$2')}</p>}
-                        <div className="mt-2 flex items-center justify-center gap-3">
-                            <button type="button" aria-label="Меньше сетов" onClick={() => change(sets - 1)} className="h-11 w-11 rounded-xl border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-xl font-black text-white active:border-b-0">−</button>
-                            <div className="w-32 text-center">
-                                <motion.span key={sets} initial={{ scale: 1.7 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="inline-block text-3xl font-black" style={{ color: planLate ? ZONE_COLOR.red : ZONE_COLOR.green }}>{sets}</motion.span>
-                                <span className="block text-xs font-bold text-[#E8D9B8]">{setsWord(sets)} в неделю</span>
+                        <div className="mt-1 flex items-center justify-between gap-1">
+                            <button type="button" aria-label="Меньше сетов" onClick={() => change(sets - 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">−</button>
+                            <div className="min-w-0 text-center leading-none">
+                                <motion.span key={sets} initial={{ scale: 1.7 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="inline-block text-2xl font-black" style={{ color: tone }}>{sets}</motion.span>
+                                <span className="block text-[10px] font-bold text-[#E8D9B8]">{setsWord(sets)}/нед</span>
                             </div>
-                            <button type="button" aria-label="Больше сетов" onClick={() => change(sets + 1)} className="h-11 w-11 rounded-xl border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-xl font-black text-white active:border-b-0">+</button>
+                            <button type="button" aria-label="Больше сетов" onClick={() => change(sets + 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">+</button>
                         </div>
-                        <p className="mt-2 text-center text-sm font-bold" style={{ color: planLate ? ZONE_COLOR.red : ZONE_COLOR.green }}>
-                            {planLate ? `План только к ${dateRu(plan)}: это после экзамена. Прибавь сетов.` : `План: цель к ${dateRu(plan)}`}
-                        </p>
-                        {d.setsGoal && <p className="mt-1 text-center text-xs font-bold text-[#9AA7B0]">На этой неделе закрыто сетов: {d.setsThisWeek} из {d.setsGoal}</p>}
                         <button type="button" disabled={planLate || saved === 'saving'} onClick={save}
-                            className="mt-3 w-full rounded-xl border-b-4 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-40"
+                            className="mt-1.5 w-full rounded-lg border-b-4 py-1.5 text-xs font-black text-[#151F24] active:border-b-0 disabled:opacity-40"
                             style={{ background: '#F2C35B', borderBottomColor: '#B8862E' }}>
-                            {saved === 'done' ? 'Готово, Баллометр перенастроен!' : 'Применить'}
+                            {saved === 'done' ? 'Готово!' : planLate ? 'После экзамена' : 'Применить'}
                         </button>
                     </div>
-                </>
+                ) : <div />}
+            </div>
+            {/* реплика Команданте: облачко с хвостиком к нему */}
+            <div className="relative mt-2 rounded-xl border-2 bg-[#F1E4C3] px-3 py-1.5 text-[13px] font-bold leading-snug text-[#2B2118]" style={{ borderColor: ZONE_COLOR[m.zone] }}>
+                <span className="relative">{moodLine(mood, m)}</span>
+            </div>
+            {!reached && (
+                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan}
+                    onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
             )}
         </div>
     )
