@@ -87,9 +87,12 @@ const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 2
 // Значок задания — жёлтая плашка с номером (как номер задания на карточке юнита /trainer), без ключика и подложки.
 // Раздел решён — плашка подпрыгивает. Наводишь или жмёшь — предмет, который починится, подсвечивается;
 // по нажатию — окошко «Перейти в задачник».
-function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
+const LABEL_EDGE = 150 // в пикселях картинки 1024×1024
+function KeyBadge({ x, y, n, ready, active, locked = false, label, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; label?: string; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
+    // плашка с подписью широкая: у края картинки прижимаем её внутрь, чтобы не обрезалась
+    const anchor = label && x < LABEL_EDGE ? '' : label && x > 1024 - LABEL_EDGE ? '-translate-x-full' : '-translate-x-1/2'
     return (
-        <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+        <span className={`absolute -translate-y-1/2 ${anchor}`} style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
@@ -97,6 +100,7 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
                 style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
                     boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
                 {n}
+                {label && <span className="ml-1 whitespace-nowrap border-l border-[#B8862E] pl-1">{label}</span>}
             </button>
         </span>
     )
@@ -547,7 +551,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
                             {((i.locked && !done) || flying === i.num) && <Tarp item={id} shadow={floorShadow} flying={flying === i.num} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
-                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} label={i.canUnveil ? 'Снять брезент' : undefined} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
@@ -573,7 +577,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                         onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
                 {fan && goldWaiting(fan) && !bare && <GoldBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} onOpen={() => openTask(FAN_NUM)} />}
-                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready' || !!fan.canUnveil} locked={!!fan.locked && !fan.canUnveil} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
+                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready' || !!fan.canUnveil} locked={!!fan.locked && !fan.canUnveil} label={fan.canUnveil ? 'Снять брезент' : undefined} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
@@ -834,10 +838,13 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo, onUnveil }: { item: S
             <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
                 {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
                 {item.canUnveil ? (
-                    <button type="button" disabled={pending} onClick={onUnveil} className={`${btn} mt-auto text-[#3A2A08]`}
-                        style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>
-                        Снять брезент!
-                    </button>
+                    // прыгает обёртка: у самой кнопки transform занят нажатием
+                    <span className="mt-auto animate-bounce">
+                        <button type="button" disabled={pending} onClick={onUnveil} className={`${btn} text-[#3A2A08]`}
+                            style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                            Снять брезент!
+                        </button>
+                    </span>
                 ) : item.locked ? (
                     // брезент откроется после тренажёра: здесь нажимать нечего, действие — зелёная кнопка «Пройти» слева
                     <span aria-disabled className="mt-auto flex w-full cursor-not-allowed items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center text-[13px] font-black leading-tight text-[#6B7A83]" style={{ background: '#1B252A' }}>
