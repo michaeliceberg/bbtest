@@ -15,6 +15,7 @@ import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
+import { GOOSE_HONK_SOUNDS, playSound, preloadSound } from '@/lib/sound'
 
 export type BallometerProps = {
     primary: number
@@ -342,6 +343,50 @@ function moodLine(mood: Mood, m: MeterResult, primary: number, perWeek: number |
     }
 }
 
+// Реплика в облачке рядом с Команданте — своя у каждой картинки (2026-11-07). Пишем коротко, в две строки на телефоне.
+const MOOD_PHRASES: Record<string, string[]> = {
+    '/miguel/miguel-chill.webp': [
+        'Коктейль «Сдал на сотку». Рецепт: сеты по графику и щепотка льда 🍹',
+        'Амиго, ты так гонишь, что я ушёл в отпуск. Не тормози!',
+        'Шезлонг заработан честно. Твоими сетами, компаньеро 😎',
+    ],
+    '/miguel/miguel-calm.webp': [
+        'Галочка за галочкой. Ровно, как по линейке. ¡Bien!',
+        'Донесение в штаб: «Боец в графике». Печать поставил ✅',
+        'Вот это я понимаю — дисциплина. Так и держим, амиго.',
+    ],
+    '/miguel/miguel-mobilize-bucket.webp': [
+        'Ведро ледяной воды или сет? Выбирай, амиго, я жду 🪣',
+        'Кто дремлет на подготовке — того поливаю. Ну что, проснулся?',
+        'Два сета — и ведро уберу. Обещаю. Почти.',
+    ],
+    '/miguel/miguel-mobilize-box.webp': [
+        'Раунд не проигран, пока ты в перчатках. Два сета — и мы в игре 🥊',
+        'Отстаём на пару очков. Апперкот задачами — и сравняем!',
+        'Защиту держишь, а бить кто будет? Сет за сетом, вперёд!',
+    ],
+    '/miguel/miguel-mobilize-bugle.webp': [
+        'Ту-ру-ру! Подъём, компаньеро, неделя ждать не будет 🎺',
+        'Трублю сбор! Всем бойцам — по сету до отбоя.',
+        'Слышишь горн? Это твоя неделя просит пару сетов.',
+    ],
+    '/miguel/miguel-panic-watch.webp': [
+        '¡Caramba! Часики тикают, а сеты — нет! ⏰',
+        'Третий раз смотрю на часы. Где мой сет, амиго?!',
+        'Время утекает! Хоть один урок — и я выдохну.',
+    ],
+    '/miguel/miguel-glare.webp': [
+        'Вот ты. Да, ты. Неделя идёт — где сеты? 👉',
+        'Я не злюсь. Я просто очень внимательно смотрю.',
+        'Карандаш уже сгрыз от нервов. Один сет — и прощу.',
+    ],
+    '/miguel/miguel-think.webp': [
+        'Хм… Пока не знаю, какой ты боец. Первый сет — и разберёмся 🤔',
+        'Новенький? Покажи себя. С первого сета — моё уважение.',
+        'Мне нужны данные, амиго. Пара сетов — и скажу, успеваем ли.',
+    ],
+}
+
 const pickMoodSrc = (mood: Mood) => {
     const src = MOOD[mood].src
     return typeof src === 'string' ? src : src[Math.floor(Math.random() * src.length)]
@@ -365,15 +410,47 @@ const useMoodSrc = (mood: Mood) => {
     return src
 }
 
-const CommandanteMood = ({ mood }: { mood: Mood }) => {
+const CommandanteMood = ({ mood, src }: { mood: Mood; src: string | null }) => {
     const mo = MOOD_MOTION[MOOD[mood].motion]
-    const src = useMoodSrc(mood)
     return (
         <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
             <motion.div animate={mo.animate} transition={mo.transition}>
                 {src ? <MoodBust src={src} h={92} /> : <span className="block h-[92px] w-[133px]" />}
             </motion.div>
         </motion.div>
+    )
+}
+
+// Облачко с репликой: сначала появляется Команданте, потом (если окно открыли нажатием) гогот, потом облачко
+// пружиной. На «Моём пути» окно на странице сразу — там без звука.
+const HONK_DELAY_MS = 750
+const BUBBLE_AFTER_HONK_MS = 280
+const MoodBubble = ({ src, honk }: { src: string | null; honk?: boolean }) => {
+    const [text, setText] = useState<string | null>(null)
+    useEffect(() => { if (honk) GOOSE_HONK_SOUNDS.forEach(preloadSound) }, [honk])
+    useEffect(() => {
+        setText(null)
+        if (!src) return
+        const list = MOOD_PHRASES[src] ?? []
+        if (!list.length) return
+        const phrase = list[Math.floor(Math.random() * list.length)]
+        const t1 = setTimeout(() => { if (honk) playSound(GOOSE_HONK_SOUNDS[Math.floor(Math.random() * GOOSE_HONK_SOUNDS.length)], 0.7) }, HONK_DELAY_MS)
+        const t2 = setTimeout(() => setText(phrase), HONK_DELAY_MS + (honk ? BUBBLE_AFTER_HONK_MS : 0))
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [src, honk])
+    return (
+        <div className="relative mt-1 flex min-h-[44px] justify-end">
+            {text && (
+                <motion.div key={text} initial={{ scale: 0.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 15 }}
+                    className="relative max-w-[88%] origin-top-right rounded-2xl rounded-tr-sm border-2 bg-[#F2F7FB] px-3 py-1.5 text-[13px] font-extrabold leading-snug text-[#1E2629]"
+                    style={{ borderColor: INK }}>
+                    {/* хвостик облачка — вверх к Команданте */}
+                    <span className="absolute -top-[9px] right-6 h-0 w-0 border-x-[7px] border-b-[9px] border-x-transparent" style={{ borderBottomColor: INK }} />
+                    <span className="absolute -top-[6px] right-[25px] h-0 w-0 border-x-[6px] border-b-[7px] border-x-transparent border-b-[#F2F7FB]" />
+                    {text}
+                </motion.div>
+            )}
+        </div>
     )
 }
 
@@ -393,7 +470,8 @@ const PlanMoodBadge = ({ mood }: { mood: Mood }) => {
 
 // hideGoal — на «Моём пути» цель уже показана на шкале баллов, здесь её не дублируем.
 // onPickGoal — в «Моём пути»: нажатие на цель раскрывает выбор 60…100 прямо здесь (без него цель ведёт в «Мой путь»).
-export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d: BallometerProps; onClose?: () => void; demo?: boolean; hideGoal?: boolean; onPickGoal?: (g: number) => void }) {
+// honk — окно открыли нажатием: перед репликой Команданте гогочет.
+export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal, honk }: { d: BallometerProps; onClose?: () => void; demo?: boolean; hideGoal?: boolean; onPickGoal?: (g: number) => void; honk?: boolean }) {
     const [goalOpen, setGoalOpen] = useState(false)
     const now = useMemo(() => new Date(d.nowIso), [d.nowIso])
     const goalDate = useMemo(() => (d.goalDateIso ? new Date(d.goalDateIso) : null), [d.goalDateIso])
@@ -413,6 +491,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d:
     }
     const reached = m.needPrimary === 0
     const mood = moodOf(m)
+    const moodSrc = useMoodSrc(mood)
     const sm = computeSetMeter(weekSetsOf(d), reached ? 0 : sets, now)
     const tone = planLate ? ZONE_COLOR.red : ZONE_COLOR.green
     const weekDone = (d.weekEq ?? d.setsThisWeek * 10) / 10
@@ -442,8 +521,9 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d:
                         <BouncyTotal value={sets} color="#F2C35B" size={20} />
                     </TopStat>
                 )}
-                <div className="justify-self-end"><CommandanteMood mood={mood} /></div>
+                <div className="justify-self-end"><CommandanteMood mood={mood} src={moodSrc} /></div>
             </div>
+            <MoodBubble src={moodSrc} honk={honk} />
             {onPickGoal && goalOpen && (
                 <div className="mt-2 flex items-center gap-1.5">
                     <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель:</span>
@@ -577,7 +657,7 @@ const WeekGrid = ({ days, need, now, startIso, history }: { days: number[]; need
 const Modal = ({ d, onClose }: { d: BallometerProps; onClose: () => void }) => createPortal(
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
         <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-[#6B5B3A] bg-[#151F23] p-3.5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <BallometerPanel d={d} onClose={onClose} />
+            <BallometerPanel d={d} onClose={onClose} honk />
         </div>
     </div>,
     document.body,
@@ -779,7 +859,7 @@ export function BallometerSide({ d, variant = 0, bottom = 'calc(50% + 194px)', d
             <div className="fixed inset-y-3 right-0 z-[120] flex w-[min(94vw,430px)] items-center transition-transform duration-300 ease-out"
                 style={{ transform: open ? 'translateX(0)' : 'translateX(105%)' }}>
                 <div className="max-h-full w-full overflow-y-auto rounded-l-2xl border-y-2 border-l-2 border-[#6B5B3A] bg-[#151F23] p-3.5 shadow-[-6px_0_24px_#000a]">
-                    {shown && <BallometerPanel d={d} demo={demo} onClose={() => setOpen(false)} />}
+                    {shown && <BallometerPanel d={d} demo={demo} onClose={() => setOpen(false)} honk />}
                 </div>
             </div>
         </>,
