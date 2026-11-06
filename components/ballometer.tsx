@@ -138,11 +138,11 @@ function MapFlag({ kind, src, pole, ink, title, value, flip, bounce }: { kind: k
             <img src={`/meter/${f.base}-pin.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: -f.pinW / 2, top: pole - f.pinH, width: f.pinW, height: f.pinH }} />
             <img src={`/meter/${src}.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: flip ? f.poleX - f.w : -f.poleX, top: 0, width: f.w, height: f.h, transform: flip ? 'scaleX(-1)' : undefined }} />
             <div className="absolute flex flex-col items-center justify-center whitespace-nowrap text-center leading-[1.15]" style={{ left: textLeft, width: f.textR - f.textL, top: f.textT, height: f.textB - f.textT, color: ink }}>
-                <span className="text-[8px] font-black uppercase tracking-wide opacity-90">{title}</span>
+                <span className={`font-black uppercase opacity-90 ${title.length > 8 ? '' : 'tracking-wide'}`} style={{ fontSize: title.length > 11 ? 6.3 : title.length > 8 ? 7 : 8 }}>{title}</span>
                 {bounce
                     ? <motion.span key={value} initial={{ scale: 2.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}
-                        className="inline-block font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</motion.span>
-                    : <span className="font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</span>}
+                        className="inline-block font-black" style={{ fontSize: value.length >= 12 ? 7.6 : value.length >= 9 ? 8.5 : 10 }}>{value}</motion.span>
+                    : <span className="font-black" style={{ fontSize: value.length >= 12 ? 7.6 : value.length >= 9 ? 8.5 : 10 }}>{value}</span>}
             </div>
         </div>
     )
@@ -151,7 +151,8 @@ function MapFlag({ kind, src, pole, ink, title, value, flip, bounce }: { kind: k
 
 // Карта: сегодня → экзамен и дальше. Флажок «Прогноз» показывает, куда придёшь с нынешней скоростью,
 // флажок «План» ученик ставит сам: тащит или нажимает на любое место карты.
-function DateMap({ now, ready, showForecast, plan, goal, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; goal: Date; onDrag: (d: Date) => void }) {
+// target — цель в баллах: зелёный флажок читается «★ 100 баллов к 10 февраля».
+function DateMap({ now, ready, showForecast, plan, goal, target, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; goal: Date; target: number; onDrag: (d: Date) => void }) {
     const end = EGE_EXAM_DATE.getTime() + ROAD_AFTER_EXAM_DAYS * DAY
     const pos = (d: Date) => Math.max(0, Math.min(1, (d.getTime() - now.getTime()) / (end - now.getTime())))
     const mapRef = useRef<HTMLDivElement>(null)
@@ -241,12 +242,12 @@ function DateMap({ now, ready, showForecast, plan, goal, onDrag }: { now: Date; 
                 )}
                 {showForecast && (
                     <div className="absolute inset-0" style={{ transform: `translate(${readyP * 100}%, ${routeY(readyP)}px)`, transition: 'transform .6s cubic-bezier(.3,1.5,.5,1)', zIndex: 4 }}>
-                        <MapFlag kind="forecast" src={`flag-forecast-${fColor === ZONE_COLOR.green ? 'green' : fColor === ZONE_COLOR.yellow ? 'yellow' : 'red'}`} pole={FORECAST_POLE} ink={INK} flip={readyP > 0.6} title="Прогноз" value={pastRoad ? 'опоздаешь' : dateShort(ready!)} />
+                        <MapFlag kind="forecast" src={`flag-forecast-${fColor === ZONE_COLOR.green ? 'green' : fColor === ZONE_COLOR.yellow ? 'yellow' : 'red'}`} pole={FORECAST_POLE} ink={INK} flip={readyP > 0.6} title="Прогноз" value={pastRoad ? 'опоздаешь' : `к ${dateShort(ready!)}`} />
                     </div>
                 )}
                 <div className="absolute inset-0" style={{ transform: `translate(${shownPlanP * 100}%, ${routeY(shownPlanP)}px)`, transition: moved ? 'none' : 'transform .4s cubic-bezier(.3,1.6,.5,1)', zIndex: 3 }}>
                     <div className={`absolute inset-0 ${touched ? '' : 'bm-flag-nudge'}`}>
-                        <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} bounce={dragP === null} />
+                        <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title={`★ ${target} ${declensionRu(target, 'балл', 'балла', 'баллов')}`} value={`к ${dateShort(plan)}`} bounce={dragP === null} />
                         {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planColor }} />}
                         <span className="absolute -left-[15px] -top-[15px] flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] bg-[#FFF6E4]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>
                             <MoveHorizontal className="h-4 w-4" strokeWidth={3} style={{ color: INK }} />
@@ -548,7 +549,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal, honk }
                 <span className="relative">{moodLine(mood, m, d.primary, d.perWeek, now)}</span>
             </div>
             {!reached && (
-                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate}
+                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate} target={m.targetTest}
                     onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
             )}
         </div>
