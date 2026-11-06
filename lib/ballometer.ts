@@ -1,19 +1,18 @@
 import 'server-only'
 
-// lib/ballometer.ts — данные Баллометра: реальная скорость ученика и его программа.
-// Скорость = сколько первичных баллов дали НОВЫЕ верные задачи и НОВЫЕ уроки тренажёра за последние 14 дней
-// (по тем же весам, что и lib/egeMap.ts). Диагностика в скорость не входит: это оценка, а не работа.
+// lib/ballometer.ts — данные Сетометра (бывший Баллометр): темп ученика и его программа.
+// Темп — в сетах в неделю за последние 14 дней: сет = 1 урок тренажёра + 5 верных задач задачника (урок = 5 задач),
+// через кнопку «Начать сет» или самостоятельно — без разницы. Диагностика в темп не входит: это оценка, а не работа.
 
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getEgeMap } from '@/lib/egeMap'
 import { setNumberToday } from '@/lib/egeMove'
-import { computeMeter, computeSetMeter, dateRu, EGE_DEFAULT_TARGET, formatScore, needSetsOf, type MeterResult } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateRu, LESSON_EQ, SET_EQ, EGE_DEFAULT_TARGET, formatScore, needSetsOf, type MeterResult } from '@/lib/egeMeter'
 
 type Row = Record<string, unknown>
 const SPEED_WINDOW_DAYS = 14
 const MIN_WINDOW_DAYS = 7 // новичка не штрафуем за короткую историю: считаем неделю
-const COURSE_WEIGHT = 0.6
 const DEFAULT_SET_GAIN = 0.2
 
 export type BallometerData = {
@@ -23,7 +22,8 @@ export type BallometerData = {
     setGain: number
     goalDateIso: string | null
     setsGoal: number | null
-    setsThisWeek: number
+    setsThisWeek: number // целых сетов на этой неделе (сет = 1 урок + 5 задач, как бы ни решал)
+    weekEq: number // то же в «задачах»: урок = 5, сет = 10 — для «до следующего сета ещё …»
     setsToday: number
     nowIso: string
 }
@@ -37,59 +37,55 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
     const map = await getEgeMap(userId, 'math_profile')
     const [u] = (await db.execute(sql`SELECT ege_target, ballometer_goal_date, ballometer_sets_week FROM user_progress WHERE user_id = ${userId}`)) as unknown as Row[]
 
-    const tasks = (await db.execute(sql`
-        SELECT l.unit_id, count(*)::int AS n FROM challenge_progress cp
-        JOIN challenges c ON c.id = cp.challenge_id JOIN lessons l ON l.id = c.lesson_id
-        WHERE cp.user_id = ${userId} AND cp.completed AND cp.done_right AND cp.date_done >= now() - make_interval(days => ${SPEED_WINDOW_DAYS})
-        GROUP BY 1`)) as unknown as Row[]
-    const lessons = (await db.execute(sql`
-        SELECT tl.t_unit_id, count(*)::int AS n FROM (
-            SELECT t_lesson_id, min(date_done) AS first_done FROM t_lesson_progress
-            WHERE user_id = ${userId} AND training_pts > 0 GROUP BY 1
-        ) p JOIN t_lessons tl ON tl.id = p.t_lesson_id
-        WHERE p.first_done >= now() - make_interval(days => ${SPEED_WINDOW_DAYS})
-        GROUP BY 1`)) as unknown as Row[]
+    // Счёт в «сетах» (решение пользователя): сет = 1 урок тренажёра + 5 задач, неважно — через кнопку «Начать сет» или сам.
+    // Урок приравнен к 5 задачам, сет = 10 «задач». Считаем только то, что относится к заданиям ЕГЭ (станции карты):
+    // новые верные задачи задачника и впервые пройденные уроки тренажёра.
+    const unitIds = [...new Set(map.stations.flatMap((st) => st.unitIds))]
+    const tUnitIds = [...new Set(map.stations.flatMap((st) => st.tUnitIds))]
+    const inList = (ids: number[]) => (ids.length ? sql.join(ids.map((x) => sql`${x}`), sql`, `) : sql`NULL`)
+    // даты в базе пишутся без пояса (UTC), неделя — с понедельника по Москве
+    const weekStart = sql`date_trunc('week', now() AT TIME ZONE 'Europe/Moscow')`
+    const [tk] = (await db.execute(sql`
+        SELECT count(*) FILTER (WHERE cp.date_done >= now() - make_interval(days => ${SPEED_WINDOW_DAYS}))::int AS w14,
+               count(*) FILTER (WHERE cp.date_done + interval '3 hours' >= ${weekStart})::int AS wk
+        FROM challenge_progress cp JOIN challenges c ON c.id = cp.challenge_id JOIN lessons l ON l.id = c.lesson_id
+        WHERE cp.user_id = ${userId} AND cp.completed AND cp.done_right AND l.unit_id IN (${inList(unitIds)})`)) as unknown as Row[]
+    const [ls] = (await db.execute(sql`
+        SELECT count(*) FILTER (WHERE p.first_done >= now() - make_interval(days => ${SPEED_WINDOW_DAYS}))::int AS w14,
+               count(*) FILTER (WHERE p.first_done + interval '3 hours' >= ${weekStart})::int AS wk
+        FROM (SELECT t_lesson_id, min(date_done) AS first_done FROM t_lesson_progress
+              WHERE user_id = ${userId} AND training_pts > 0 GROUP BY 1) p
+        JOIN t_lessons tl ON tl.id = p.t_lesson_id WHERE tl.t_unit_id IN (${inList(tUnitIds)})`)) as unknown as Row[]
     const [first] = (await db.execute(sql`
         SELECT min(d) AS first_at FROM (
             SELECT min(date_done) AS d FROM t_lesson_progress WHERE user_id = ${userId} AND training_pts > 0
             UNION ALL SELECT min(date_done) FROM challenge_progress WHERE user_id = ${userId} AND done_right
         ) x`)) as unknown as Row[]
 
-    const tasksByUnit = new Map(tasks.map((r) => [Number(r.unit_id), Number(r.n)]))
-    const lessonsByUnit = new Map(lessons.map((r) => [Number(r.t_unit_id), Number(r.n)]))
-    let gain = 0
-    for (const st of map.stations) {
-        const hasCourse = st.courseTarget > 0, hasTrainer = st.trainerTotal > 0
-        const t = st.unitIds.reduce((s, id) => s + (tasksByUnit.get(id) ?? 0), 0)
-        const l = st.tUnitIds.reduce((s, id) => s + (lessonsByUnit.get(id) ?? 0), 0)
-        const fromTasks = hasCourse ? Math.min(1, t / st.courseTarget) * (hasTrainer ? COURSE_WEIGHT : 1) : 0
-        const trainerWeight = hasCourse ? 1 - COURSE_WEIGHT : st.part === 2 ? 0.25 : 1
-        const fromLessons = hasTrainer ? Math.min(1, l / st.trainerTotal) * trainerWeight : 0
-        gain += st.points * (fromTasks + fromLessons)
-    }
+    const eq14 = Number(tk?.w14 ?? 0) + LESSON_EQ * Number(ls?.w14 ?? 0)
+    const weekEq = Number(tk?.wk ?? 0) + LESSON_EQ * Number(ls?.wk ?? 0)
 
+    // темп в сетах в неделю; perWeek (первичные в неделю) = сеты × сколько первичных даёт один сет — для прогноза дат
+    const mv = map.move
+    const moveGain = mv ? mv.toPrimary - mv.fromPrimary : 0
+    const setGain = moveGain > 0.03 ? Math.min(0.6, moveGain) : DEFAULT_SET_GAIN
     let perWeek: number | null = null
     if (first?.first_at) {
         const days = (Date.now() - new Date(String(first.first_at)).getTime()) / 86400000
         const window = Math.max(MIN_WINDOW_DAYS, Math.min(SPEED_WINDOW_DAYS, days))
-        perWeek = gain / (window / 7)
+        perWeek = (eq14 / SET_EQ / (window / 7)) * setGain
     }
-
-    const [s] = (await db.execute(sql`
-        SELECT count(*)::int AS n FROM ege_moves WHERE user_id = ${userId} AND step = 'done' AND finished_at IS NOT NULL
-          AND finished_at + interval '3 hours' >= date_trunc('week', now() AT TIME ZONE 'Europe/Moscow')`)) as unknown as Row[]
     const setsToday = await setNumberToday(userId, null) - 1
 
-    const mv = map.move
-    const moveGain = mv ? mv.toPrimary - mv.fromPrimary : 0
     return {
         primary: map.primary,
         perWeek,
         targetTest: u?.ege_target ? Number(u.ege_target) : EGE_DEFAULT_TARGET,
-        setGain: moveGain > 0.03 ? Math.min(0.6, moveGain) : DEFAULT_SET_GAIN,
+        setGain,
         goalDateIso: u?.ballometer_goal_date ? new Date(String(u.ballometer_goal_date)).toISOString() : null,
         setsGoal: u?.ballometer_sets_week ? Number(u.ballometer_sets_week) : null,
-        setsThisWeek: Number(s?.n ?? 0),
+        setsThisWeek: Math.floor(weekEq / SET_EQ),
+        weekEq,
         setsToday,
         nowIso: new Date().toISOString(),
     }

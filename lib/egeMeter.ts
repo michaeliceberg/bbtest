@@ -9,6 +9,14 @@ export const EGE_DEADLINE = new Date(2027, 4, 1) // запас: цель взя�
 export const EGE_DEFAULT_TARGET = 90 // пока ученик не выбрал вуз
 export const METER_GREEN_FROM = 4.3 // примерно столько нужно, чтобы успеть к самому экзамену без запаса
 export const METER_YELLOW_FROM = 3
+// Сет = 1 урок тренажёра + 5 верных задач (через кнопку или самостоятельно). Урок приравнен к 5 задачам.
+export const LESSON_EQ = 5
+export const SET_EQ = 10
+// «до следующего сета»: сколько ещё задач, или урок + задачи
+export const nextSetLeft = (weekEq: number) => {
+    const left = SET_EQ - (weekEq % SET_EQ)
+    return left > LESSON_EQ ? { tasks: left, orLessonPlus: left - LESSON_EQ } : { tasks: left, orLessonPlus: 0 }
+}
 export const MAX_SETS_WEEK = 21 // больше трёх сетов в день не предлагаем
 
 const WEEK_MS = 7 * 86400000

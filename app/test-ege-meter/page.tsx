@@ -23,7 +23,7 @@ export default function TestEgeMeterPage() {
     const [tabVariant, setTabVariant] = useState(0)
     useEffect(() => { setNowIso(new Date().toISOString()) }, [])
     if (!nowIso) return <main className="min-h-screen bg-[#131D22]" />
-    const d = { primary, perWeek, targetTest: EGE_DEFAULT_TARGET, setGain: 0.2, goalDateIso: null, setsGoal: null, setsThisWeek: 2, setsToday: 1, nowIso }
+    const d = { primary, perWeek, targetTest: EGE_DEFAULT_TARGET, setGain: 0.2, goalDateIso: null, setsGoal: null, setsThisWeek: 1, weekEq: 13, setsToday: 1, nowIso }
     return (
         <main className="mx-auto min-h-screen max-w-md space-y-3 bg-[#131D22] p-3 text-[#F2F7FB]">
             <section className="mr-9 rounded-2xl border border-[#2C3A41] bg-[#151F23] p-3 text-sm">

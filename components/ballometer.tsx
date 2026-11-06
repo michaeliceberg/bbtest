@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
 import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
-import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, nextSetLeft, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
@@ -24,6 +24,7 @@ export type BallometerProps = {
     goalDateIso: string | null
     setsGoal: number | null
     setsThisWeek: number
+    weekEq?: number // сделано на этой неделе в «задачах» (урок = 5, сет = 10)
     setsToday: number
     nowIso: string
 }
@@ -275,7 +276,7 @@ const GoalBlock = ({ target, demo }: { target: number; demo?: boolean }) => (
 // Сегодняшняя норма сетов: «1 из 2» и квадратики.
 // Норма считается на неделю (в день вышло бы меньше одного сета): «Эта неделя: 0 из 5», «осталось 3 дня» и квадратики.
 // То же число 5, что и «из 5 в неделю» на Сетометре, — один знаменатель везде.
-const WeekSets = ({ done, goal, daysLeft }: { done: number; goal: number; daysLeft: number }) => {
+const WeekSets = ({ done, goal, daysLeft, weekEq }: { done: number; goal: number; daysLeft: number; weekEq?: number }) => {
     const complete = goal > 0 && done >= goal
     return (
         <div className="min-w-0">
@@ -290,6 +291,11 @@ const WeekSets = ({ done, goal, daysLeft }: { done: number; goal: number; daysLe
                 ))}
             </div>
             <p className="mt-1 whitespace-nowrap text-[10px] font-bold text-[#9AA7B0]">{complete ? 'Норма закрыта!' : `осталось ${daysLeft} ${declensionRu(daysLeft, 'день', 'дня', 'дней')}`}</p>
+            {/* сет копится из любых занятий: урок тренажёра = 5 задач, сет = урок + 5 задач */}
+            {!complete && weekEq !== undefined && (() => {
+                const n = nextSetLeft(weekEq)
+                return <p className="text-[10px] font-bold leading-tight text-[#C9B98F]">до сета: {n.tasks} {declensionRu(n.tasks, 'задача', 'задачи', 'задач')}{n.orLessonPlus ? ` или урок + ${n.orLessonPlus}` : ' или урок'}</p>
+            })()}
         </div>
     )
 }
@@ -422,7 +428,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
             {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
             <div className={`flex items-end justify-between gap-1 ${onClose ? 'pr-5' : ''}`}>
                 {!hideGoal && <GoalBlock target={m.targetTest} demo={demo} />}
-                {!reached && <WeekSets done={d.setsThisWeek} goal={sets} daysLeft={daysLeftInWeek(now)} />}
+                {!reached && <WeekSets done={d.setsThisWeek} goal={sets} daysLeft={daysLeftInWeek(now)} weekEq={d.weekEq} />}
                 <CommandanteMood mood={mood} />
             </div>
             <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
