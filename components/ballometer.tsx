@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
 import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
-import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, nextSetLeft, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, nextSetLeft, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, daysPassedInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
@@ -25,6 +25,7 @@ export type BallometerProps = {
     setsGoal: number | null
     setsThisWeek: number
     weekEq?: number // сделано на этой неделе в «задачах» (урок = 5, сет = 10)
+    days?: number[] // 14 чисел в сетах: пн прошлой недели … вс этой (по Москве)
     setsToday: number
     nowIso: string
 }
@@ -44,15 +45,17 @@ const arc = (a0: number, a1: number, r: number) => {
 }
 const toAngle = (v: number, max: number) => -120 + (Math.min(Math.max(v, 0), max) / max) * 240
 
-// Сетометр — армейский прибор: стрелка — твой темп (сетов в неделю), зелёная зона начинается с нужного числа сетов.
-// Справа — хорошо, как у спидометра. Внизу окошко «2,2» и под ним «из 3».
+// Сетометр — армейский прибор: стрелка — сколько сетов сделано на этой неделе (с понедельника), белая засечка —
+// недельная норма. Зоны — «по графику на сегодня» (computeSetMeter): зелёная начинается с того, что должно быть сделано
+// к концу вчерашнего дня. Справа — хорошо, как у спидометра. Внизу окошко «2,5» и под ним «из 5 за неделю».
 export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; className?: string }) => {
     const { max, need } = sm
     const step = max <= 8 ? 1 : max <= 14 ? 2 : 3
     const ticks: number[] = []
     for (let v = 0; v <= max + 1e-6; v += max <= 8 ? 0.5 : 1) ticks.push(Math.round(v * 10) / 10)
     const labels = ticks.filter((v) => v % step === 0)
-    const yellowFrom = need * SET_YELLOW_FROM
+    const greenFrom = sm.expected
+    const yellowFrom = greenFrom * SET_YELLOW_FROM
     const pt = (v: number, r: number) => {
         const a = (toAngle(v, max) * Math.PI) / 180
         return [Math.round((100 + r * Math.sin(a)) * 100) / 100, Math.round((100 - r * Math.cos(a)) * 100) / 100]
@@ -63,9 +66,9 @@ export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; classN
             {/* корпус — картинка Leonardo (docs/hangar/tools/cut_meter.py), шкала и стрелка кодом */}
             <image href="/meter/gauge.webp" x="0" y="0" width="200" height="200" />
             <path d={arc(-120, 120, 62)} stroke="#12170F" strokeWidth="13" fill="none" />
-            {need > 0 && yellowFrom > 0 && <path d={arc(-120, toAngle(yellowFrom, max), 62)} stroke={ZONE_COLOR.red} strokeWidth="9" fill="none" />}
-            {need > 0 && <path d={arc(toAngle(yellowFrom, max), toAngle(need, max), 62)} stroke={ZONE_COLOR.yellow} strokeWidth="9" fill="none" />}
-            <path d={arc(toAngle(need, max), 120, 62)} stroke={ZONE_COLOR.green} strokeWidth="9" fill="none" />
+            {need > 0 && yellowFrom > 0.05 && <path d={arc(-120, toAngle(yellowFrom, max), 62)} stroke={ZONE_COLOR.red} strokeWidth="9" fill="none" />}
+            {need > 0 && greenFrom > 0.05 && <path d={arc(toAngle(yellowFrom, max), toAngle(greenFrom, max), 62)} stroke={ZONE_COLOR.yellow} strokeWidth="9" fill="none" />}
+            <path d={arc(toAngle(need > 0 ? greenFrom : 0, max), 120, 62)} stroke={ZONE_COLOR.green} strokeWidth="9" fill="none" />
             {ticks.map((v) => {
                 const major = v % 1 === 0
                 const [x1, y1] = pt(v, 55), [x2, y2] = pt(v, major ? 47 : 51)
@@ -75,7 +78,7 @@ export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; classN
                 const [x, y] = pt(v, 38)
                 return <text key={v} x={Math.round(x)} y={Math.round(y + 5)} textAnchor="middle" fontSize={max > 9 ? 11 : 13} fill="#E8D9B8" className={stencilFont.className}>{v}</text>
             })}
-            {/* засечка «нужно»: начало зелёной зоны */}
+            {/* засечка «норма недели» */}
             {need > 0 && <line x1={needEdge[0]} y1={needEdge[1]} x2={needIn[0]} y2={needIn[1]} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />}
             <text x="100" y="84" textAnchor="middle" fontSize="8.5" letterSpacing=".6" fill="#C9B98F" className={stencilFont.className}>СЕТОМЕТР</text>
             <g style={{ transform: `rotate(${toAngle(sm.pace ?? 0, max)}deg)`, transformOrigin: '100px 100px', transition: 'transform .7s cubic-bezier(.3,1.5,.5,1)' }}>
@@ -87,7 +90,7 @@ export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; classN
             <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
             <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[sm.zone]} className={stencilFont.className}>{formatScore(sm.pace)}</text>
             {/* «из N» — сколько сетов в неделю нужно (колокольчик здесь пробовали — лишний) */}
-            <text x="100" y="166" textAnchor="middle" fontSize="9" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need} В НЕДЕЛЮ</text>
+            <text x="100" y="166" textAnchor="middle" fontSize="9" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need} ЗА НЕДЕЛЮ</text>
         </svg>
     )
 }
@@ -419,7 +422,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
     }
     const reached = m.needPrimary === 0
     const mood = moodOf(m)
-    const sm = computeSetMeter(d.perWeek, d.setGain, reached ? 0 : sets)
+    const sm = computeSetMeter(weekSetsOf(d), reached ? 0 : sets, now)
     const tone = planLate ? ZONE_COLOR.red : ZONE_COLOR.green
 
     return (
@@ -453,6 +456,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
                     </div>
                 ) : <div />}
             </div>
+            {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} />}
             {/* реплика Команданте: облачко с хвостиком к нему */}
             <div className="relative mt-2 rounded-xl border-2 bg-[#F1E4C3] px-3 py-1.5 text-[13px] font-bold leading-snug text-[#2B2118]" style={{ borderColor: ZONE_COLOR[m.zone] }}>
                 <span className="relative">{moodLine(mood, m, d.primary, d.perWeek, now)}</span>
@@ -461,6 +465,51 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
                 <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate}
                     onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
             )}
+        </div>
+    )
+}
+
+// Сетка 2 × 7: прошлая и эта неделя по дням (пн … вс). В квадратике — сеты за день (урок = полсета, задача = десятая),
+// заливка снизу по доле сета; справа — сумма за неделю и галочка, если норма закрыта (решение пользователя 2026-11-06).
+const fmtSets = (v: number) => (v === 0 ? '' : (Math.round(v * 10) / 10).toString().replace('.', ','))
+const WeekGrid = ({ days, need, now }: { days: number[]; need: number; now: Date }) => {
+    const today = daysPassedInWeek(now) + 7 // индекс сегодняшнего дня в сетке
+    const rows = [{ label: 'Прошлая', from: 0 }, { label: 'Эта', from: 7 }]
+    return (
+        <div className="mt-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 pb-1.5 pt-1">
+            <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] gap-1 text-[10px] font-black uppercase text-[#C9B98F]">
+                <span />
+                <span className="text-center">Пн</span>
+                <span className="col-span-5" />
+                <span className="text-center">Вс</span>
+                <span className="text-center">Итого</span>
+            </div>
+            {rows.map((r) => {
+                const vals = days.slice(r.from, r.from + 7)
+                const sum = vals.reduce((a, b) => a + b, 0)
+                const closed = need > 0 && sum >= need - 0.05
+                const current = r.from === 7
+                return (
+                    <div key={r.label} className="mt-1 grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] items-center gap-1">
+                        <span className="text-[10px] font-bold leading-tight text-[#9AA7B0]">{r.label}</span>
+                        {vals.map((v, j) => {
+                            const i = r.from + j
+                            const future = i > today
+                            return (
+                                <span key={j} className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md border-2"
+                                    style={{ borderColor: i === today ? '#F2F7FB' : future ? '#2C3A41' : '#3E4C54', borderStyle: future ? 'dashed' : 'solid' }}>
+                                    {v > 0 && <span className="absolute inset-x-0 bottom-0" style={{ height: `${Math.min(1, v) * 100}%`, background: v >= 1 ? '#78C93C' : 'rgba(120,201,60,0.45)' }} />}
+                                    <span className="relative text-[11px] font-black text-white">{fmtSets(v)}</span>
+                                </span>
+                            )
+                        })}
+                        <span className="text-center leading-none">
+                            <span className={`${stencilFont.className} text-[15px]`} style={{ color: closed ? '#78C93C' : current ? '#F2F7FB' : '#E5533D' }}>{fmtSets(sum) || '0'}</span>
+                            <span className="block text-[10px] font-bold text-[#9AA7B0]">{closed ? '✓ норма' : `из ${need}`}</span>
+                        </span>
+                    </div>
+                )
+            })}
         </div>
     )
 }
@@ -474,7 +523,9 @@ const Modal = ({ d, onClose }: { d: BallometerProps; onClose: () => void }) => c
     document.body,
 )
 
-const setMeterFrom = (d: BallometerProps, m: MeterResult) => computeSetMeter(d.perWeek, d.setGain, needSetsOf(d.setsGoal, m, d.setGain, new Date(d.nowIso)))
+// Сеты на этой неделе (дробно); null — ученик ещё ничего не решал.
+const weekSetsOf = (d: BallometerProps) => (d.perWeek === null ? null : (d.weekEq ?? d.setsThisWeek * 10) / 10)
+const setMeterFrom = (d: BallometerProps, m: MeterResult) => computeSetMeter(weekSetsOf(d), needSetsOf(d.setsGoal, m, d.setGain, new Date(d.nowIso)), new Date(d.nowIso))
 const meterFrom = (d: BallometerProps) => computeMeter({ primary: d.primary, perWeek: d.perWeek, targetTest: d.targetTest, setGain: d.setGain, goalDate: d.goalDateIso ? new Date(d.goalDateIso) : null, now: new Date(d.nowIso) })
 
 // Значок: цветная дуга и оценка. Нажатие открывает окно.
@@ -490,7 +541,7 @@ export function BallometerChip({ d, className = '' }: { d: BallometerProps; clas
     }, [])
     return (
         <>
-            <button type="button" aria-label={`${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю`} onClick={() => setOpen(true)}
+            <button type="button" aria-label={`${NAME}: на этой неделе ${formatScore(sm.pace)} из ${sm.need} сетов`} onClick={() => setOpen(true)}
                 className={`inline-flex items-center justify-center gap-1 rounded-xl border-2 border-b-4 bg-[#161F23] px-2 active:border-b-0 ${className}`} style={{ borderColor: c }}>
                 <svg viewBox="28 28 144 100" className="h-5 w-7 shrink-0">
                     <path d={arc(-120, 120, 60)} stroke="#3A464E" strokeWidth="16" fill="none" />
@@ -596,7 +647,7 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
     const sm = setMeterFrom(d, m)
     const c = ZONE_COLOR[sm.zone]
     const t = weekOf(d, sm)
-    const label = `${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю, на этой неделе сделано ${t.done} из ${t.total}`
+    const label = `${NAME}: на этой неделе ${formatScore(sm.pace)} из ${sm.need} сетов`
     // показание: темп и мелко «/3» — сколько нужно в неделю
     const score = <span className={`${stencilFont.className} leading-none`} style={{ color: c }}>{formatScore(sm.pace)}<span className="text-[0.7em] text-[#9AA7B0]">/{sm.need}</span></span>
     if (variant === 1) return (

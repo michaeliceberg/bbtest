@@ -83,16 +83,24 @@ export const formatScore = (s: number | null) => (s === null ? '–' : s.toFixed
 export const dateRu = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(' г.', ' года')
 export const dateShort = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })
 
-// ——— Сетометр: прибор в сетах в неделю. Стрелка — твой темп, зелёная зона начинается с нужного числа сетов. ———
-export const SET_YELLOW_FROM = 0.7 // от 70% нужного темпа — жёлтая зона, ниже — красная
+// ——— Сетометр: прибор в сетах за календарную неделю (с понедельника, по Москве; решение пользователя 2026-11-06).
+// Стрелка — сколько сетов сделано на этой неделе, белая засечка — недельная норма. Цветные зоны — «по графику на
+// сегодня»: к концу вчерашнего дня должно быть сделано need × (прошло дней)/7, это начало зелёной зоны. В понедельник
+// график ещё ноль — вся шкала зелёная, неделя только началась.
+export const SET_YELLOW_FROM = 0.7 // от 70% «по графику» — жёлтая зона, ниже — красная
 
-export type SetMeter = { pace: number | null; need: number; max: number; zone: MeterZone }
+export type SetMeter = { pace: number | null; need: number; expected: number; max: number; zone: MeterZone }
 
-export function computeSetMeter(perWeek: number | null, setGain: number, need: number): SetMeter {
-    const pace = perWeek === null ? null : Math.round((perWeek / Math.max(0.01, setGain)) * 10) / 10
-    const max = Math.min(MAX_SETS_WEEK, Math.max(5, Math.ceil(Math.max(need * 1.6, (pace ?? 0) * 1.15))))
-    const zone: MeterZone = pace === null ? 'new' : need === 0 || pace >= need - 0.05 ? 'green' : pace >= need * SET_YELLOW_FROM ? 'yellow' : 'red'
-    return { pace, need, max, zone }
+export const daysPassedInWeek = (now: Date) => 7 - daysLeftInWeek(now) // полных дней с понедельника до сегодня
+
+export function computeSetMeter(weekSets: number | null, need: number, now: Date): SetMeter {
+    const pace = weekSets === null ? null : Math.round(weekSets * 10) / 10
+    const expected = Math.round(need * daysPassedInWeek(now) / 7 * 10) / 10
+    const max = Math.min(MAX_SETS_WEEK, Math.max(5, Math.ceil(Math.max(need * 1.25, (pace ?? 0) * 1.15))))
+    const zone: MeterZone = pace === null ? 'new'
+        : need === 0 || pace >= need - 0.05 || pace >= expected - 0.05 ? 'green'
+        : pace >= expected * SET_YELLOW_FROM ? 'yellow' : 'red'
+    return { pace, need, expected, max, zone }
 }
 
 // Нужно сетов в неделю: что ученик сам выбрал, иначе минимум, чтобы успеть к дате цели.

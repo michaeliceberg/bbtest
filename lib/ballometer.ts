@@ -1,7 +1,7 @@
 import 'server-only'
 
 // lib/ballometer.ts — данные Сетометра (бывший Баллометр): темп ученика и его программа.
-// Темп — в сетах за последние 7 дней (скользящая неделя): сет = 1 урок тренажёра + 5 верных задач задачника (урок = 5 задач),
+// Темп для прогноза — в сетах в неделю за последние 14 дней: сет = 1 урок тренажёра + 5 верных задач задачника (урок = 5 задач),
 // через кнопку «Начать сет» или самостоятельно — без разницы. Диагностика в темп не входит: это оценка, а не работа.
 
 import { sql } from 'drizzle-orm'
@@ -11,9 +11,10 @@ import { setNumberToday } from '@/lib/egeMove'
 import { computeMeter, computeSetMeter, dateRu, LESSON_EQ, SET_EQ, EGE_DEFAULT_TARGET, formatScore, needSetsOf, type MeterResult } from '@/lib/egeMeter'
 
 type Row = Record<string, unknown>
-// Стрелка — сеты за последние 7 дней (решение пользователя 2026-11-06): «за последние 7 дней — 4 сета» понятно без
-// пояснений. Счётчик «Эта неделя» — календарная неделя с понедельника, это другое число.
-const SPEED_WINDOW_DAYS = 7
+// Средний темп за 14 дней — только для прогноза даты и настроения Команданте (не скачет от одного пропуска).
+// Стрелка прибора и сетка дней — календарные недели (weekEq, days).
+const SPEED_WINDOW_DAYS = 14
+const MIN_WINDOW_DAYS = 7 // новичка не штрафуем за короткую историю: считаем неделю
 const DEFAULT_SET_GAIN = 0.2
 
 export type BallometerData = {
@@ -25,6 +26,7 @@ export type BallometerData = {
     setsGoal: number | null
     setsThisWeek: number // целых сетов на этой неделе (сет = 1 урок + 5 задач, как бы ни решал)
     weekEq: number // то же в «задачах»: урок = 5, сет = 10 — для «до следующего сета ещё …»
+    days: number[] // 14 чисел в сетах по дням: пн прошлой недели … вс этой (по Москве)
     setsToday: number
     nowIso: string
 }
@@ -63,6 +65,29 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
             UNION ALL SELECT min(date_done) FROM challenge_progress WHERE user_id = ${userId} AND done_right
         ) x`)) as unknown as Row[]
 
+    // По дням с понедельника прошлой недели (по Москве): 14 чисел в «задачах» (урок = 5), для сетки на Сетометре.
+    const gridStart = sql`(${weekStart} - interval '7 days')`
+    const dayRows = (await db.execute(sql`
+        SELECT to_char(d, 'YYYY-MM-DD') AS day, sum(n)::int AS eq FROM (
+            SELECT (cp.date_done + interval '3 hours')::date AS d, 1 AS n
+            FROM challenge_progress cp JOIN challenges c ON c.id = cp.challenge_id JOIN lessons l ON l.id = c.lesson_id
+            WHERE cp.user_id = ${userId} AND cp.completed AND cp.done_right AND l.unit_id IN (${inList(unitIds)})
+              AND cp.date_done + interval '3 hours' >= ${gridStart}
+            UNION ALL
+            SELECT (p.first_done + interval '3 hours')::date, ${LESSON_EQ}
+            FROM (SELECT t_lesson_id, min(date_done) AS first_done FROM t_lesson_progress
+                  WHERE user_id = ${userId} AND training_pts > 0 GROUP BY 1) p
+            JOIN t_lessons tl ON tl.id = p.t_lesson_id
+            WHERE tl.t_unit_id IN (${inList(tUnitIds)}) AND p.first_done + interval '3 hours' >= ${gridStart}
+        ) x GROUP BY d`)) as unknown as Row[]
+    const [gs] = (await db.execute(sql`SELECT to_char(${gridStart}, 'YYYY-MM-DD') AS start`)) as unknown as Row[]
+    const startMs = Date.parse(String(gs?.start) + 'T00:00:00Z')
+    const days = Array.from({ length: 14 }, () => 0)
+    for (const r of dayRows) {
+        const i = Math.round((Date.parse(String(r.day) + 'T00:00:00Z') - startMs) / 86400000)
+        if (i >= 0 && i < 14) days[i] += Number(r.eq) / SET_EQ
+    }
+
     const eqWin = Number(tk?.win ?? 0) + LESSON_EQ * Number(ls?.win ?? 0)
     const weekEq = Number(tk?.wk ?? 0) + LESSON_EQ * Number(ls?.wk ?? 0)
 
@@ -72,7 +97,9 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
     const setGain = moveGain > 0.03 ? Math.min(0.6, moveGain) : DEFAULT_SET_GAIN
     let perWeek: number | null = null
     if (first?.first_at) {
-        perWeek = (eqWin / SET_EQ / (SPEED_WINDOW_DAYS / 7)) * setGain
+        const span = (Date.now() - new Date(String(first.first_at)).getTime()) / 86400000
+        const window = Math.max(MIN_WINDOW_DAYS, Math.min(SPEED_WINDOW_DAYS, span))
+        perWeek = (eqWin / SET_EQ / (window / 7)) * setGain
     }
     const setsToday = await setNumberToday(userId, null) - 1
 
@@ -88,6 +115,7 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
         setsGoal: null,
         setsThisWeek: Math.floor(weekEq / SET_EQ),
         weekEq,
+        days,
         setsToday,
         nowIso: new Date().toISOString(),
     }
@@ -101,8 +129,8 @@ export async function ballometerReportLine(userId: string): Promise<string | nul
     const d = await getBallometerData(userId)
     const m = meterOf(d)
     if (m.zone === 'new') return null
-    const s = computeSetMeter(d.perWeek, d.setGain, needSetsOf(d.setsGoal, m, d.setGain, new Date()))
+    const s = computeSetMeter(d.perWeek === null ? null : d.weekEq / SET_EQ, needSetsOf(d.setsGoal, m, d.setGain, new Date()), new Date())
     const mark = s.zone === 'green' ? '🟢' : s.zone === 'yellow' ? '🟡' : '🔴'
     const when = m.needPrimary === 0 ? 'цель уже взята' : m.readyDate ? `цель ${m.targetTest} баллов будет взята к ${dateRu(m.readyDate)}` : 'на этой скорости цель не приближается'
-    return `${mark} Сетометр: темп *${formatScore(s.pace)} из ${s.need} сетов в неделю*, ${when}`
+    return `${mark} Сетометр: на этой неделе *${formatScore(s.pace)} из ${s.need} сетов*, ${when}`
 }
