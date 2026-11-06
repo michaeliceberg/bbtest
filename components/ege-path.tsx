@@ -2,21 +2,75 @@
 
 // components/ege-path.tsx
 //
-// Экран «Мой путь к ЕГЭ»: прогноз ↔ цель, копилка первичных баллов, «что решать сегодня»
-// и дорожка из станций-заданий экзамена. Данные считает lib/egeMap.ts на сервере.
+// «Мой путь к ЕГЭ» в стиле Сетометра (армейская латунь, штабная карта):
+// 1) шкала баллов «Сейчас → Цель» (components/ege-score-ruler.tsx), 2) Сетометр — скорость и карта дат
+// (components/ballometer.tsx), 3) следующий сет, 4) неделя и диагностика. Данные — lib/egeMap.ts, lib/ballometer.ts.
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { startEgeMove } from '@/actions/ege-move'
 import Link from 'next/link'
-import { getVuz } from '@/lib/vuzList'
+import { Dumbbell, Swords, Lightbulb } from 'lucide-react'
+import { startEgeMove } from '@/actions/ege-move'
 import { setEgeTarget } from '@/actions/ege-target'
-import { EgeSkyMove } from '@/components/ege-sky-move'
-import type { EgeMap } from '@/lib/egeMap'
-import { testToPrimary } from '@/lib/egeScale'
+import { getVuz } from '@/lib/vuzList'
+import type { EgeMap, EgeMove } from '@/lib/egeMap'
 import { VuzPlaque } from '@/components/vuz-plaque'
+import { EgeScoreRuler } from '@/components/ege-score-ruler'
+import { BallometerPanel, type BallometerProps } from '@/components/ballometer'
+import { stencilFont } from '@/lib/fonts'
 
-export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard, vuzId = null, hangar }: { map: EgeMap; target: number | null; vuzId?: string | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode; hangar?: React.ReactNode }) => {
+const CARD = 'rounded-2xl border-2 border-[#6B5B3A] bg-[#151F23] p-3'
+const Label = ({ children }: { children: React.ReactNode }) => (
+    <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-[#C9B98F]">{children}</p>
+)
+
+// Следующий сет: что делать прямо сейчас.
+function NextSetCard({ mv, activeMoveId, onMove, pending, error }: { mv: EgeMove; activeMoveId: number | null; onMove: () => void; pending: boolean; error: string | null }) {
+    return (
+        <div className={CARD}>
+            <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                    <Label>Следующий сет</Label>
+                    <p className="-mt-1 text-base font-black text-[#F2F7FB]">
+                        {mv.topic ? <>Фундамент · {mv.topic.title}</> : <>Задание №{mv.station.num} · {mv.station.title}</>}
+                    </p>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/miguel/miguel-compass.webp" alt="" className="-my-2 h-16 w-16 shrink-0 object-contain" />
+            </div>
+            {mv.reason && (
+                <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-[#2A2414] px-2.5 py-1.5 text-xs font-bold leading-snug text-[#F2C35B]">
+                    <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0" /><span>{mv.reason}</span>
+                </p>
+            )}
+            <div className="mt-2 flex flex-col gap-1.5">
+                {mv.trainerLesson && (
+                    <div className="flex items-center gap-2.5 rounded-lg border border-[#2C3A41] bg-black/20 px-2.5 py-2">
+                        <Dumbbell className="h-4 w-4 shrink-0 text-[#A1D151]" />
+                        <span className="min-w-0 flex-1 text-sm font-bold text-[#F2F7FB]">1 урок тренажёра: <span className="text-[#C9D3D9]">{mv.trainerLesson.title}</span></span>
+                    </div>
+                )}
+                {mv.tasks && (
+                    <div className="flex items-center gap-2.5 rounded-lg border border-[#2C3A41] bg-black/20 px-2.5 py-2">
+                        <Swords className="h-4 w-4 shrink-0 text-[#53ADEF]" />
+                        <span className="min-w-0 flex-1 text-sm font-bold text-[#F2F7FB]">{mv.tasks.count} задач из задачника: <span className="text-[#C9D3D9]">{mv.tasks.title}</span></span>
+                    </div>
+                )}
+            </div>
+            <button type="button" onClick={onMove} disabled={pending}
+                className="mt-2.5 w-full rounded-xl border-b-4 py-2.5 text-base font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
+                style={{ background: '#F2C35B', borderBottomColor: '#B8862E' }}>
+                {activeMoveId ? 'Продолжить сет ➜' : 'Начать сет ➜'}
+            </button>
+            {error && <p className="mt-2 text-center text-sm font-bold text-[#DC605B]">{error}</p>}
+        </div>
+    )
+}
+
+export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard, vuzId = null, ballometer }: {
+    map: EgeMap; target: number | null; vuzId?: string | null; activeMoveId: number | null
+    unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode; ballometer: BallometerProps | null
+}) => {
     const router = useRouter()
     const [moveError, setMoveError] = useState<string | null>(null)
     const [movePending, startMove] = useTransition()
@@ -27,52 +81,57 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
         else setMoveError(r && 'error' in r ? r.error : 'Не получилось собрать сет')
     })
     const [target, setTarget] = useState<number | null>(initialTarget)
-    const [, startTransition] = useTransition()
+    const [, startGoal] = useTransition()
+    // цель меняет и Сетометр (нужная скорость) — перерисовываем страницу с сервера
     const chooseGoal = (g: number) => {
         setTarget(g)
-        startTransition(() => { setEgeTarget(g).catch(() => null) })
+        startGoal(async () => { await setEgeTarget(g).catch(() => null); router.refresh() })
     }
-    const targetPrimary = target !== null ? testToPrimary(target) : null
-
     const vuz = getVuz(vuzId)
+    const reached = target !== null && map.test >= target
 
     return (
-        <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                    <h1 className="text-2xl font-black text-[#F2F7FB]">{vuz ? `Мой путь в ${vuz.short}` : 'Мой путь к ЕГЭ'}</h1>
-                    <p className="text-sm font-bold text-[#9AA7B0]">Профильная математика · 20 заданий (ЕГЭ-2027)</p>
+        <div className="mx-auto w-full max-w-5xl px-3 pb-24 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+            <div className="flex min-w-0 flex-col gap-3">
+                <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                        <h1 className={`${stencilFont.className} text-xl leading-tight text-[#F2F7FB]`}>{vuz ? `Мой путь в ${vuz.short}` : 'Мой путь к ЕГЭ'}</h1>
+                        <p className="text-xs font-bold text-[#9AA7B0]">Профильная математика · ЕГЭ-2027</p>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={reached ? '/miguel/miguel-summit.webp' : '/miguel/miguel-path.webp'} alt="" className="-my-2 h-20 w-20 shrink-0 object-contain" />
                 </div>
-                {/* цель взята — Мигель на вершине, иначе показывает дорогу */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={targetPrimary !== null && map.primary >= targetPrimary ? '/miguel/miguel-summit.webp' : '/miguel/miguel-path.webp'} alt="" className="h-24 w-24 shrink-0 object-contain" />
+
+                <EgeScoreRuler test={map.test} testLo={map.testLo} testHi={map.testHi} primary={map.primary} primaryMax={map.primaryMax} target={target} onPickGoal={chooseGoal} />
+
+                {ballometer && (
+                    <div className={CARD}>
+                        <Label>Сетометр · как быстро идёшь</Label>
+                        <BallometerPanel d={ballometer} hideGoal />
+                    </div>
+                )}
             </div>
 
-            {diagCard}
-            {map.hasDiag && (
-                <Link href="/diagnostic" className="mt-2 block text-right text-xs font-black text-[#9AA7B0] underline-offset-4 hover:underline">Итоги диагностики ›</Link>
-            )}
-
-            <EgeSkyMove map={map} target={target} targetPrimary={targetPrimary} onPickGoal={chooseGoal}
-                activeMoveId={activeMoveId} onMove={goMove} movePending={movePending} moveError={moveError} />
-
-            {/* кейс за законченный ход, который ещё не открыли */}
-            {unclaimedCase && (
-                <Link href={`/move/${unclaimedCase.id}`} className="mt-4 flex items-center gap-3 rounded-3xl border-2 p-3 active:translate-y-[1px]"
-                    style={{ borderColor: 'rgba(0,197,255,0.6)', background: 'linear-gradient(135deg, rgba(0,197,255,0.16), #161F23 70%)', boxShadow: '0 4px 0 #0B3A4A' }}>
-                    <img src="/chests/rare0001.svg" alt="" className="h-14 w-14 shrink-0 animate-tile-float" />
-                    <div className="min-w-0 flex-1">
-                        <p className="text-base font-black text-[#F2F7FB]">Тебя ждёт редкий кейс!</p>
-                        <p className="text-xs font-bold text-[#8FD8F2]">За сет по заданию №{unclaimedCase.taskNum}</p>
-                    </div>
-                    <span className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-black text-[#151F24]" style={{ backgroundColor: '#00C5FF', boxShadow: '0 4px 0 #0089B3' }}>Открыть</span>
-                </Link>
-            )}
-
-          </div>
-          {/* Ангар живёт в задачнике — здесь не дублируем, оставляем только табличку вуза */}
-          <div className="min-w-0"><div className="mb-3 mt-6 lg:mt-0"><VuzPlaque vuzId={vuzId} forecast={map.test} /></div>{hangar}</div>
+            <div className="mt-3 flex min-w-0 flex-col gap-3 lg:mt-0">
+                {map.move && <NextSetCard mv={map.move} activeMoveId={activeMoveId} onMove={goMove} pending={movePending} error={moveError} />}
+                {/* кейс за законченный сет, который ещё не открыли */}
+                {unclaimedCase && (
+                    <Link href={`/move/${unclaimedCase.id}`} className="flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#00C5FF]/60 bg-[#151F23] p-3 active:border-b-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/chests/rare0001.svg" alt="" className="h-12 w-12 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-base font-black text-[#F2F7FB]">Тебя ждёт редкий кейс!</p>
+                            <p className="text-xs font-bold text-[#8FD8F2]">За сет по заданию №{unclaimedCase.taskNum}</p>
+                        </div>
+                        <span className="shrink-0 rounded-lg border-b-4 border-[#0089B3] bg-[#00C5FF] px-3 py-1.5 text-sm font-black text-[#151F24]">Открыть</span>
+                    </Link>
+                )}
+                <VuzPlaque vuzId={vuzId} forecast={map.test} />
+                {diagCard}
+                {map.hasDiag && (
+                    <Link href="/diagnostic" className="block text-right text-xs font-black text-[#9AA7B0] underline-offset-4 hover:underline">Итоги диагностики ›</Link>
+                )}
+            </div>
         </div>
     )
 }

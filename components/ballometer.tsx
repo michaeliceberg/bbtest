@@ -86,7 +86,7 @@ export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; classN
             <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
             <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[sm.zone]} className={stencilFont.className}>{formatScore(sm.pace)}</text>
             {/* «из N» — сколько сетов в неделю нужно (колокольчик здесь пробовали — лишний) */}
-            <text x="100" y="167" textAnchor="middle" fontSize="11" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need}</text>
+            <text x="100" y="166" textAnchor="middle" fontSize="9" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need} В НЕДЕЛЮ</text>
         </svg>
     )
 }
@@ -394,7 +394,8 @@ const PlanMoodBadge = ({ mood }: { mood: Mood }) => {
     )
 }
 
-export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onClose?: () => void; demo?: boolean }) {
+// hideGoal — на «Моём пути» цель уже показана на шкале баллов, здесь её не дублируем.
+export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerProps; onClose?: () => void; demo?: boolean; hideGoal?: boolean }) {
     const now = useMemo(() => new Date(d.nowIso), [d.nowIso])
     const goalDate = useMemo(() => (d.goalDateIso ? new Date(d.goalDateIso) : null), [d.goalDateIso])
     const m = computeMeter({ primary: d.primary, perWeek: d.perWeek, targetTest: d.targetTest, setGain: d.setGain, goalDate, now })
@@ -421,7 +422,7 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
             {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute -right-1.5 -top-1.5 z-10 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
             {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
             <div className={`flex items-end justify-between gap-1 ${onClose ? 'pr-5' : ''}`}>
-                <GoalBlock target={m.targetTest} demo={demo} />
+                {!hideGoal && <GoalBlock target={m.targetTest} demo={demo} />}
                 {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
                 <CommandanteMood mood={mood} />
             </div>
@@ -630,10 +631,11 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
         // колонка в ширину свёрнутой линейки
         <button type="button" onClick={onClick} aria-label={label}
             className="flex w-[38px] flex-col items-center gap-0.5 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1 shadow-[-3px_3px_10px_#0007]">
+            {/* одно число — сколько сетов сегодня; темп за неделю только цветом дуги (две дроби рядом путали) */}
             <BellIcon n={bellN(d)} size={18} />
-            <TodayText {...t} size={10.5} />
+            <span className="text-[7.5px] font-black uppercase leading-none text-[#9AA7B0]">сегодня</span>
+            <TodayText {...t} size={12} />
             <MiniArc s={sm} />
-            <span className="-mt-1 text-[12px]">{score}</span>
         </button>
     )
 }
