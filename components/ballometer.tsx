@@ -411,44 +411,48 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
         <div className="relative w-full">
             {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute -right-1.5 -top-1.5 z-10 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
             {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
-            <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 ${onClose ? 'pr-5' : ''}`}>
+            <div className={`grid grid-cols-[auto_auto_minmax(0,1fr)] items-end gap-x-4 ${onClose ? 'pr-5' : ''}`}>
                 {!hideGoal && (
-                    <TopStat label="Цель" unit={`${declensionRu(m.targetTest, 'балл', 'балла', 'баллов')} ЕГЭ`} href={demo ? undefined : '/path'}>
-                        <span className="text-[30px] text-[#F2F7FB]">{primaryToTest(d.primary)}</span>
-                        <span className="text-[20px] text-[#F2C35B]">/{m.targetTest}</span>
-                    </TopStat>
+                    // подпись над каждым числом своя: «сейчас» над прогнозом, «цель» над целью
+                    <Link href={demo ? '#' : '/path'} className="block min-w-0">
+                        <span className="inline-grid grid-cols-[auto_auto_auto] items-baseline gap-x-1">
+                            <span className="text-[10px] font-black uppercase tracking-wide text-[#9AA7B0]">Сейчас</span>
+                            <span />
+                            <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель</span>
+                            <span className={`${stencilFont.className} mt-0.5 text-[30px] leading-none text-[#F2F7FB]`}>{primaryToTest(d.primary)}</span>
+                            <span className={`${stencilFont.className} mt-0.5 text-[20px] leading-none text-[#5C6B73]`}>/</span>
+                            <span className={`${stencilFont.className} mt-0.5 text-[24px] leading-none text-[#F2C35B]`}>{m.targetTest}</span>
+                        </span>
+                        <span className="mt-1 block whitespace-nowrap text-[11px] font-bold text-[#9AA7B0]">{declensionRu(m.targetTest, 'балл', 'балла', 'баллов')} ЕГЭ</span>
+                    </Link>
                 )}
                 {!reached && (
                     <TopStat label="Эта неделя" unit={setsWord(sets)}>
-                        <span className="text-[30px]" style={{ color: weekDone >= sets ? ZONE_COLOR.green : '#F2F7FB' }}>{fmtSets(weekDone) || '0'}</span>
+                        <span className="text-[30px]" style={{ color: sm.zone === 'new' ? '#F2F7FB' : ZONE_COLOR[sm.zone] }}>{fmtSets(weekDone) || '0'}</span>
                         <BouncyTotal value={sets} color="#F2C35B" size={20} />
                     </TopStat>
                 )}
-                <CommandanteMood mood={mood} />
+                <div className="justify-self-end"><CommandanteMood mood={mood} /></div>
             </div>
-            <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
-                <BallometerGauge s={sm} className="h-[148px] w-[148px] self-center" />
-                {!reached ? (
-                    <div className="flex flex-col justify-center rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
-                        {/* сколько сетов в неделю ставим себе: это начало зелёной зоны на Сетометре */}
-                        <span className="text-center text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Мой план</span>
-                        <div className="mt-1 flex items-center justify-between gap-1">
-                            <button type="button" aria-label="Меньше сетов" onClick={() => change(sets - 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">−</button>
-                            <div className="min-w-0 text-center leading-none">
-                                <motion.span key={sets} initial={{ scale: 1.7 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="inline-block text-2xl font-black" style={{ color: tone }}>{sets}</motion.span>
-                                <span className="block text-[10px] font-bold text-[#E8D9B8]">{setsWord(sets)}/нед</span>
-                            </div>
-                            <button type="button" aria-label="Больше сетов" onClick={() => change(sets + 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">+</button>
-                        </div>
-                        <button type="button" disabled={planLate || saved === 'saving'} onClick={save}
-                            className="mt-1.5 w-full rounded-lg border-b-4 py-1.5 text-xs font-black text-[#151F24] active:border-b-0 disabled:opacity-40"
-                            style={{ background: '#F2C35B', borderBottomColor: '#B8862E' }}>
-                            {saved === 'done' ? 'Готово!' : planLate ? 'После экзамена' : 'Применить'}
-                        </button>
-                    </div>
-                ) : <div />}
-            </div>
+            {/* круглый прибор убран (решение пользователя 2026-11-06): он показывал то же «1,3 из 3», что верхняя строка и сетка */}
             {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} />}
+            {!reached && (
+                // «Мой план»: сколько сетов в неделю ставим себе — это норма в верхней строке и в сетке
+                <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
+                    <span className="shrink-0 text-[10px] font-black uppercase leading-tight tracking-wide text-[#C9B98F]">Мой<br />план</span>
+                    <button type="button" aria-label="Меньше сетов" onClick={() => change(sets - 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">−</button>
+                    <div className="w-12 shrink-0 text-center leading-none">
+                        <motion.span key={sets} initial={{ scale: 1.7 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }} className="inline-block text-2xl font-black" style={{ color: tone }}>{sets}</motion.span>
+                        <span className="block text-[10px] font-bold text-[#E8D9B8]">{setsWord(sets)}/нед</span>
+                    </div>
+                    <button type="button" aria-label="Больше сетов" onClick={() => change(sets + 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">+</button>
+                    <button type="button" disabled={planLate || saved === 'saving'} onClick={save}
+                        className="min-w-0 flex-1 rounded-lg border-b-4 py-2 text-xs font-black text-[#151F24] active:border-b-0 disabled:opacity-40"
+                        style={{ background: '#F2C35B', borderBottomColor: '#B8862E' }}>
+                        {saved === 'done' ? 'Готово!' : planLate ? 'После экзамена' : 'Применить'}
+                    </button>
+                </div>
+            )}
             {/* реплика Команданте: облачко с хвостиком к нему */}
             <div className="relative mt-2 rounded-xl border-2 bg-[#F1E4C3] px-3 py-1.5 text-[13px] font-bold leading-snug text-[#2B2118]" style={{ borderColor: ZONE_COLOR[m.zone] }}>
                 <span className="relative">{moodLine(mood, m, d.primary, d.perWeek, now)}</span>
@@ -547,7 +551,7 @@ export function BallometerChip({ d, className = '' }: { d: BallometerProps; clas
     )
 }
 
-// Карточка для бокового блока (на компьютере): спидометр и короткий итог.
+// Карточка для бокового блока (на компьютере): сеты этой недели (цветом графика, без круглого прибора) и короткий итог.
 export function BallometerCard({ d }: { d: BallometerProps }) {
     const [open, setOpen] = useState(false)
     const m = meterFrom(d)
@@ -555,11 +559,14 @@ export function BallometerCard({ d }: { d: BallometerProps }) {
     return (
         <>
             <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#151F23] p-3 text-left active:border-b-0">
-                <BallometerGauge s={sm} className="h-20 w-20 shrink-0" />
+                <span className={`${stencilFont.className} shrink-0 whitespace-nowrap leading-none`}>
+                    <span className="text-[30px]" style={{ color: sm.zone === 'new' ? '#F2F7FB' : ZONE_COLOR[sm.zone] }}>{formatScore(sm.pace)}</span>
+                    <span className="text-[18px] text-[#F2C35B]">/{sm.need}</span>
+                </span>
                 <span className="min-w-0 text-sm font-bold leading-snug text-[#E8D9B8]">
                     <b className="block text-base text-white">{NAME}</b>
                     {m.zone === 'new' ? 'Прогревается' : m.needPrimary === 0 ? 'Цель взята' : m.readyDate ? <>Цель {m.targetTest} к <span style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateShort(m.readyDate)}</span></> : 'Скорость нулевая'}
-                    {m.needPrimary > 0 && <span className="block text-xs text-[#9AA7B0]">На этой неделе сетов: {d.setsThisWeek} из {sm.need}</span>}
+                    {m.needPrimary > 0 && <span className="block text-xs text-[#9AA7B0]">сетов на этой неделе</span>}
                 </span>
             </button>
             {open && <Modal d={d} onClose={() => setOpen(false)} />}
