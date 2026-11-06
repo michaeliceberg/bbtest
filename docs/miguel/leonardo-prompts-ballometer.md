@@ -10,7 +10,7 @@ Leonardo: Image Guidance — `public/miguel/miguel-base.webp`, сила 0.45, ф
 |---|---|---|
 | miguel-chill.webp | chill | успеваем раньше срока (оценка ≥ 4,8 или цель взята) |
 | miguel-calm.webp | calm | зелёная зона, идём по плану |
-| miguel-mobilize.webp | mobilize | жёлтая зона, надо собраться (ещё нет — стоит бинокль) |
+| miguel-mobilize-{bucket,box,bugle}.webp | mobilize | жёлтая зона, надо собраться (три позы, каждый раз случайная) |
 | miguel-panic-watch.webp | alarm | красная зона, паника, часы |
 | miguel-glare.webp | angry | почти стоим, злится крупным планом |
 

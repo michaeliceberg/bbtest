@@ -278,13 +278,13 @@ const TodaySets = ({ done, goal }: { done: number; goal: number }) => {
     )
 }
 
-// Настроение Команданте по показанию прибора. Картинки — public/miguel (промпты — docs/miguel/leonardo-prompts-ballometer.md);
-// для «собраться» своей позы ещё нет — стоит бинокль.
+// Настроение Команданте по показанию прибора. Картинки — public/miguel (промпты — docs/miguel/leonardo-prompts-ballometer.md).
+// Если поз несколько, на каждое открытие берётся случайная (выбор уже в браузере, после монтирования).
 type Mood = 'chill' | 'calm' | 'mobilize' | 'alarm' | 'angry' | 'new'
-const MOOD: Record<Mood, { src: string; motion: 'bob' | 'shake' | 'jitter' | 'none' }> = {
+const MOOD: Record<Mood, { src: string | string[]; motion: 'bob' | 'shake' | 'jitter' | 'none' }> = {
     chill: { src: '/miguel/miguel-chill.webp', motion: 'bob' }, // шезлонг и коктейль: успеваем раньше срока
     calm: { src: '/miguel/miguel-calm.webp', motion: 'bob' }, // идём по плану
-    mobilize: { src: '/miguel/miguel-binoculars.webp', motion: 'none' }, // жёлтая: собраться
+    mobilize: { src: ['/miguel/miguel-mobilize-bucket.webp', '/miguel/miguel-mobilize-box.webp', '/miguel/miguel-mobilize-bugle.webp'], motion: 'jitter' }, // жёлтая: собраться
     alarm: { src: '/miguel/miguel-panic-watch.webp', motion: 'jitter' }, // красная: паника, часы
     angry: { src: '/miguel/miguel-glare.webp', motion: 'shake' }, // почти стоим: злится крупным планом
     new: { src: '/miguel/miguel-think.webp', motion: 'none' },
@@ -319,13 +319,20 @@ function moodLine(mood: Mood, m: MeterResult) {
     }
 }
 
+const pickMoodSrc = (mood: Mood) => {
+    const src = MOOD[mood].src
+    return typeof src === 'string' ? src : src[Math.floor(Math.random() * src.length)]
+}
+
 const CommandanteMood = ({ mood }: { mood: Mood }) => {
     const mo = MOOD_MOTION[MOOD[mood].motion]
+    const [src, setSrc] = useState<string | null>(null)
+    useEffect(() => { setSrc(pickMoodSrc(mood)) }, [mood])
     return (
         <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }} className="h-[112px] w-[112px]">
             <motion.div animate={mo.animate} transition={mo.transition} className="h-full w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={MOOD[mood].src} alt="" draggable={false} className="h-full w-full object-contain" />
+                {src && <img src={src} alt="" draggable={false} className="h-full w-full object-contain" />}
             </motion.div>
         </motion.div>
     )
@@ -455,7 +462,7 @@ export function BallometerCard({ d }: { d: BallometerProps }) {
 
 const HELLO: Record<Exclude<MeterZone, 'new'>, { src: string; lines: string[] }> = {
     green: { src: '/miguel/miguel-calm.webp', lines: ['Боец, Баллометр в зелёной зоне! Идём по плану.', 'Зелёная зона, амиго. Так держать, ¡vamos!'] },
-    yellow: { src: '/miguel/miguel-binoculars.webp', lines: ['Боец, Баллометр в жёлтой зоне. Чуть прибавим?', 'Жёлтая зона. Пара сетов, и снова будет зелёная.'] },
+    yellow: { src: '/miguel/miguel-mobilize-bucket.webp', lines: ['Боец, Баллометр в жёлтой зоне. Чуть прибавим?', 'Жёлтая зона. Пара сетов, и снова будет зелёная.'] },
     red: { src: '/miguel/miguel-panic-watch.webp', lines: ['Тревога, боец! Баллометр в красной зоне. Настроим темп?', 'Красная зона, амиго. Маньяна кончилась, настроим программу!'] },
 }
 const HELLO_KEY = 'ballometerHello'
