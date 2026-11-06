@@ -1,10 +1,10 @@
 'use client'
 
 // Питомец на простом виде /trainer — Команданте Мигель (с 2026-10-28, раньше Га-Га): стикер с эмоцией и ОДНА
-// короткая реплика в армейском тоне с юмором (docs/miguel/miguel.md). Поздний час и серия под угрозой →
-// секундомер; квест выполнен → чек-лист; серия продлена → огонь; иначе стоит и зовёт на урок (фраза по дню).
+// короткая реплика в армейском тоне с юмором (docs/miguel/miguel.md). Пропал или вечером серия под угрозой → стучит
+// в стекло; квест выполнен или серия продлена → радуется и благодарит; иначе спокойно зовёт на урок (фраза по дню).
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { motion } from 'framer-motion'
 import { GlassKnockIntro } from './glass-knock-intro'
 import { GooseWalker } from '@/components/goose-walker'
@@ -13,6 +13,7 @@ type Props = {
     streak: number
     hasExtendedToday: boolean
     questDone: boolean
+    away?: boolean // с прошлого занятия прошло 2 дня и больше
     firstName?: string | null
     dayKey: number // день месяца с сервера — чтобы SSR и клиент выбирали одно и то же
     compact?: boolean // маленькая версия для дорожки: питомец стоит у текущей точки
@@ -27,29 +28,44 @@ type Props = {
 
 // На карте Команданте Мигель. Картинки — стикеры public/miguel/*, стоит — miguel-point (тычет в ученика).
 const GAGA_STAND = '/miguel/miguel-point.webp'
-// Позы на карте: у каждой вес (сколько раз встречается в пуле). Стекло — любимый приём, поэтому чаще, кулак у стекла — реже
-// стука клювом; карандаш крупно выглядит угрожающе, поэтому редко. big — только позы за стеклом: сначала на весь экран со
-// стуком (components/glass-knock-intro.tsx).
-const POSE_POOL: { src: string; weight: number; big?: boolean }[] = [
-    { src: '/miguel/miguel-glass-stop.webp', weight: 8, big: true },
-    { src: '/miguel/miguel-knock.webp', weight: 8, big: true },
-    { src: '/miguel/miguel-glass-fist.webp', weight: 4, big: true },
-    { src: GAGA_STAND, weight: 2 },
-    { src: '/miguel/miguel-watch.webp', weight: 2 },
-    { src: '/miguel/miguel-arms-crossed.webp', weight: 2 },
-    { src: '/miguel/miguel-beckon.webp', weight: 2 },
-    { src: '/miguel/miguel-book.webp', weight: 2 },
-    { src: '/miguel/miguel-book-small.webp', weight: 2 },
-    { src: '/miguel/miguel-shrug.webp', weight: 2 },
-    { src: '/miguel/miguel-crate.webp', weight: 2 },
+// Позы на карте: у каждой вес (сколько раз встречается в пуле). big — позы за стеклом: сначала на весь экран со стуком
+// (components/glass-knock-intro.tsx). Настроение гуся зависит от ученика: стук и угрозы — только когда он опаздывает или
+// пропал, за выполненное — улыбчивые позы и благодарность, в обычный день — спокойные.
+type Pose = { src: string; weight: number; big?: boolean }
+const GLASS_POSES: Pose[] = [
+    { src: '/miguel/miguel-glass-stop.webp', weight: 2, big: true },
+    { src: '/miguel/miguel-knock.webp', weight: 2, big: true },
+    { src: '/miguel/miguel-glass-fist.webp', weight: 1, big: true },
+]
+const AWAY_POSES: Pose[] = [
+    ...GLASS_POSES,
     { src: '/miguel/miguel-danger-pencil.webp', weight: 1 },
     { src: '/miguel/miguel-danger-pencil-2.webp', weight: 1 },
 ]
+const HAPPY_POSES: Pose[] = [
+    { src: '/miguel/miguel-dance.webp', weight: 3 },
+    { src: '/miguel/miguel-salute-stars.webp', weight: 3 },
+    { src: '/miguel/miguel-happy.webp', weight: 2 },
+    { src: '/miguel/miguel-thumbs.webp', weight: 2 },
+    { src: '/miguel/miguel-trophy.webp', weight: 2 },
+    { src: '/miguel/miguel-streak.webp', weight: 1 },
+]
+const IDLE_POSES: Pose[] = [
+    { src: GAGA_STAND, weight: 1 },
+    { src: '/miguel/miguel-watch.webp', weight: 1 },
+    { src: '/miguel/miguel-arms-crossed.webp', weight: 1 },
+    { src: '/miguel/miguel-beckon.webp', weight: 1 },
+    { src: '/miguel/miguel-book.webp', weight: 1 },
+    { src: '/miguel/miguel-book-small.webp', weight: 1 },
+    { src: '/miguel/miguel-shrug.webp', weight: 1 },
+    { src: '/miguel/miguel-crate.webp', weight: 1 },
+]
+const ALL_POSES = [...AWAY_POSES, ...HAPPY_POSES, ...IDLE_POSES]
 // poseKey приходит с сервера: SSR и браузер выбирают одну и ту же позу
-const pickPose = (key: number) => {
-    const total = POSE_POOL.reduce((sum, p) => sum + p.weight, 0)
+const pickPose = (pool: Pose[], key: number) => {
+    const total = pool.reduce((sum, p) => sum + p.weight, 0)
     let left = ((key * 2654435761) >>> 0) % total
-    return POSE_POOL.find((p) => (left -= p.weight) < 0) ?? POSE_POOL[0]
+    return pool.find((p) => (left -= p.weight) < 0) ?? pool[0]
 }
 
 // Мигель зовёт на урок (простой вид, когда нечего срочно делать).
@@ -64,6 +80,26 @@ export const GOOSE_IDLE = [
     'До экзамена ближе с каждым днём. Готовимся спокойно и по плану 😤',
     'Ещё один урок — ещё один шаг к ВУЗу',
     'Боец, баллы сами себя не нафармят!',
+]
+// Серия продлена сегодня: благодарим.
+export const GOOSE_THANKS = [
+    'Спасибо за службу! Серия жива 🔥',
+    'Благодарю, боец! Сегодня отряд тобой гордится 🫡',
+    'Вот это дисциплина! Спасибо 🔥',
+    'Га-га-га! Серия цела, спасибо, боец 🎖️',
+]
+// Опаздывает: вечер, а серия не продлена.
+export const GOOSE_LATE = [
+    'Боец, серия сгорит! Хоть один урок? ⏱️',
+    'Тук-тук! Серия на волоске, боец!',
+    'Опаздываешь, боец! Один урок спасёт серию',
+]
+// Пропал: не заходил со вчерашнего дня и дольше.
+export const GOOSE_AWAY = [
+    'Боец, ты куда пропал? Отряд ждёт 👀',
+    'Тук-тук! Самоволка затянулась, боец!',
+    'Давно тебя не видел. Возвращайся в строй!',
+    'Маньяна кончилась, боец. Урок сегодня!',
 ]
 // Квест дня выполнен.
 export const GOOSE_QUEST = [
@@ -130,7 +166,7 @@ export const PetBust = ({ src, size, width, bob = false, flip = false }: { src: 
     </div>
 )
 
-export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, questDone, away = false, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
     const bustRef = useRef<HTMLDivElement>(null)
     const [bustHidden, setBustHidden] = useState(false)
     // Час сверяем только после монтирования (часовой пояс браузера).
@@ -141,11 +177,12 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
 
     let mood: Mood
     if (cheer) mood = cheer
-    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/miguel/miguel-stopwatch.webp', text: 'Боец, серия сгорит! Хоть один урок? ⏱️' }
-    else if (questDone) mood = { src: '/miguel/miguel-quest.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
-    else if (hasExtendedToday) mood = { src: pickPose(poseKey).src, text: 'Серия жива! Хорошо служишь 🔥' }
-    else mood = { src: pickPose(poseKey).src, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
-    const big = POSE_POOL.some((p) => p.big && p.src === mood.src)
+    else if (away) mood = { src: pickPose(AWAY_POSES, poseKey).src, text: GOOSE_AWAY[dayKey % GOOSE_AWAY.length] }
+    else if (streak > 0 && !hasExtendedToday && late) mood = { src: pickPose(GLASS_POSES, poseKey).src, text: GOOSE_LATE[dayKey % GOOSE_LATE.length] }
+    else if (questDone) mood = { src: pickPose(HAPPY_POSES, poseKey).src, text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
+    else if (hasExtendedToday) mood = { src: pickPose(HAPPY_POSES, poseKey).src, text: GOOSE_THANKS[dayKey % GOOSE_THANKS.length] }
+    else mood = { src: pickPose(IDLE_POSES, poseKey).src, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
+    const big = ALL_POSES.some((p) => p.big && p.src === mood.src)
 
     if (compact && cheer && walking !== undefined) {
         // Мигель идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу
@@ -192,15 +229,18 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     return (
         <div className="flex items-center gap-3 mb-3">
             <motion.img
+                ref={bustRef as RefObject<HTMLImageElement>}
                 key={mood.src}
                 src={mood.src}
                 alt=""
                 draggable={false}
                 className="w-20 h-20 object-contain flex-shrink-0 select-none"
+                style={{ visibility: bustHidden ? 'hidden' : undefined }}
                 initial={{ scale: 0.7, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }}
                 transition={{ scale: { type: 'spring', bounce: 0.5, duration: 0.5 }, opacity: { duration: 0.2 }, y: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }}
             />
+            {big && <GlassKnockIntro src={mood.src} targetRef={bustRef} size={80} onActive={setBustHidden} />}
             <div className="relative flex-1 rounded-2xl border-2 border-[#3A464E] bg-[#151F23] px-4 py-3 text-base font-extrabold text-[#F2F7FB] leading-snug">
                 <span className="absolute -left-[9px] top-1/2 -translate-y-1/2 w-4 h-4 rotate-45 bg-[#151F23] border-l-2 border-b-2 border-[#3A464E]" />
                 {mood.text}

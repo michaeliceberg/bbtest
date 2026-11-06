@@ -249,6 +249,7 @@ const TLearnPage = async () => {
     // рендерится, т.к. currentStreakForRisk останется 0).
     let currentStreakForRisk = 0;
     let hasExtendedStreakToday = false;
+    let isAwayFromTrainer = false;
     if (activeTCourse?.courseId) {
         const linkedCourseProgress = await getUserCourseProgress(activeTCourse.courseId);
         currentStreakForRisk = linkedCourseProgress?.streak ?? 0;
@@ -257,6 +258,8 @@ const TLearnPage = async () => {
         const todayForStreak = new Date();
         todayForStreak.setHours(0, 0, 0, 0);
         hasExtendedStreakToday = !!lastActive && lastActive.getTime() === todayForStreak.getTime();
+        // Пропал: последний раз занимался позавчера или раньше (вчерашнего дня уже не хватает для серии)
+        isAwayFromTrainer = !!lastActive && todayForStreak.getTime() - lastActive.getTime() >= 2 * 24 * 60 * 60 * 1000;
     }
 
     // Стиль оформления (переключатель в сайдбаре, cookie uiTheme).
@@ -392,7 +395,7 @@ const TLearnPage = async () => {
                         egeTasksByTUnit={egeTasksByTUnit}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
                         coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title, imageSrc: c.imageSrc })), activeCourseId: resolvedActiveCourseId }}
-                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate(), poseKey: Math.floor(Date.now() / 1000) } : undefined}
+                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, away: isAwayFromTrainer, dayKey: new Date().getDate(), poseKey: Math.floor(Date.now() / 1000) } : undefined}
                     />
                 </div>
             </FeedWrapper>
