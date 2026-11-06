@@ -15573,3 +15573,4 @@ TrainerPathStops: когда все темы задания на золоте, �
 ## Котик: звуки при нажатии; стук только у поз за стеклом (2026-11-06)
 Нажатие на котика (`petCat`, components/hangar-cat.tsx): 75% мурчит (`CAT_PURR_SOUND`, `CAT_PURR_CHANCE`), иначе мяукает (`CAT_MEW_SOUNDS`) — `public/cat-sounds/*.m4a`, оригиналы `public/sounds-originals/cat/`. Сам по себе котик по-прежнему молчит.
 Карта /trainer (`POSE_POOL`, components/trainer-pet.tsx): на весь экран со стуком — только позы за стеклом: glass-stop 8, knock 8, glass-fist 4; карандаши без эффекта, вес 1. Проба — /test-glass-knock.
+Легенда Рэмбо в линейке (2026-11-06): ступеньки 20/26/32/38 px (цифра 1 больше не обрезается), справа в две строки «+ тренажёр» и «по кругу».

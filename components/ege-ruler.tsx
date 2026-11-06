@@ -12,7 +12,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Lock, Repeat, Swords, X } from 'lucide-react'
+import { Lock, Plus, Repeat, Swords, X } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import type { RulerData, RulerTask } from '@/lib/egeRuler'
 import { declensionRu } from '@/usefulFunctions'
@@ -279,9 +279,12 @@ function RamboLegend() {
             <p className="flex items-center gap-1 text-[13px] font-black" style={{ color: TICK }}><Swords className="h-4 w-4 shrink-0" style={{ color: '#E04848' }} />Случайные задачи</p>
             <div className="mt-1.5 flex items-end gap-1">
                 {RAMBO_STEPS.map((c, i) => (
-                    <span key={c} className="flex w-6 items-end justify-center rounded-t pb-0.5 font-mono text-[11px] font-black" style={{ height: 14 + i * 6, background: c, color: '#1D2210' }}>{i + 1}</span>
+                    <span key={c} className="flex w-6 items-end justify-center rounded-t pb-1 font-mono text-[11px] font-black leading-none" style={{ height: 20 + i * 6, background: c, color: '#1D2210' }}>{i + 1}</span>
                 ))}
-                <span className="ml-1.5 flex items-center gap-1 text-[11px] font-bold" style={{ color: `${TICK}CC` }}><Repeat className="h-3.5 w-3.5" />по кругу</span>
+                <span className="ml-1.5 flex flex-col gap-1 text-[11px] font-bold" style={{ color: `${TICK}CC` }}>
+                    <span className="flex items-center gap-1"><Plus className="h-3.5 w-3.5" />тренажёр</span>
+                    <span className="flex items-center gap-1"><Repeat className="h-3.5 w-3.5" />по кругу</span>
+                </span>
             </div>
         </>
     )
