@@ -16,6 +16,7 @@ type Row = Record<string, unknown>
 const SPEED_WINDOW_DAYS = 14
 const MIN_WINDOW_DAYS = 7 // новичка не штрафуем за короткую историю: считаем неделю
 const DEFAULT_SET_GAIN = 0.2
+const HISTORY_WEEKS = 26 // для серии закрытых недель и рекорда
 
 export type BallometerData = {
     primary: number
@@ -28,6 +29,7 @@ export type BallometerData = {
     weekEq: number // то же в «задачах»: урок = 5, сет = 10 — для «до следующего сета ещё …»
     days: number[] // weeks × 7 чисел в сетах по дням, последняя семёрка — эта неделя (пн … вс, по Москве)
     gridStartIso: string // понедельник первой строки сетки, 'YYYY-MM-DD'
+    weekHistory: number[] // сеты по неделям за полгода, последняя — эта неделя
     setsToday: number
     nowIso: string
 }
@@ -82,6 +84,25 @@ export async function getBallometerData(userId: string, weeks = 2): Promise<Ball
             JOIN t_lessons tl ON tl.id = p.t_lesson_id
             WHERE tl.t_unit_id IN (${inList(tUnitIds)}) AND p.first_done + interval '3 hours' >= ${gridStart}
         ) x GROUP BY d`)) as unknown as Row[]
+    // Сеты по неделям за полгода (от старой к новой, последняя — эта неделя): серия закрытых недель и рекорд.
+    const weekRows = (await db.execute(sql`
+        SELECT ((${weekStart}::date - wk) / 7)::int AS back, sum(n)::int AS eq FROM (
+            SELECT date_trunc('week', cp.date_done + interval '3 hours')::date AS wk, 1 AS n
+            FROM challenge_progress cp JOIN challenges c ON c.id = cp.challenge_id JOIN lessons l ON l.id = c.lesson_id
+            WHERE cp.user_id = ${userId} AND cp.completed AND cp.done_right AND l.unit_id IN (${inList(unitIds)})
+              AND cp.date_done + interval '3 hours' >= ${weekStart} - make_interval(days => ${(HISTORY_WEEKS - 1) * 7})
+            UNION ALL
+            SELECT date_trunc('week', p.first_done + interval '3 hours')::date, ${LESSON_EQ}
+            FROM (SELECT t_lesson_id, min(date_done) AS first_done FROM t_lesson_progress
+                  WHERE user_id = ${userId} AND training_pts > 0 GROUP BY 1) p
+            JOIN t_lessons tl ON tl.id = p.t_lesson_id
+            WHERE tl.t_unit_id IN (${inList(tUnitIds)}) AND p.first_done + interval '3 hours' >= ${weekStart} - make_interval(days => ${(HISTORY_WEEKS - 1) * 7})
+        ) x GROUP BY wk`)) as unknown as Row[]
+    const weekHistory = Array.from({ length: HISTORY_WEEKS }, () => 0)
+    for (const r of weekRows) {
+        const i = HISTORY_WEEKS - 1 - Number(r.back)
+        if (i >= 0 && i < HISTORY_WEEKS) weekHistory[i] += Number(r.eq) / SET_EQ
+    }
     const [gs] = (await db.execute(sql`SELECT to_char(${gridStart}, 'YYYY-MM-DD') AS start`)) as unknown as Row[]
     const startMs = Date.parse(String(gs?.start) + 'T00:00:00Z')
     const days = Array.from({ length: weeks * 7 }, () => 0)
@@ -119,6 +140,7 @@ export async function getBallometerData(userId: string, weeks = 2): Promise<Ball
         weekEq,
         days,
         gridStartIso: String(gs?.start),
+        weekHistory,
         setsToday,
         nowIso: new Date().toISOString(),
     }

@@ -27,6 +27,7 @@ export type BallometerProps = {
     weekEq?: number // сделано на этой неделе в «задачах» (урок = 5, сет = 10)
     days?: number[] // по 7 чисел на неделю, последняя семёрка — эта неделя (пн … вс, по Москве)
     gridStartIso?: string // понедельник первой строки сетки, 'YYYY-MM-DD'
+    weekHistory?: number[] // сеты по неделям за полгода, последняя — эта неделя
     setsToday: number
     nowIso: string
 }
@@ -454,7 +455,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d:
                 </div>
             )}
             {/* круглый прибор убран (решение пользователя 2026-11-06): он показывал то же «1,3 из 3», что верхняя строка и сетка */}
-            {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} startIso={d.gridStartIso} />}
+            {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} startIso={d.gridStartIso} history={d.weekHistory} />}
             {!reached && (
                 // «Мой план»: сколько сетов в неделю ставим себе — это норма в верхней строке и в сетке
                 <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
@@ -487,8 +488,40 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d:
 // Сетка 2 × 7: прошлая и эта неделя по дням (пн … вс). В квадратике — сеты за день (урок = полсета, задача = десятая),
 // заливка снизу по доле сета; справа — сумма за неделю и галочка, если норма закрыта (решение пользователя 2026-11-06).
 const fmtSets = (v: number) => (v === 0 ? '' : (Math.round(v * 10) / 10).toString().replace('.', ','))
+// Под сеткой одной строкой (2026-11-07): серия закрытых недель (как у Strava/GitHub — один пропущенный день её не
+// ломает), рекорд недели и сравнение с тем же днём прошлой недели. Норма прошлых недель — нынешняя (истории нет).
+const WeekFacts = ({ days, need, now, history }: { days: number[]; need: number; now: Date; history?: number[] }) => {
+    const facts: { text: string; color: string }[] = []
+    if (history && history.length > 1 && need > 0) {
+        const closed = (v: number) => v >= need - 0.05
+        let streak = 0
+        for (let i = history.length - 2; i >= 0 && closed(history[i]); i--) streak++
+        if (closed(history[history.length - 1])) streak++ // эта неделя уже закрыта — тоже в серию
+        if (streak > 0) facts.push({ text: `🔥 ${streak} ${declensionRu(streak, 'неделя', 'недели', 'недель')} подряд норма`, color: '#F2C35B' })
+        const best = Math.max(...history)
+        if (best > 0) facts.push({ text: `🏆 рекорд недели: ${fmtSets(best)}`, color: '#E8D9B8' })
+    }
+    if (days.length >= 14) {
+        const k = daysPassedInWeek(now) + 1 // сколько дней этой недели уже было, считая сегодня
+        const thisWeek = days.slice(-7, -7 + k).reduce((a, b) => a + b, 0)
+        const lastWeek = days.slice(-14, -14 + k).reduce((a, b) => a + b, 0)
+        const diff = Math.round((thisWeek - lastWeek) * 10) / 10
+        if (thisWeek > 0 || lastWeek > 0) {
+            facts.push(diff > 0 ? { text: `▲ на ${fmtSets(diff)} больше, чем к этому дню прошлой недели`, color: '#78C93C' }
+                : diff < 0 ? { text: `▼ на ${fmtSets(-diff)} меньше, чем к этому дню прошлой недели`, color: '#F2C35B' }
+                    : { text: 'как к этому дню прошлой недели', color: '#9AA7B0' })
+        }
+    }
+    if (!facts.length) return null
+    return (
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 border-t border-[#2C3A41] pt-1.5 text-[11px] font-bold">
+            {facts.map((f) => <span key={f.text} style={{ color: f.color }}>{f.text}</span>)}
+        </div>
+    )
+}
+
 const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-const WeekGrid = ({ days, need, now, startIso }: { days: number[]; need: number; now: Date; startIso?: string }) => {
+const WeekGrid = ({ days, need, now, startIso, history }: { days: number[]; need: number; now: Date; startIso?: string; history?: number[] }) => {
     const weeks = Math.floor(days.length / 7)
     const today = daysPassedInWeek(now) + (weeks - 1) * 7 // индекс сегодняшнего дня в сетке
     // подпись строки: две последние — «Прошлая/Эта неделя», раньше — дата понедельника («с 13 окт»)
@@ -536,6 +569,7 @@ const WeekGrid = ({ days, need, now, startIso }: { days: number[]; need: number;
                     </div>
                 )
             })}
+            <WeekFacts days={days} need={need} now={now} history={history} />
         </div>
     )
 }

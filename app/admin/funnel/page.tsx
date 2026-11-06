@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { VIBES } from '@/lib/vibes'
+import { getRhythmStats, type RhythmStats } from '@/lib/adminRhythm'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,6 +97,8 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			coalesce(l.lessons, 0) AS lessons, coalesce(l.users, 0) AS users,
 			coalesce(g.guests, 0) AS guests, coalesce(n.new_users, 0) AS new_users
 		FROM lessons l FULL JOIN guests g ON g.d = l.d FULL JOIN news n ON n.d = coalesce(l.d, g.d)`)
+
+	const rhythm = await getRhythmStats(since)
 
 	const gangs = await q(sql`
 		SELECT g.id, g.emoji, g.name, count(m.id) AS members
@@ -293,6 +296,8 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			</div>
 
 			<ActivityHeatmap rows={heatRows} />
+
+			<RhythmCard r={rhythm} />
 
 			<Card title="📣 Откуда приходят (кампании)">
 				{campaigns.length === 0 ? <Empty /> : (
@@ -689,6 +694,89 @@ const ActivityHeatmap = ({ rows }: { rows: Row[] }) => {
 			<p className="text-xs text-[#6B7A83] mt-2">
 				Цвет — уроки тренажёра учеников + гости на пробном уроке. Твои и тестовые прохождения не считаются. Наведи на день — подробности.
 			</p>
+		</Card>
+	)
+}
+
+// ── Ритм учеников (lib/adminRhythm.ts) ──────────────────────────────────
+
+const fmtWeek = (iso: string) => {
+	const d = new Date(iso + 'T00:00:00Z')
+	return `с ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}
+const RHYTHM_BUCKETS = ['1–2 дня', '3–4 дня', '5–7 дней']
+const RHYTHM_COLORS = ['#E5533D', '#F2C35B', '#78C93C']
+
+const RhythmCard = ({ r }: { r: RhythmStats }) => {
+	const maxHour = Math.max(1, ...r.hours)
+	const last = r.weeks[r.weeks.length - 1]
+	return (
+		<Card title="📅 Ритм учеников">
+			<div className="space-y-5 text-sm">
+				{/* 1–2: дни в неделю и норма сетов, по полным неделям */}
+				<div>
+					<p className="mb-2 text-xs text-[#9AA7B0]">Сколько дней в неделю занимаются и сколько закрыли норму сетов (норма — последний «Применить» в Сетометре, иначе 3). Только полные недели.</p>
+					<div className="space-y-1.5">
+						{r.weeks.map((w) => (
+							<div key={w.week} className="grid grid-cols-[64px_minmax(0,1fr)_120px] items-center gap-2">
+								<span className="text-xs text-[#9AA7B0]">{fmtWeek(w.week)}</span>
+								<div className="flex h-5 overflow-hidden rounded bg-[#232F34]">
+									{w.days.map((cnt, i) => cnt > 0 && (
+										<div key={i} title={`${RHYTHM_BUCKETS[i]}: ${cnt}`} className="flex items-center justify-center text-[11px] font-bold text-[#151F24]"
+											style={{ width: `${(cnt / Math.max(1, w.active)) * 100}%`, background: RHYTHM_COLORS[i] }}>{cnt}</div>
+									))}
+								</div>
+								<span className="text-xs">{w.active} акт. · медиана {w.median} дн · норма {pct(w.closed, w.active)}</span>
+							</div>
+						))}
+					</div>
+					<div className="mt-1.5 flex gap-3 text-[11px] text-[#9AA7B0]">
+						{RHYTHM_BUCKETS.map((b, i) => <span key={b} className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: RHYTHM_COLORS[i] }} />{b}</span>)}
+					</div>
+					{last && <p className="mt-1 text-xs text-[#9AA7B0]">Прошлая неделя: закрыли норму {last.closed} из {last.active}.</p>}
+				</div>
+
+				{/* 3: возвращаемость */}
+				<div>
+					<p className="mb-2 text-xs text-[#9AA7B0]">Возвращаемость: новые ученики недели (по первому занятию) — какая доля занималась через 1, 2 и 4 недели.</p>
+					<table className="w-full text-xs">
+						<thead><tr className="text-[#9AA7B0]"><th className="text-left font-normal">Неделя</th><th className="font-normal">Новых</th><th className="font-normal">+1 нед</th><th className="font-normal">+2 нед</th><th className="font-normal">+4 нед</th></tr></thead>
+						<tbody>
+							{r.cohorts.map((c) => (
+								<tr key={c.week} className="border-t border-[#232F34]">
+									<td className="py-1">{fmtWeek(c.week)}</td>
+									<td className="text-center">{c.size}</td>
+									{c.back.map((b, i) => <td key={i} className="text-center" style={{ color: b === null ? '#5C6B73' : b >= 0.5 ? '#78C93C' : b >= 0.25 ? '#F2C35B' : '#E5533D' }}>{b === null ? '—' : `${Math.round(b * 100)}%`}</td>)}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+
+				{/* 4–6 */}
+				<div className="grid gap-3 md:grid-cols-2">
+					<div>
+						<p className="mb-2 text-xs text-[#9AA7B0]">Сеты за период: начаты → закончены, где остановились</p>
+						<div className="grid grid-cols-4 gap-2">
+							<Stat small label="начато" value={r.moves.total} />
+							<Stat small label={`закончено (${pct(r.moves.done, r.moves.total)})`} value={r.moves.done} />
+							<Stat small label="на тренажёре" value={r.moves.atTrainer} />
+							<Stat small label="на задачах" value={r.moves.atTasks} />
+						</div>
+						<p className="mt-3 mb-1 text-xs text-[#9AA7B0]">Рост прогноза ЕГЭ за 4 недели (у кого 2+ недели замеров)</p>
+						<p className="text-lg font-extrabold">{r.growth.users ? `${r.growth.avg > 0 ? '+' : ''}${r.growth.avg} балла в среднем · ${r.growth.users} уч.` : '—'}</p>
+					</div>
+					<div>
+						<p className="mb-2 text-xs text-[#9AA7B0]">Когда занимаются (за период, час по Москве)</p>
+						<div className="flex h-24 items-end gap-[2px]">
+							{r.hours.map((h, i) => (
+								<div key={i} title={`${i}:00 — ${h}`} className="flex-1 rounded-t bg-[#4D8FC4]" style={{ height: `${Math.max(2, (h / maxHour) * 100)}%`, opacity: h ? 1 : 0.25 }} />
+							))}
+						</div>
+						<div className="mt-1 flex justify-between text-[10px] text-[#6B7A83]"><span>0</span><span>6</span><span>12</span><span>18</span><span>23</span></div>
+					</div>
+				</div>
+			</div>
 		</Card>
 	)
 }
