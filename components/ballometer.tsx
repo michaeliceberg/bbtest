@@ -41,81 +41,81 @@ const arc = (a0: number, a1: number, r: number) => {
 }
 const toAngle = (s: number) => -120 + (s / 5) * 240
 
-const RIVETS = [0, 45, 90, 135, 180, 225, 270, 315].map((a) => ({ x: Math.round((100 + 88.5 * Math.sin((a * Math.PI) / 180)) * 100) / 100, y: Math.round((100 - 88.5 * Math.cos((a * Math.PI) / 180)) * 100) / 100 }))
 const GAUGE_TICKS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
 
 // Армейский прибор из ангара: латунный корпус с заклёпками, тёмный циферблат, стрелка и окошко с показанием.
 export const BallometerGauge = ({ m, className = '' }: { m: MeterResult; className?: string }) => (
     <svg viewBox="0 0 200 200" className={className}>
-        <defs>
-            <linearGradient id="bm-brass" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#C4A765" />
-                <stop offset=".5" stopColor="#8C7440" />
-                <stop offset="1" stopColor="#5E4C28" />
-            </linearGradient>
-        </defs>
-        <circle cx="100" cy="100" r="97" fill="url(#bm-brass)" stroke="#2B1E14" strokeWidth="3" />
-        {RIVETS.map((r, i) => (
-            <circle key={i} cx={r.x} cy={r.y} r="3.2" fill="#D9C48A" stroke="#2B1E14" strokeWidth="1.3" />
-        ))}
-        <circle cx="100" cy="100" r="80" fill="#232B22" stroke="#2B1E14" strokeWidth="3.5" />
-        <path d={arc(toAngle(0), toAngle(5), 67)} stroke="#12170F" strokeWidth="15" fill="none" />
-        <path d={arc(toAngle(0), toAngle(METER_YELLOW_FROM), 67)} stroke={ZONE_COLOR.red} strokeWidth="10" fill="none" />
-        <path d={arc(toAngle(METER_YELLOW_FROM), toAngle(METER_GREEN_FROM), 67)} stroke={ZONE_COLOR.yellow} strokeWidth="10" fill="none" />
-        <path d={arc(toAngle(METER_GREEN_FROM), toAngle(5), 67)} stroke={ZONE_COLOR.green} strokeWidth="10" fill="none" />
+        {/* корпус — картинка Leonardo (docs/hangar/tools/cut_meter.py), шкала и стрелка кодом */}
+        <image href="/meter/gauge.webp" x="0" y="0" width="200" height="200" />
+        <path d={arc(toAngle(0), toAngle(5), 62)} stroke="#12170F" strokeWidth="13" fill="none" />
+        <path d={arc(toAngle(0), toAngle(METER_YELLOW_FROM), 62)} stroke={ZONE_COLOR.red} strokeWidth="9" fill="none" />
+        <path d={arc(toAngle(METER_YELLOW_FROM), toAngle(METER_GREEN_FROM), 62)} stroke={ZONE_COLOR.yellow} strokeWidth="9" fill="none" />
+        <path d={arc(toAngle(METER_GREEN_FROM), toAngle(5), 62)} stroke={ZONE_COLOR.green} strokeWidth="9" fill="none" />
         {GAUGE_TICKS.map((n) => {
             const a = (toAngle(n) * Math.PI) / 180
-            const r0 = 59, r1 = n % 1 === 0 ? 51 : 55
+            const r0 = 55, r1 = n % 1 === 0 ? 47 : 51
             const c2 = (v: number) => Math.round(v * 100) / 100
             return <line key={n} x1={c2(100 + r0 * Math.sin(a))} y1={c2(100 - r0 * Math.cos(a))} x2={c2(100 + r1 * Math.sin(a))} y2={c2(100 - r1 * Math.cos(a))} stroke="#E8D9B8" strokeWidth={n % 1 === 0 ? 2.5 : 1.3} />
         })}
         {[0, 1, 2, 3, 4, 5].map((n) => {
             const a = (toAngle(n) * Math.PI) / 180
-            return <text key={n} x={Math.round(100 + 41 * Math.sin(a))} y={Math.round(105 - 41 * Math.cos(a))} textAnchor="middle" fontSize="13" fill="#E8D9B8" className={stencilFont.className}>{n}</text>
+            return <text key={n} x={Math.round(100 + 38 * Math.sin(a))} y={Math.round(105 - 38 * Math.cos(a))} textAnchor="middle" fontSize="13" fill="#E8D9B8" className={stencilFont.className}>{n}</text>
         })}
         <text x="100" y="84" textAnchor="middle" fontSize="8.5" letterSpacing=".6" fill="#C9B98F" className={stencilFont.className}>БАЛЛОМЕТР</text>
         <g style={{ transform: `rotate(${toAngle(m.score ?? 0)}deg)`, transformOrigin: '100px 100px', transition: 'transform .7s cubic-bezier(.3,1.5,.5,1)' }}>
-            <path d="M95.5 116 L100 40 L104.5 116 Z" fill={m.zone === 'new' ? ZONE_COLOR.new : '#E8552F'} stroke="#2B1E14" strokeWidth="1.6" strokeLinejoin="round" />
+            <path d="M95.5 114 L100 44 L104.5 114 Z" fill={m.zone === 'new' ? ZONE_COLOR.new : '#E8552F'} stroke="#2B1E14" strokeWidth="1.6" strokeLinejoin="round" />
         </g>
-        <circle cx="100" cy="100" r="9" fill="url(#bm-brass)" stroke="#2B1E14" strokeWidth="2" />
+        <circle cx="100" cy="100" r="9" fill="#B08E4E" stroke="#2B1E14" strokeWidth="2" />
         <circle cx="100" cy="100" r="2.4" fill="#2B1E14" />
-        <rect x="72" y="127" width="56" height="30" rx="4" fill="#0B1012" stroke="#2B1E14" strokeWidth="3" />
-        <rect x="72" y="127" width="56" height="30" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
-        <text x="100" y="150" textAnchor="middle" fontSize="21" fill={ZONE_COLOR[m.zone]} className={stencilFont.className}>{formatScore(m.score)}</text>
-        <text x="100" y="170" textAnchor="middle" fontSize="9" fill="#C9B98F" className={stencilFont.className}>ИЗ 5</text>
-        {/* блик на стекле */}
-        <path d="M38 78 A66 66 0 0 1 112 35 A90 90 0 0 0 38 78 Z" fill="#FFFFFF" opacity=".1" />
+        <rect x="72" y="124" width="56" height="28" rx="4" fill="#0B1012" stroke="#2B1E14" strokeWidth="3" />
+        <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
+        <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[m.zone]} className={stencilFont.className}>{formatScore(m.score)}</text>
+        <text x="100" y="165" textAnchor="middle" fontSize="8.5" fill="#C9B98F" className={stencilFont.className}>ИЗ 5</text>
     </svg>
 )
 
 const dateColor = (d: Date | null, goal: Date) => (!d || d > EGE_EXAM_DATE ? ZONE_COLOR.red : d > goal ? ZONE_COLOR.yellow : ZONE_COLOR.green)
 
 // Карта подготовки: высота и положение дороги на ней.
-const MAP_H = 200
-const ROUTE_Y = 124
-const PLAN_POLE = 82
-const FORECAST_POLE = 44
+const MAP_H = 226
+const ROUTE_Y = 152
+const PLAN_POLE = 142
+const FORECAST_POLE = 88
+const MAP_EDGE = 50 // сколько на экране занимает нерастянутый край картинки карты
+const MAP_SLICE = 110 // тот же край в пикселях файла (public/meter/map.webp)
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-const FLAG_PALE: Record<string, string> = { [ZONE_COLOR.green]: '#C7E3A5', [ZONE_COLOR.yellow]: '#F4DE9F', [ZONE_COLOR.red]: '#F0AFA3' }
 const INK = '#3A2A1E'
 const r1 = (v: number) => Math.round(v * 10) / 10
-const routeY = (p: number) => r1(ROUTE_Y + 6 * Math.sin(p * 7))
+const routeY = (p: number) => r1(ROUTE_Y + 5 * Math.sin(p * 7))
 const routePath = (p0: number, p1: number) => {
     const n = Math.max(2, Math.ceil((p1 - p0) * 50))
     return Array.from({ length: n + 1 }, (_, i) => { const p = p0 + ((p1 - p0) * i) / n; return `${r1(p * 1000)},${routeY(p)}` }).join(' ')
 }
-const swallow = (flip: boolean) => (flip ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%)' : 'polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%)')
 
-// Флажок на карте: древко от дороги вверх, полотнище с подписью. Справа от края полотнище разворачивается влево.
-function MapFlag({ pole, bg, ink, text, flip }: { pole: number; bg: string; ink: string; text: string; flip: boolean }) {
+// Геометрия флажков-картинок в px на экране: шапка (навершие + полотнище), древко тянем кодом, остриё снизу.
+const FLAG = {
+    plan: { base: 'flag-plan', w: 103, h: 60.5, poleX: 6.6, poleW: 10.6, pinW: 12.5, pinH: 18, textL: 12, textR: 78, textT: 13, textB: 58 },
+    forecast: { base: 'flag-forecast', w: 97, h: 64.5, poleX: 4.8, poleW: 8, pinW: 9.7, pinH: 17, textL: 9, textR: 70, textT: 12, textB: 59 },
+}
+
+// Флажок на карте: остриё в точке дороги, полотнище вправо, а у правого края — влево (отражаем картинку, не текст).
+function MapFlag({ kind, src, pole, ink, title, value, flip }: { kind: keyof typeof FLAG; src: string; pole: number; ink: string; title: string; value: string; flip: boolean }) {
+    const f = FLAG[kind]
+    const textLeft = flip ? f.poleX - f.textR : f.textL - f.poleX
+    /* eslint-disable @next/next/no-img-element */
     return (
         <div className="absolute left-0" style={{ top: -pole }}>
-            <span className="absolute -left-[1.5px] top-0 w-[3px] rounded-full" style={{ height: pole, background: INK }} />
-            <div className="absolute top-0 whitespace-nowrap p-[2px]" style={{ [flip ? 'right' : 'left']: 0, background: INK, clipPath: swallow(flip) } as React.CSSProperties}>
-                <div className={`py-0.5 text-xs font-black leading-tight ${flip ? 'pl-4 pr-1.5' : 'pl-1.5 pr-4'}`} style={{ background: bg, color: ink, clipPath: swallow(flip) }}>{text}</div>
+            <img src={`/meter/${f.base}-pole.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: -f.poleW / 2, top: f.h - 2, width: f.poleW, height: pole - f.h - f.pinH + 4 }} />
+            <img src={`/meter/${f.base}-pin.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: -f.pinW / 2, top: pole - f.pinH, width: f.pinW, height: f.pinH }} />
+            <img src={`/meter/${src}.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: flip ? f.poleX - f.w : -f.poleX, top: 0, width: f.w, height: f.h, transform: flip ? 'scaleX(-1)' : undefined }} />
+            <div className="absolute flex flex-col items-center justify-center whitespace-nowrap text-center leading-[1.15]" style={{ left: textLeft, width: f.textR - f.textL, top: f.textT, height: f.textB - f.textT, color: ink }}>
+                <span className="text-[9.5px] font-black uppercase tracking-wide opacity-90">{title}</span>
+                <span className="font-black" style={{ fontSize: value.length >= 9 ? 10 : 11.5 }}>{value}</span>
             </div>
         </div>
     )
+    /* eslint-enable @next/next/no-img-element */
 }
 
 // Карта: сегодня → экзамен и дальше. Флажок «Прогноз» показывает, куда придёшь с нынешней скоростью,
@@ -141,7 +141,7 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
     const planP = pos(plan)
     const shownPlanP = dragP ?? planP
     const late = plan > EGE_EXAM_DATE
-    const planBg = late ? '#C8452F' : '#4E8F2A'
+    const planColor = late ? '#C8452F' : '#4E8F2A'
     const pastRoad = !ready || ready.getTime() > end
     const readyP = ready ? pos(ready) : 1
     const fColor = dateColor(ready, plan)
@@ -155,8 +155,13 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
     const greenEnd = Math.min(planP, examP)
 
     return (
-        <div ref={mapRef} className="relative mt-3 select-none overflow-hidden rounded-xl border-[3px]"
-            style={{ height: MAP_H, borderColor: INK, background: 'linear-gradient(180deg,#EBDCB6,#DCC89A)', touchAction: 'pan-y', cursor: moved ? 'grabbing' : 'pointer' }}
+        <div className="mt-3">
+        {/* подсказка: пока ученик не тронул карту */}
+        <div className={`mb-1 flex items-center justify-center gap-1 text-xs font-black text-[#F1E4C3] transition-opacity duration-300 ${touched ? 'opacity-0' : 'opacity-100'}`}>
+            <Hand className="h-3.5 w-3.5" strokeWidth={2.6} />Тащи флажок или нажми на карту
+        </div>
+        <div ref={mapRef} className="relative select-none overflow-hidden"
+            style={{ height: MAP_H, touchAction: 'pan-y', cursor: moved ? 'grabbing' : 'pointer' }}
             onPointerDown={(e) => {
                 e.currentTarget.setPointerCapture(e.pointerId)
                 const r = e.currentTarget.getBoundingClientRect()
@@ -174,33 +179,26 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
             onPointerUp={() => { start.current = null; setDragP(null); setMoved(false) }}
             onPointerCancel={() => { start.current = null; setDragP(null); setMoved(false) }}
             onPointerLeave={() => setHoverP(null)}>
-            {/* рисунок карты: сетка, горизонтали, зона после экзамена, маршрут */}
+            {/* карта — картинка Leonardo: углы не тянем, середину тянем по ширине и повторяем по высоте */}
+            <div className="pointer-events-none absolute inset-0" style={{ boxSizing: 'border-box', borderStyle: 'solid', borderWidth: MAP_EDGE, borderImageSource: 'url(/meter/map.webp)', borderImageSlice: `${MAP_SLICE} fill`, borderImageRepeat: 'stretch round' }} />
+            {/* зона после экзамена и маршрут */}
             <svg className="pointer-events-none absolute left-[5%] top-0 h-full w-[90%] overflow-visible" viewBox={`0 0 1000 ${MAP_H}`} preserveAspectRatio="none">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => <line key={i} x1={i * 125} y1="0" x2={i * 125} y2={MAP_H} stroke="#B89E6E" strokeOpacity=".3" vectorEffect="non-scaling-stroke" />)}
-                {[40, 80, 120, 160].map((y) => <line key={y} x1="-60" y1={y} x2="1060" y2={y} stroke="#B89E6E" strokeOpacity=".3" vectorEffect="non-scaling-stroke" />)}
-                <path d="M60 60 C160 20 300 30 350 70 S240 130 120 110 S0 90 60 60 Z" fill="none" stroke="#A98C58" strokeOpacity=".45" vectorEffect="non-scaling-stroke" />
-                <path d="M110 66 C180 44 270 52 295 74 S220 106 145 94 S80 80 110 66 Z" fill="none" stroke="#A98C58" strokeOpacity=".45" vectorEffect="non-scaling-stroke" />
-                <path d="M560 150 C660 120 800 130 860 160 S760 200 640 190 S500 170 560 150 Z" fill="none" stroke="#A98C58" strokeOpacity=".4" vectorEffect="non-scaling-stroke" />
-                <rect x={examP * 1000} y="0" width={(1 - examP) * 1000 + 60} height={MAP_H} fill="#B23A32" fillOpacity=".16" />
+                <rect x={examP * 1000} y="7" width={(1 - examP) * 1000 + 45} height={MAP_H - 14} fill="#B23A32" fillOpacity=".18" />
                 <polyline points={routePath(0, greenEnd)} fill="none" stroke="#2B1E14" strokeWidth="9" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
                 <polyline points={routePath(0, greenEnd)} fill="none" stroke="#6DB33F" strokeWidth="5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
                 {greenEnd < examP && <polyline points={routePath(greenEnd, examP)} fill="none" stroke="#5E4A2A" strokeWidth="4" strokeDasharray="8 7" vectorEffect="non-scaling-stroke" />}
                 <polyline points={routePath(examP, 1)} fill="none" stroke="#B23A32" strokeWidth="4" strokeDasharray="8 7" vectorEffect="non-scaling-stroke" />
             </svg>
-            {/* подсказка: пока ученик не тронул карту */}
-            <div className={`pointer-events-none absolute left-2 top-1.5 flex items-center gap-1 text-[11px] font-black transition-opacity duration-300 ${touched ? 'opacity-0' : 'opacity-100'}`} style={{ color: INK }}>
-                <Hand className="h-3.5 w-3.5" strokeWidth={2.6} />Тащи флажок или нажми на карту
-            </div>
             {/* месяцы */}
             {months.map((mo) => (
-                <span key={mo.key} className="pointer-events-none absolute -translate-x-1/2 text-[9px] font-black" style={{ left: `${5 + 90 * mo.p}%`, top: ROUTE_Y + 14, color: '#6B5634' }}>{mo.t}</span>
+                <span key={mo.key} className="pointer-events-none absolute -translate-x-1/2 text-[9px] font-black" style={{ left: `${5 + 90 * mo.p}%`, top: ROUTE_Y + 11, color: '#5A4728' }}>{mo.t}</span>
             ))}
             {/* сегодня */}
             <div className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] bg-[#F2F7FB]" style={{ left: '5%', top: routeY(0), borderColor: INK }} />
-            <span className="pointer-events-none absolute left-1.5 whitespace-nowrap text-[11px] font-black leading-tight" style={{ top: MAP_H - 38, color: INK }}>Сегодня<br /><span className="font-bold text-[#6B5634]">{dateShort(now)}</span></span>
+            <span className="pointer-events-none absolute left-3 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-[11px] font-black leading-tight" style={{ top: MAP_H - 44, color: INK }}>Сегодня<br /><span className="font-bold">{dateShort(now)}</span></span>
             {/* экзамен */}
             <span className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${5 + 90 * examP}%`, top: routeY(examP) }}><ExamStar /></span>
-            <span className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-center text-[11px] font-black leading-tight" style={{ left: `${5 + 90 * examP}%`, top: MAP_H - 38, color: '#8E2A22' }}>Экзамен<br /><span className="font-bold">{dateShort(EGE_EXAM_DATE)}</span></span>
+            <span className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap rounded bg-[#EBDCB6]/85 px-1 text-center text-[11px] font-black leading-tight" style={{ left: `${5 + 90 * examP}%`, top: MAP_H - 44, color: '#8E2A22' }}>Экзамен<br /><span className="font-bold">{dateShort(EGE_EXAM_DATE)}</span></span>
             {/* слой флажков */}
             <div className="pointer-events-none absolute inset-y-0 left-[5%] right-[5%]">
                 {hoverP !== null && dragP === null && (
@@ -211,14 +209,13 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
                 )}
                 {showForecast && (
                     <div className="absolute inset-0" style={{ transform: `translate(${readyP * 100}%, ${routeY(readyP)}px)`, transition: 'transform .6s cubic-bezier(.3,1.5,.5,1)', zIndex: 4 }}>
-                        <MapFlag pole={FORECAST_POLE} bg={FLAG_PALE[fColor]} ink={INK} flip={readyP > 0.6} text={`Прогноз: ${pastRoad ? 'не успеваешь' : dateShort(ready!)}`} />
-                        <span className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2" style={{ background: FLAG_PALE[fColor], borderColor: INK }} />
+                        <MapFlag kind="forecast" src={`flag-forecast-${fColor === ZONE_COLOR.green ? 'green' : fColor === ZONE_COLOR.yellow ? 'yellow' : 'red'}`} pole={FORECAST_POLE} ink={INK} flip={readyP > 0.6} title="Прогноз" value={pastRoad ? 'опоздаешь' : dateShort(ready!)} />
                     </div>
                 )}
                 <div className="absolute inset-0" style={{ transform: `translate(${shownPlanP * 100}%, ${routeY(shownPlanP)}px)`, transition: moved ? 'none' : 'transform .4s cubic-bezier(.3,1.6,.5,1)', zIndex: 3 }}>
                     <div className={`absolute inset-0 ${touched ? '' : 'bm-flag-nudge'}`}>
-                        <MapFlag pole={PLAN_POLE} bg={planBg} ink="#FFFFFF" flip={shownPlanP > 0.6} text={`★ План: ${dateShort(plan)}`} />
-                        {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planBg }} />}
+                        <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} />
+                        {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planColor }} />}
                         <span className="absolute -left-[15px] -top-[15px] flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] bg-[#FFF6E4]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>
                             <MoveHorizontal className="h-4 w-4" strokeWidth={3} style={{ color: INK }} />
                         </span>
@@ -227,6 +224,7 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
             </div>
             {/* волна там, куда нажали */}
             {ripple && <span key={ripple.id} onAnimationEnd={() => setRipple(null)} className="bm-ripple pointer-events-none absolute h-12 w-12 rounded-full border-[3px]" style={{ left: ripple.x - 24, top: ripple.y - 24, borderColor: INK }} />}
+        </div>
         </div>
     )
 }
