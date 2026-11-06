@@ -26,7 +26,8 @@ export type BallometerData = {
     setsGoal: number | null
     setsThisWeek: number // целых сетов на этой неделе (сет = 1 урок + 5 задач, как бы ни решал)
     weekEq: number // то же в «задачах»: урок = 5, сет = 10 — для «до следующего сета ещё …»
-    days: number[] // 14 чисел в сетах по дням: пн прошлой недели … вс этой (по Москве)
+    days: number[] // weeks × 7 чисел в сетах по дням, последняя семёрка — эта неделя (пн … вс, по Москве)
+    gridStartIso: string // понедельник первой строки сетки, 'YYYY-MM-DD'
     setsToday: number
     nowIso: string
 }
@@ -36,7 +37,8 @@ export const meterOf = (d: BallometerData): MeterResult => computeMeter({
     goalDate: d.goalDateIso ? new Date(d.goalDateIso) : null, now: new Date(d.nowIso),
 })
 
-export async function getBallometerData(userId: string): Promise<BallometerData> {
+// weeks — сколько календарных недель в сетке по дням: в окне Сетометра 2, в «Моём пути» 5.
+export async function getBallometerData(userId: string, weeks = 2): Promise<BallometerData> {
     const map = await getEgeMap(userId, 'math_profile')
     const [u] = (await db.execute(sql`SELECT ege_target, ballometer_goal_date FROM user_progress WHERE user_id = ${userId}`)) as unknown as Row[]
 
@@ -65,8 +67,8 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
             UNION ALL SELECT min(date_done) FROM challenge_progress WHERE user_id = ${userId} AND done_right
         ) x`)) as unknown as Row[]
 
-    // По дням с понедельника прошлой недели (по Москве): 14 чисел в «задачах» (урок = 5), для сетки на Сетометре.
-    const gridStart = sql`(${weekStart} - interval '7 days')`
+    // По дням с понедельника (weeks − 1) недель назад (по Москве): weeks × 7 чисел в «задачах» (урок = 5), для сетки.
+    const gridStart = sql`(${weekStart} - make_interval(days => ${(weeks - 1) * 7}))`
     const dayRows = (await db.execute(sql`
         SELECT to_char(d, 'YYYY-MM-DD') AS day, sum(n)::int AS eq FROM (
             SELECT (cp.date_done + interval '3 hours')::date AS d, 1 AS n
@@ -82,10 +84,10 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
         ) x GROUP BY d`)) as unknown as Row[]
     const [gs] = (await db.execute(sql`SELECT to_char(${gridStart}, 'YYYY-MM-DD') AS start`)) as unknown as Row[]
     const startMs = Date.parse(String(gs?.start) + 'T00:00:00Z')
-    const days = Array.from({ length: 14 }, () => 0)
+    const days = Array.from({ length: weeks * 7 }, () => 0)
     for (const r of dayRows) {
         const i = Math.round((Date.parse(String(r.day) + 'T00:00:00Z') - startMs) / 86400000)
-        if (i >= 0 && i < 14) days[i] += Number(r.eq) / SET_EQ
+        if (i >= 0 && i < days.length) days[i] += Number(r.eq) / SET_EQ
     }
 
     const eqWin = Number(tk?.win ?? 0) + LESSON_EQ * Number(ls?.win ?? 0)
@@ -116,6 +118,7 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
         setsThisWeek: Math.floor(weekEq / SET_EQ),
         weekEq,
         days,
+        gridStartIso: String(gs?.start),
         setsToday,
         nowIso: new Date().toISOString(),
     }

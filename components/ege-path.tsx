@@ -3,8 +3,9 @@
 // components/ege-path.tsx
 //
 // «Мой путь к ЕГЭ» в стиле Сетометра (армейская латунь, штабная карта):
-// 1) шкала баллов «Сейчас → Цель» (components/ege-score-ruler.tsx), 2) Сетометр — скорость и карта дат
-// (components/ballometer.tsx), 3) следующий сет, 4) неделя и диагностика. Данные — lib/egeMap.ts, lib/ballometer.ts.
+// 1) Сетометр (components/ballometer.tsx): «Сейчас / Цель» (цель выбирается тут же), эта неделя, сетка за 5 недель,
+// «Мой план» и карта дат; 2) следующий сет, 3) кейс, вуз, неделя и диагностика. Прямую шкалу баллов 0–100
+// (components/ege-score-ruler.tsx) убрали 2026-11-06: она повторяла «Сейчас / Цель». Данные — lib/egeMap.ts, lib/ballometer.ts.
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -15,7 +16,6 @@ import { setEgeTarget } from '@/actions/ege-target'
 import { getVuz } from '@/lib/vuzList'
 import type { EgeMap, EgeMove } from '@/lib/egeMap'
 import { VuzPlaque } from '@/components/vuz-plaque'
-import { EgeScoreRuler } from '@/components/ege-score-ruler'
 import { BallometerPanel, type BallometerProps } from '@/components/ballometer'
 import { stencilFont } from '@/lib/fonts'
 
@@ -102,12 +102,9 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
                     <img src={reached ? '/miguel/miguel-summit.webp' : '/miguel/miguel-path.webp'} alt="" className="-my-2 h-20 w-20 shrink-0 object-contain" />
                 </div>
 
-                <EgeScoreRuler test={map.test} testLo={map.testLo} testHi={map.testHi} primary={map.primary} primaryMax={map.primaryMax} target={target} onPickGoal={chooseGoal} />
-
                 {ballometer && (
                     <div className={CARD}>
-                        <Label>Сетометр · как быстро идёшь</Label>
-                        <BallometerPanel d={ballometer} hideGoal />
+                        <BallometerPanel d={ballometer} onPickGoal={chooseGoal} />
                     </div>
                 )}
             </div>

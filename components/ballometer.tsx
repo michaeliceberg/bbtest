@@ -25,7 +25,8 @@ export type BallometerProps = {
     setsGoal: number | null
     setsThisWeek: number
     weekEq?: number // сделано на этой неделе в «задачах» (урок = 5, сет = 10)
-    days?: number[] // 14 чисел в сетах: пн прошлой недели … вс этой (по Москве)
+    days?: number[] // по 7 чисел на неделю, последняя семёрка — эта неделя (пн … вс, по Москве)
+    gridStartIso?: string // понедельник первой строки сетки, 'YYYY-MM-DD'
     setsToday: number
     nowIso: string
 }
@@ -278,6 +279,12 @@ const TopStat = ({ label, children, unit, href }: { label: string; children: Rea
     return href ? <Link href={href} className="block min-w-0">{body}</Link> : <div className="min-w-0">{body}</div>
 }
 
+const GOAL_CHOICES = [60, 70, 80, 90, 100]
+// Цель кликабельна: в «Моём пути» раскрывает выбор, в окне Сетометра ведёт в «Мой путь».
+const GoalWrap = ({ demo, onClick, children }: { demo?: boolean; onClick?: () => void; children: React.ReactNode }) =>
+    onClick ? <button type="button" onClick={onClick} className="block min-w-0 text-left">{children}</button>
+        : <Link href={demo ? '#' : '/path'} className="block min-w-0">{children}</Link>
+
 // «/5» — норма недели; при «− / +» в «Мой план» меняется крупным отскоком, чтобы было видно, что меняется и она.
 const BouncyTotal = ({ value, color, size, slash = true }: { value: number | string; color: string; size: number; slash?: boolean }) => (
     <motion.span key={String(value)} initial={{ scale: 2.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
@@ -384,7 +391,9 @@ const PlanMoodBadge = ({ mood }: { mood: Mood }) => {
 }
 
 // hideGoal — на «Моём пути» цель уже показана на шкале баллов, здесь её не дублируем.
-export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerProps; onClose?: () => void; demo?: boolean; hideGoal?: boolean }) {
+// onPickGoal — в «Моём пути»: нажатие на цель раскрывает выбор 60…100 прямо здесь (без него цель ведёт в «Мой путь»).
+export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal }: { d: BallometerProps; onClose?: () => void; demo?: boolean; hideGoal?: boolean; onPickGoal?: (g: number) => void }) {
+    const [goalOpen, setGoalOpen] = useState(false)
     const now = useMemo(() => new Date(d.nowIso), [d.nowIso])
     const goalDate = useMemo(() => (d.goalDateIso ? new Date(d.goalDateIso) : null), [d.goalDateIso])
     const m = computeMeter({ primary: d.primary, perWeek: d.perWeek, targetTest: d.targetTest, setGain: d.setGain, goalDate, now })
@@ -414,7 +423,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
             <div className={`grid grid-cols-[auto_auto_minmax(0,1fr)] items-end gap-x-4 ${onClose ? 'pr-5' : ''}`}>
                 {!hideGoal && (
                     // подпись над каждым числом своя: «сейчас» над прогнозом, «цель» над целью
-                    <Link href={demo ? '#' : '/path'} className="block min-w-0">
+                    <GoalWrap demo={demo} onClick={onPickGoal ? () => setGoalOpen((v) => !v) : undefined}>
                         <span className="inline-grid grid-cols-[auto_auto_auto] items-baseline gap-x-1">
                             <span className="text-[10px] font-black uppercase tracking-wide text-[#9AA7B0]">Сейчас</span>
                             <span />
@@ -424,7 +433,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
                             <span className={`${stencilFont.className} mt-0.5 text-[24px] leading-none text-[#F2C35B]`}>{m.targetTest}</span>
                         </span>
                         <span className="mt-1 block whitespace-nowrap text-[11px] font-bold text-[#9AA7B0]">{declensionRu(m.targetTest, 'балл', 'балла', 'баллов')} ЕГЭ</span>
-                    </Link>
+                    </GoalWrap>
                 )}
                 {!reached && (
                     <TopStat label="Эта неделя" unit={setsWord(sets)}>
@@ -434,8 +443,18 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
                 )}
                 <div className="justify-self-end"><CommandanteMood mood={mood} /></div>
             </div>
+            {onPickGoal && goalOpen && (
+                <div className="mt-2 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель:</span>
+                    {GOAL_CHOICES.map((g) => (
+                        <button key={g} type="button" onClick={() => { onPickGoal(g); setGoalOpen(false) }}
+                            className="flex-1 rounded-lg border-2 border-b-4 py-1.5 text-sm font-black active:border-b-0"
+                            style={g === m.targetTest ? { background: '#F2C35B', borderColor: '#B8862E', color: '#151F24' } : { background: '#1C282E', borderColor: '#3A464E', color: '#F2F7FB' }}>{g}</button>
+                    ))}
+                </div>
+            )}
             {/* круглый прибор убран (решение пользователя 2026-11-06): он показывал то же «1,3 из 3», что верхняя строка и сетка */}
-            {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} />}
+            {!reached && d.days && <WeekGrid days={d.days} need={sets} now={now} startIso={d.gridStartIso} />}
             {!reached && (
                 // «Мой план»: сколько сетов в неделю ставим себе — это норма в верхней строке и в сетке
                 <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
@@ -468,9 +487,19 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
 // Сетка 2 × 7: прошлая и эта неделя по дням (пн … вс). В квадратике — сеты за день (урок = полсета, задача = десятая),
 // заливка снизу по доле сета; справа — сумма за неделю и галочка, если норма закрыта (решение пользователя 2026-11-06).
 const fmtSets = (v: number) => (v === 0 ? '' : (Math.round(v * 10) / 10).toString().replace('.', ','))
-const WeekGrid = ({ days, need, now }: { days: number[]; need: number; now: Date }) => {
-    const today = daysPassedInWeek(now) + 7 // индекс сегодняшнего дня в сетке
-    const rows = [{ label: 'Прошлая неделя', from: 0 }, { label: 'Эта неделя', from: 7 }]
+const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const WeekGrid = ({ days, need, now, startIso }: { days: number[]; need: number; now: Date; startIso?: string }) => {
+    const weeks = Math.floor(days.length / 7)
+    const today = daysPassedInWeek(now) + (weeks - 1) * 7 // индекс сегодняшнего дня в сетке
+    // подпись строки: две последние — «Прошлая/Эта неделя», раньше — дата понедельника («с 13 окт»)
+    const labelOf = (w: number) => {
+        if (w === weeks - 1) return 'Эта неделя'
+        if (w === weeks - 2) return 'Прошлая неделя'
+        if (!startIso) return ''
+        const mon = new Date(Date.parse(startIso + 'T00:00:00Z') + w * 7 * DAY)
+        return `с ${mon.getUTCDate()} ${MONTHS_SHORT[mon.getUTCMonth()]}`
+    }
+    const rows = Array.from({ length: weeks }, (_, w) => ({ label: labelOf(w), from: w * 7 }))
     return (
         <div className="mt-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 pb-1.5 pt-1">
             <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] gap-1 text-[10px] font-black uppercase text-[#C9B98F]">
@@ -484,9 +513,9 @@ const WeekGrid = ({ days, need, now }: { days: number[]; need: number; now: Date
                 const vals = days.slice(r.from, r.from + 7)
                 const sum = vals.reduce((a, b) => a + b, 0)
                 const closed = need > 0 && sum >= need - 0.05
-                const current = r.from === 7
+                const current = r.from === (weeks - 1) * 7
                 return (
-                    <div key={r.label} className="mt-1 grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] items-center gap-1">
+                    <div key={r.from} className="mt-1 grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] items-center gap-1">
                         <span className="text-[10px] font-bold leading-tight text-[#9AA7B0]">{r.label}</span>
                         {vals.map((v, j) => {
                             const i = r.from + j

@@ -37,7 +37,7 @@ const PathPage = async () => {
     if (!lastDiag) return <DiagnosticIntro variant="screen" questionsCount={diagTasks} />
     // Снимок прогноза недели (для «Моя неделя» и воскресного отчёта родителю), потом сводка.
     if (map.primary > 0) await snapshotForecast(session.user.id, map.primary, map.test).catch(() => {})
-    const [weekly, invite, ballometer] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id), getBallometerData(session.user.id).catch(() => null)])
+    const [weekly, invite, ballometer] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id), getBallometerData(session.user.id, 5).catch(() => null)])
     const weeklyCard = <WeeklyGrowthCard w={weekly} inviteUrl={getInviteLink(invite?.code, undefined, 'math')} />
     const diagCardOnly = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
     const diagCard = <>{diagCardOnly}{weeklyCard}</>
