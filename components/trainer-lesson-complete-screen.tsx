@@ -39,10 +39,7 @@ type Props = {
     // Вторая дополнительная кнопка рядом с secondary (в один ряд).
     tertiaryLabel?: string
     onTertiary?: () => void
-    // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
-    // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
-    chainHint?: { count: number; remaining: number } | null
-    // курсы с «Сетом»: вместо серии без остановки — сколько блюд осталось до сундука (actions/plan-lesson-case.ts)
+    // курсы с «Сетом»: вместо заголовка «Вы запустили серию» — сколько блюд осталось до сундука (actions/plan-lesson-case.ts)
     setHint?: { title: string; text: string; chest: string; chestLabel?: string } | null
     // Стиль: игровой (по умолчанию) или тёплый «cozy» — плоские блоки с
     // толстой нижней гранью, тёплый фон, без звёзд и неона.
@@ -112,11 +109,10 @@ const StatCard = ({
 )
 
 export const TrainerLessonCompleteScreen = ({
-    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, tertiaryLabel, onTertiary, chainHint, setHint, theme = 'metal',
+    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, tertiaryLabel, onTertiary, setHint, theme = 'metal',
 }: Props) => {
     const cozy = theme === 'cozy'
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
-    const lessonsWord = chainHint ? declensionRu(chainHint.remaining, 'урок', 'урока', 'уроков') : ''
 
     // Сколько карточек уже показано (0..3) + кнопки.
     const [shownCards, setShownCards] = useState(0)
@@ -130,7 +126,7 @@ export const TrainerLessonCompleteScreen = ({
         return () => timers.forEach((t) => window.clearTimeout(t))
     }, [])
 
-    const accent = chainHint || setHint ? '#FBBF24' : '#38BDF8'
+    const accent = setHint ? '#FBBF24' : '#38BDF8'
 
     return (
         <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
@@ -187,20 +183,6 @@ export const TrainerLessonCompleteScreen = ({
                                     </span>
                                 )}
                             </motion.div>
-                        </>
-                    ) : chainHint ? (
-                        <>
-                            <h1
-                                className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]"
-                                style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` } : { color: '#FBBF24' }}
-                            >
-                                Серия x{chainHint.count} без остановки!
-                            </h1>
-                            <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
-                                Ещё {chainHint.remaining} {lessonsWord} без ошибок — и гарантированный мифический кейс!
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/chests/myth0001.svg" alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
-                            </p>
                         </>
                     ) : (
                         <>

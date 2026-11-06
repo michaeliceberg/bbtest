@@ -2,8 +2,8 @@
 //
 // Конец урока тренажёра: СЕРВЕР решает, какой кейс (если вообще) положен, и
 // выдаёт ключ нужной редкости. Тип этапа (сундук/мегасундук/мифический/экзамен)
-// сервер считает сам по позиции и названию урока — клиент ничего не заявляет,
-// кроме числа ошибок. Сам кейс открывается по ключу (actions/open-key-case.ts).
+// сервер считает сам по позиции и названию урока — клиент ничего не заявляет.
+// Сам кейс открывается по ключу (actions/open-key-case.ts).
 
 'use server';
 
@@ -19,14 +19,11 @@ import { advanceStorm, type StormState } from '@/lib/storm';
 import { getSetBarData, isSetCourse } from '@/lib/setBar';
 import { LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL } from '@/lib/caseRewards';
 
-// Подсказка про сет на экране итогов урока (вместо «Серия xN без остановки» в курсах с сетом).
+// Подсказка про сет на экране итогов урока (в курсах с сетом).
 export type SetFinishHint = { title: string; text: string; chest: string; chestLabel: string };
 
 export type PlannedLessonCase = {
 	key: GrantedKey | null;
-	chainBonus: number | null;
-	chainCount: number;
-	chainAlive: boolean;
 	// «Штурм»: начался после этого урока / урок засчитан в штурм (lib/storm.ts)
 	storm: StormState | null;
 	// true — ключ выдан за STORM_GOAL уроков в штурме (мифический)
@@ -34,10 +31,10 @@ export type PlannedLessonCase = {
 	setHint?: SetFinishHint | null;
 };
 
-const EMPTY: PlannedLessonCase = { key: null, chainBonus: null, chainCount: 0, chainAlive: false, storm: null };
+const EMPTY: PlannedLessonCase = { key: null, storm: null };
 const today = () => new Date().toISOString().slice(0, 10);
 
-export async function planLessonCase(t_lessonId: number, mistakes: number): Promise<PlannedLessonCase> {
+export async function planLessonCase(t_lessonId: number): Promise<PlannedLessonCase> {
 	const session = await auth();
 	if (!session?.user?.id) return EMPTY;
 	const userId = session.user.id;
@@ -78,14 +75,11 @@ export async function planLessonCase(t_lessonId: number, mistakes: number): Prom
 	}
 
 	const setCourse = isSetCourse(lesson.t_unit.t_course?.title);
-	const roll = await rollLessonCaseTier(userId, mistakes, !!storm?.counted, setCourse);
-	const key = roll.tier ? await grantCaseKey(userId, roll.tier, roll.chainBonus ? 'chain' : 'lesson', ref) : null;
+	const tier = rollLessonCaseTier(!!storm?.counted);
+	const key = tier ? await grantCaseKey(userId, tier, 'lesson', ref) : null;
 	return {
 		...base,
 		key,
-		chainBonus: key ? (roll.chainBonus?.length ?? null) : null,
-		chainCount: roll.chainCount,
-		chainAlive: roll.chainAlive,
 		setHint: setCourse ? await setFinishHint(userId, lesson.t_unit.t_course?.title) : null,
 	};
 }

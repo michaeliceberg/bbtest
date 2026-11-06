@@ -168,7 +168,7 @@ type Props = {
   isAdmin?: boolean,
   // Анонимный гость PUBLIC_TRIAL_T_LESSON_ID (см. app/t-lesson/
   // [t_lessonId]/page.tsx) — никакой сессии нет, поэтому прогресс/квест
-  // дня/ударный час не пишутся вовсе (см. goToNextQuestion/prepareFinish
+  // дня не пишутся вовсе (см. goToNextQuestion/prepareFinish
   // ниже), а финальный экран наград — GuestRewardScreen (кейс с призом +
   // CTA "зарегистрируйся, чтобы забрать") вместо TrainerQuestRewardsScreen.
   isGuest?: boolean,
@@ -344,14 +344,6 @@ export default function TQuiz({
   const [lessonCaseTier, setLessonCaseTier] = useState<LessonCaseTier | null>(null)
   const [lessonCaseKey, setLessonCaseKey] = useState<number | null>(null)
   const [wonLessonCaseReward, setWonLessonCaseReward] = useState<CaseReward | null>(null)
-  // "Ударный час" (actions/roll-lesson-case.ts) — заполняется, ТОЛЬКО
-  // если этот кейс — гарантированная награда за рубеж цепочки (3/4/5
-  // уроков подряд без остановки, ≤2 ошибок суммарно), не обычный
-  // случайный ролл. chainHint — состояние цепочки ПОСЛЕ этого урока
-  // независимо от того, выпал ли кейс вообще — для подсказки "ещё N
-  // уроков и получишь mythic" на финальном экране.
-  const [chainBonusLength, setChainBonusLength] = useState<number | null>(null)
-  const [chainHint, setChainHint] = useState<{ count: number; alive: boolean } | null>(null)
   const [setHint, setSetHint] = useState<{ title: string; text: string; chest: string; chestLabel?: string } | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
@@ -367,7 +359,7 @@ export default function TQuiz({
   // Порядок финала урока (2026-09-25, по просьбе пользователя):
   //   итоги («Серия…», quizCompleted) → рулетка кейса (если выпал) → «Квесты дня».
   // Решение «какой кейс и выпал ли» принимается СРАЗУ в конце урока
-  // (planFinishCase) — чтобы итоги уже знали подсказку «ударного часа»,
+  // (planFinishCase) — чтобы итоги уже знали подсказку про сет,
   // а сам барабан открывается уже после итогов (openPlannedCase).
   // Кейс открывается по одноразовому ключу, который выдал сервер (planLessonCase).
   type PlannedCase = { keyId: number; tier: LessonCaseTier } | null
@@ -377,23 +369,18 @@ export default function TQuiz({
   // Основной проход урока без единой ошибки (для квеста «2 урока без ошибок»).
   const mainPassPerfectRef = useRef(false)
   const planFinishCase = useCallback(async (): Promise<PlannedCase> => {
-    // Ошибки основного прохода — scoreRef против полного исходного набора
-    // БЕЗ горячего вопроса (scorableCount, см. верх файла). Тип этапа
-    // (сундук/мегасундук/мифический/экзамен) сервер считает сам.
-    const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
-    const result = await planLessonCase(t_lessonId, mistakes)
-    setChainHint({ count: result.chainCount, alive: result.chainAlive })
+    // Тип этапа (сундук/мегасундук/мифический/экзамен) сервер считает сам.
+    const result = await planLessonCase(t_lessonId)
     setSetHint(result.setHint ?? null)
     const st = result.storm
     if (st?.until) setStormInfo({ until: st.until, lessons: st.lessons, goal: st.goal, rewarded: st.rewarded })
     if (st?.started) pendingStormStartRef.current = true
     if (st?.counted) toast.success(st.mythicNow ? `🔥 Штурм: ${st.goal} из ${st.goal}! Мифический кейс твой 👑` : `🔥 Штурм: +${st.coins} монет · ${st.lessons} из ${st.goal}`)
     if (result.key) {
-      setChainBonusLength(result.chainBonus)
       return { keyId: result.key.keyId, tier: result.key.tier }
     }
     return null
-  }, [t_lessonId, questions1])
+  }, [t_lessonId])
 
   // После итогов (и мегакейса горячего вопроса) — запланированный кейс,
   // затем «Квесты дня».
@@ -438,7 +425,7 @@ export default function TQuiz({
       setShowLessonRating(true)
       return
     }
-    // Гостю (isGuest) квесты дня/ударный час не считаются вообще — оба
+    // Гостю (isGuest) испытания дня не считаются вообще — оба
     // сервер-экшена ниже уже no-op'нутся без сессии, но незачем даже
     // их дёргать: plannedCaseRef остаётся null, значит openPlannedCase()
     // упадёт в ветку "иначе" ниже, где мы рендерим GuestRewardScreen
@@ -1249,19 +1236,7 @@ export default function TQuiz({
             onTertiary={invite?.code ? () => {
               window.open(getTelegramShareLink(invite.code!, inviteSubject, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }), '_blank')
             } : undefined}
-            // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
-            // уроков подряд БЕЗ ошибок осталось до гарантированного mythic
-            // (см. actions/roll-lesson-case.ts). Раньше показывалась
-            // отдельной мелкой строкой НАД этим экраном (легко пропускалась,
-            // см. жалобу пользователя) — теперь занимает место самого
-            // заголовка внутри экрана. Не показывается, если этот же урок
-            // УЖЕ дал бонус цепочки (баннер CaseWonBanner выше это уже сказал).
             setHint={setHint}
-            chainHint={
-              !chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3
-                ? { count: chainHint.count, remaining: 3 - chainHint.count }
-                : null
-            }
           />
           {/* По просьбе пользователя временно убрана детальная таблица
               "вопрос/ваш ответ/верный ответ" ниже итога — показалась
