@@ -1,4 +1,9 @@
 import 'server-only'
+import { sql } from 'drizzle-orm'
+
+// jsonb-колонка через drizzle + postgres-js кодируется дважды и ложится строкой, а не массивом:
+// jsonb_array_length и jsonb_array_elements на ней падают. Приводим через text — тогда это настоящий массив.
+export const asJsonb = (v: unknown) => sql`${JSON.stringify(v)}::text::jsonb`
 import { PRO_AI_PHOTOS_PER_DAY } from '@/lib/pro'
 
 // lib/photoTask.ts — «Сфоткай задачу»: фото задачи → какие уроки тренажёра пройти.

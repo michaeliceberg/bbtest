@@ -8,7 +8,7 @@ import db from '@/db/drizzle';
 import { photoTaskRequests, userProgress } from '@/db/schema';
 import { auth } from '@/lib/server-auth';
 import { eq } from 'drizzle-orm';
-import { getPhotoTaskCatalog, photoTaskConfigured, runPhotoTask, PHOTO_TASK_DAILY_LIMIT } from '@/lib/photoTask';
+import { asJsonb, getPhotoTaskCatalog, photoTaskConfigured, runPhotoTask, PHOTO_TASK_DAILY_LIMIT } from '@/lib/photoTask';
 import { syncAchievements } from '@/lib/achievements';
 import { sendMessageToTelegram } from '@/utils/telegram';
 import { FREE_AI_PHOTOS, PREMIUM_PRICE_RUB, hasProFor } from '@/lib/pro';
@@ -69,8 +69,8 @@ export async function analyzeTaskPhoto(imageB64: string, mediaType: string): Pro
         const a = run.answer;
         await db.insert(photoTaskRequests).values({
             userId, model: run.model, escalated: run.escalated, readable: a.readable, confidence: a.confidence,
-            problemText: a.problem_text.slice(0, 4000), topics: a.topics, lessonIds: a.lesson_ids, missingTopics: a.missing_topics,
-            inputTokens: run.inputTokens, outputTokens: run.outputTokens, bonusLessonIds: a.bonus_lesson_ids,
+            problemText: a.problem_text.slice(0, 4000), topics: asJsonb(a.topics), lessonIds: asJsonb(a.lesson_ids), missingTopics: asJsonb(a.missing_topics),
+            inputTokens: run.inputTokens, outputTokens: run.outputTokens, bonusLessonIds: asJsonb(a.bonus_lesson_ids),
         });
         // Ачивки «Первый скан», «Первооткрыватель» и т.п. — тост клиент заберёт сам (checkAchievements).
         await syncAchievements(userId).catch(() => {});

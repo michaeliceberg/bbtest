@@ -156,6 +156,7 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (Math.max(opened, num(cc[0]?.value)) >= 10) keys.push('chests_10');
 
 	// Билд на задачу (photo_task_requests): сканы, «со звёздочкой», 0 уроков, собранный билд, соавтор.
+	// Сбой этого блока не должен останавливать остальные ачивки ученика.
 	const ph = await rows(sql`
 		SELECT count(*) FILTER (WHERE error IS NULL AND readable) AS scans,
 			bool_or(escalated AND readable) AS star,
@@ -166,7 +167,7 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 				WHERE NOT EXISTS (SELECT 1 FROM t_lesson_progress p WHERE p.user_id = ${userId} AND p.training_pts > 0 AND p.t_lesson_id = lid::int)
 			)) AS done,
 			bool_or(EXISTS (SELECT 1 FROM photo_topic_covered c WHERE coalesce(missing_topics, '[]'::jsonb) ? c.topic)) AS coauthor
-		FROM photo_task_requests WHERE user_id = ${userId}`);
+		FROM photo_task_requests WHERE user_id = ${userId}`).catch((e) => { console.error('[achievements] photo block failed', e); return [] as Awaited<ReturnType<typeof rows>>; });
 	const P = ph[0] ?? {};
 	const scans = num(P.scans);
 	if (scans >= 1) keys.push('build_first');
