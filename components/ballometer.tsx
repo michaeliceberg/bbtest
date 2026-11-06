@@ -44,7 +44,7 @@ const arc = (a0: number, a1: number, r: number) => {
 const toAngle = (v: number, max: number) => -120 + (Math.min(Math.max(v, 0), max) / max) * 240
 
 // Сетометр — армейский прибор: стрелка — твой темп (сетов в неделю), зелёная зона начинается с нужного числа сетов.
-// Справа — хорошо, как у спидометра. Внизу окошко «2,2» и под ним колокольчик «из 3».
+// Справа — хорошо, как у спидометра. Внизу окошко «2,2» и под ним «из 3».
 export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; className?: string }) => {
     const { max, need } = sm
     const step = max <= 8 ? 1 : max <= 14 ? 2 : 3
@@ -85,11 +85,8 @@ export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; classN
             <rect x="72" y="124" width="56" height="28" rx="4" fill="#0B1012" stroke="#2B1E14" strokeWidth="3" />
             <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
             <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[sm.zone]} className={stencilFont.className}>{formatScore(sm.pace)}</text>
-            {/* колокольчик сета и «из N» */}
-            <g transform="translate(73 154)">
-                {['back', 'knob', 'body'].map((l) => <image key={l} href={`/set-bells/bell-1-${l}.webp`} x="0" y="0" width="19" height="19" />)}
-            </g>
-            <text x="95" y="168" fontSize="11" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need}</text>
+            {/* «из N» — сколько сетов в неделю нужно (колокольчик здесь пробовали — лишний) */}
+            <text x="100" y="167" textAnchor="middle" fontSize="11" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need}</text>
         </svg>
     )
 }
