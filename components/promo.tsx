@@ -1,8 +1,6 @@
 'use client'
 
 // import Image from "next/image"
-import { Button } from "./ui/button"
-import Link from "next/link"
 import { Clock } from "lucide-react"
 // import LottieAnimationFine from '@/public/LottieProgressFine.json'
 // import LottieAnimationLate from '@/public/LottieProgressLate.json'
@@ -92,16 +90,6 @@ export const Promo = ({
             <span className="ml-auto font-bold text-[#F2F7FB]">{formattedDate}</span>
         </div>
 
-        <Button
-            asChild
-            className="w-full"
-            variant='super'
-            size='lg'
-        >
-            <Link href="/progress">
-                Прогресс
-            </Link>
-        </Button>
     </div>
   )
 }
