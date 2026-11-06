@@ -201,7 +201,8 @@ export const FRIDGE_OPEN_VOLUME = 0.12 // очень тихо: звук резк
 export const FRIDGE_SPARK_SOUND = '/snd-fridge-spark.mp3' // лампа холодильника мигнула: треск электричества (zapsplat)
 export const FRIDGE_SPARK_VOLUME = 0.15 // тихо: повторяется, пока открыт холодильник
 export const KNOCK_GLASS_SOUND = '/snd-knock-glass.mp3' // Мигель стучит по стеклу экрана
-// Гогот Команданте перед репликой в окне Сетометра (ElevenLabs sound-generation, 3 варианта, 2026-11-07)
-export const GOOSE_HONK_SOUNDS = ['/snd-goose-honk-1.mp3', '/snd-goose-honk-2.mp3', '/snd-goose-honk-3.mp3']
+// Гогот Команданте перед репликой в окне Сетометра: вырезан из начала озвученных фраз Мигеля, которые начинаются
+// с [goose honk] (public/miguel-voice/<id>.mp3, первые ~0,25 с до паузы), 12 штук, 2026-11-07.
+export const GOOSE_HONK_SOUNDS = Array.from({ length: 12 }, (_, i) => `/snd-goose-honk-${i + 1}.m4a`)
 // Колокольчик сета звучит еле слышно — громкий звон раздражал
 export const SET_BELL_VOLUME = 0.12
