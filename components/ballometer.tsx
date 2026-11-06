@@ -14,6 +14,7 @@ import { stencilFont } from '@/lib/fonts'
 import { computeMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, METER_GREEN_FROM, METER_YELLOW_FROM, setsForDate, setsTodayGoal, type MeterResult, type MeterZone } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
+import { BellIcon } from '@/components/set-bar'
 
 export type BallometerProps = {
     primary: number
@@ -542,6 +543,111 @@ export function BallometerHello({ d }: { d: BallometerProps }) {
                 </div>
             </div>
         </motion.div>,
+        document.body,
+    )
+}
+
+// ——— Мини-значок у правого края экрана (над свёрнутой линейкой ЕГЭ) и панель, выезжающая справа ———
+
+const todayOf = (d: BallometerProps, m: MeterResult) => {
+    const now = new Date(d.nowIso)
+    const goal = setsTodayGoal(d.setsGoal ?? setsForDate(m.needPrimary, m.goalDate, d.setGain, now), d.setsThisWeek, d.setsToday, now)
+    return { done: d.setsToday, total: Math.max(goal, d.setsToday) }
+}
+// колокольчик следующего сета: 1-й сет за день — серебряный, 2-й — синий… (как на столе сета)
+const bellN = (d: BallometerProps) => Math.min(d.setsToday + 1, 4)
+
+const MiniArc = ({ m, w = 26 }: { m: MeterResult; w?: number }) => (
+    <svg viewBox="28 28 144 100" style={{ width: w, height: (w * 100) / 144 }} className="shrink-0">
+        <path d={arc(-120, 120, 60)} stroke="#3A464E" strokeWidth="18" fill="none" />
+        <path d={arc(-120, Math.max(-119, toAngle(m.score ?? 0)), 60)} stroke={ZONE_COLOR[m.zone]} strokeWidth="18" fill="none" />
+    </svg>
+)
+const TodayText = ({ done, total, size = 11 }: { done: number; total: number; size?: number }) => (
+    <span className="font-black leading-none" style={{ fontSize: size, color: total > 0 && done >= total ? '#78C93C' : '#F2F7FB' }}>
+        {total === 0 ? '✓' : `${done}/${total}`}
+    </span>
+)
+
+export const BALLOMETER_TAB_VARIANTS = ['Колонка', 'Латунь', 'Широкая', 'Капсула'] as const
+
+// Вкладка: сверху колокольчик и «сегодня сетов 1/3», ниже показание прибора «3,8». Прижата к правому краю экрана.
+export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps; variant?: number; onClick?: () => void }) {
+    const m = meterFrom(d)
+    const c = ZONE_COLOR[m.zone]
+    const t = todayOf(d, m)
+    const label = `${NAME}: ${formatScore(m.score)} из 5, сегодня сетов ${t.done} из ${t.total}`
+    const score = <span className={`${stencilFont.className} leading-none`} style={{ color: c }}>{formatScore(m.score)}</span>
+    if (variant === 1) return (
+        // латунный корпус, как у прибора; показание в круглом окошке
+        <button type="button" onClick={onClick} aria-label={label}
+            className="flex w-[42px] flex-col items-center gap-1 rounded-l-xl border-y-2 border-l-2 border-[#5E4A26] py-1.5 shadow-[-3px_3px_10px_#0007]"
+            style={{ background: 'linear-gradient(90deg,#C9A45C,#9A7838 45%,#6E5426)' }}>
+            <BellIcon n={bellN(d)} size={22} />
+            <TodayText {...t} />
+            <span className="mt-0.5 flex h-[32px] w-[32px] items-center justify-center rounded-full border-2 border-[#2B1E14] bg-[#12170F] text-[12px]" style={{ boxShadow: `inset 0 0 0 2px ${c}` }}>{score}</span>
+        </button>
+    )
+    if (variant === 2) return (
+        // шире: колокольчик и счёт в строку, под ними дуга с показанием
+        <button type="button" onClick={onClick} aria-label={label}
+            className="flex w-[58px] flex-col items-center gap-1 rounded-l-xl border-y-2 border-l-2 bg-[#151F23] py-1.5 pl-1 shadow-[-3px_3px_10px_#0007]" style={{ borderColor: c }}>
+            <span className="flex items-center gap-0.5"><BellIcon n={bellN(d)} size={18} /><TodayText {...t} /></span>
+            <span className="h-px w-9 bg-[#3A464E]" />
+            <MiniArc m={m} w={34} />
+            <span className="-mt-1.5 text-[14px]">{score}</span>
+        </button>
+    )
+    if (variant === 3) return (
+        // капсула со свечением цвета зоны
+        <button type="button" onClick={onClick} aria-label={label}
+            className="mr-1 flex w-[38px] flex-col items-center gap-1 rounded-full border-2 bg-[#151F23] px-0.5 py-2" style={{ borderColor: c, boxShadow: `0 0 10px ${c}66, -3px 3px 10px #0007` }}>
+            <BellIcon n={bellN(d)} size={20} />
+            <TodayText {...t} size={10.5} />
+            <span className="h-[2px] w-5 rounded-full" style={{ background: c }} />
+            <span className="text-[13px]">{score}</span>
+        </button>
+    )
+    return (
+        // колонка в ширину свёрнутой линейки
+        <button type="button" onClick={onClick} aria-label={label}
+            className="flex w-[34px] flex-col items-center gap-1 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1.5 shadow-[-3px_3px_10px_#0007]">
+            <BellIcon n={bellN(d)} size={20} />
+            <TodayText {...t} size={10.5} />
+            <span className="h-px w-5 bg-[#3A464E]" />
+            <MiniArc m={m} />
+            <span className="-mt-1 text-[12px]">{score}</span>
+        </button>
+    )
+}
+
+// Вкладка у правого края + панель Баллометра, выезжающая справа налево. Портал: fixed внутри анимированных обёрток страницы
+// считался бы от обёртки. По умолчанию стоит над свёрнутой линейкой (та по центру экрана высотой ~370px).
+export function BallometerSide({ d, variant = 0, bottom = 'calc(50% + 196px)', demo }: { d: BallometerProps; variant?: number; bottom?: string; demo?: boolean }) {
+    const [open, setOpenState] = useState(false)
+    const [shown, setShown] = useState(false) // содержимое держим после первого открытия: иначе пропадало бы посреди уезжания
+    const setOpen = (v: boolean) => { setOpenState(v); if (v) setShown(true) }
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => { setMounted(true) }, [])
+    useEffect(() => {
+        const on = () => { setOpenState(true); setShown(true) }
+        window.addEventListener('ballometer-open', on)
+        return () => window.removeEventListener('ballometer-open', on)
+    }, [])
+    if (!mounted) return null
+    return createPortal(
+        <>
+            <div className="fixed right-0 z-[60]" style={{ bottom }}>
+                <BallometerTab d={d} variant={variant} onClick={() => setOpen(true)} />
+            </div>
+            {open && <div className="fixed inset-0 z-[119] bg-black/50" onClick={() => setOpen(false)} />}
+            <div className="fixed inset-y-3 right-0 z-[120] flex w-[min(94vw,430px)] items-center transition-transform duration-300 ease-out"
+                style={{ transform: open ? 'translateX(0)' : 'translateX(105%)' }}>
+                <div className="max-h-full w-full overflow-y-auto rounded-l-2xl border-y-2 border-l-2 border-[#6B5B3A] bg-[#151F23] p-3.5 shadow-[-6px_0_24px_#000a]">
+                    {shown && <BallometerPanel d={d} demo={demo} onClose={() => setOpen(false)} />}
+                </div>
+            </div>
+        </>,
         document.body,
     )
 }
