@@ -78,6 +78,8 @@ export const userProgress = pgTable('user_progress', {
 	// еда котика в холодильнике (lib/catFood.ts), сколько штук куплено
 	catMilk: integer('cat_milk').notNull().default(0),
 	catSausage: integer('cat_sausage').notNull().default(0),
+	catSourcream: integer('cat_sourcream').notNull().default(0),
+	catFish: integer('cat_fish').notNull().default(0),
 	// кормление котика (actions/cat.ts feedCat): день последнего кормления по Москве, серия дней подряд и лучшая серия
 	catFedDate: date('cat_fed_date'),
 	catFeedStreak: integer('cat_feed_streak').notNull().default(0),

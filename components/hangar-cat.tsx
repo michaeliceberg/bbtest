@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { CatFridgeModal } from '@/components/cat-fridge-modal'
 import { reportAchievement } from '@/lib/achievementsClient'
-import { liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { CAT_FOOD, liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
@@ -65,6 +65,15 @@ const EAT_PHRASE_MS = 3500
 const EAT_PHRASES: Record<CatFood, string[]> = {
     milk: ['Лак-лак-лак 🥛', 'Молочко — топ!', 'Мрр, вкусно…', 'Ещё капельку…', 'Спасибо! 😻'],
     sausage: ['Ням-ням! 😋', 'Чав-чав…', 'Колбаска — база!', 'Мрр, вкусно…', 'Спасибо! 😻'],
+    sourcream: ['Лак-лак 😋', 'Сметанка — топ!', 'Мрр, жирненько…', 'Ещё ложечку…', 'Спасибо! 😻'],
+    fish: ['Рыбка! 😻', 'Хрум-хрум…', 'Вот это улов!', 'Мрр, вкусно…', 'Спасибо! 😻'],
+}
+// Что в миске: жидкое убывает (цвет гладинки), твёрдое откусывается; side — упаковка рядом с миской (высота / ширина).
+const MEAL_LOOK: Record<CatFood, { liquid?: string; side?: { src: string; ratio: number } }> = {
+    milk: { liquid: '#FFFFFF', side: { src: '/hangar/life/cat-milk.webp', ratio: 320 / 211 } },
+    sourcream: { liquid: '#FBF3DC', side: { src: '/hangar/life/cat-sourcream.webp', ratio: 390 / 320 } },
+    sausage: {},
+    fish: {},
 }
 type Meal = { kind: CatFood; x: number; y: number; k: number; side: 1 | -1; done?: boolean }
 const pct = (v: number) => `${(v / 1024) * 100}%`
@@ -362,24 +371,25 @@ function MealBowl({ meal }: { meal: Meal }) {
     const cx = meal.x + meal.side * catW * 0.47
     const top = meal.y + 8 - h
     const anim = { animationDuration: `${CAT_EAT_MS}ms` }
+    const look = MEAL_LOOK[meal.kind]
     return (
         <motion.div className="pointer-events-none absolute inset-0" style={{ zIndex: CAT_TOP_Z - 1 }}
             initial={{ opacity: 0 }} animate={{ opacity: meal.done ? 0 : 1 }} transition={{ duration: meal.done ? 1.2 : 0.3, delay: meal.done ? 1.2 : 0 }}>
-            {meal.kind === 'milk' && (
+            {look.side && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src="/hangar/life/cat-milk.webp" alt="" draggable={false} className="absolute select-none"
-                    style={{ left: pct(cx + meal.side * w * 0.72 - w * 0.26), top: pct(top + h * 0.62 - w * 0.78), width: pct(w * 0.52) }} />
+                <img src={look.side.src} alt="" draggable={false} className="absolute select-none"
+                    style={{ left: pct(cx + meal.side * w * 0.72 - w * 0.26), top: pct(top + h * 0.62 - w * 0.52 * look.side.ratio), width: pct(w * 0.52) }} />
             )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/hangar/life/cat-bowl.webp" alt="" draggable={false} className="absolute select-none"
                 style={{ left: pct(cx - w / 2), top: pct(top), width: pct(w), height: pct(h) }} />
-            {meal.kind === 'milk' ? (
+            {look.liquid ? (
                 <span className="cat-milk-sip absolute rounded-[50%] border border-[#D9D2C0]"
-                    style={{ ...anim, left: pct(cx - w * 0.33), top: pct(top + h * 0.21), width: pct(w * 0.66), height: pct(h * 0.42), background: 'radial-gradient(closest-side, #FFFFFF 40%, #F4EEDD)' }} />
+                    style={{ ...anim, left: pct(cx - w * 0.33), top: pct(top + h * 0.21), width: pct(w * 0.66), height: pct(h * 0.42), background: `radial-gradient(closest-side, ${look.liquid} 40%, #F4EEDD)` }} />
             ) : (
                 <span className="absolute" style={{ left: pct(cx - w * 0.36), top: pct(top + h * 0.1), width: pct(w * 0.72), transform: `scaleX(${meal.side}) rotate(-8deg)` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="cat-sausage-bite block w-full select-none" style={anim} />
+                    <img src={CAT_FOOD[meal.kind].src} alt="" draggable={false} className="cat-sausage-bite block w-full select-none" style={anim} />
                 </span>
             )}
         </motion.div>
@@ -398,7 +408,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     demo?: 'barrel' | 'sbox'
     /** Лежащая бочка (№13, пока не починена) — любимое место: котик запрыгивает на неё и греется на солнце. */
     barrel?: Place | null
-    /** Еда в холодильнике (user_progress.cat_milk / cat_sausage). */
+    /** Еда в холодильнике (user_progress.cat_milk / cat_sausage / cat_sourcream / cat_fish). */
     catFood?: CatFoodStock
     /** Стол с компьютером (№7): место и картинка без задней ножки — котик любит лежать под ним. */
     desk?: { src: string; p: Place } | null
@@ -498,7 +508,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [fridgeJust, setFridgeJust] = useState(false)
     // открытый холодильник (окно с полками) и сколько еды куплено
     const [shopOpen, setShopOpen] = useState(false)
-    const [food, setFood] = useState<CatFoodStock>(catFood ?? { milk: 0, sausage: 0 })
+    const [food, setFood] = useState<CatFoodStock>(catFood ?? { milk: 0, sausage: 0, sourcream: 0, fish: 0 })
     useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage, catFood?.fedDate, catFood?.streak])
     useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
     const [name, setName] = useState<string | null>(catName)

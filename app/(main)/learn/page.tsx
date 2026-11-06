@@ -517,7 +517,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const item = taskNum ? hangarItems.find((h) => h.num === taskNum) : null
               if (!item) return (
                 <>
-                  <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
+                  <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, sourcream: userProgress.catSourcream, fish: userProgress.catFish, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
                     cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
                     cornerRight={<StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />} />
                   {levelCase && (

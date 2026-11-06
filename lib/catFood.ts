@@ -1,12 +1,15 @@
 // lib/catFood.ts
 //
 // Еда котика в холодильнике (components/cat-fridge-modal.tsx). Покупается за монеты (user_progress.points),
-// сколько куплено — user_progress.cat_milk / cat_sausage. Цены общие для клиента и сервера (actions/cat.ts).
+// сколько куплено — user_progress.cat_milk / cat_sausage / cat_sourcream / cat_fish. Цены общие для клиента и сервера (actions/cat.ts).
 
-export type CatFood = 'milk' | 'sausage'
+export type CatFood = 'milk' | 'sausage' | 'sourcream' | 'fish'
+export const CAT_FOODS: CatFood[] = ['milk', 'sausage', 'sourcream', 'fish']
 export const CAT_FOOD: Record<CatFood, { title: string; price: number; src: string }> = {
-    milk: { title: 'Молоко', price: 129, src: '/hangar/life/cat-milk.webp' },
+    milk: { title: 'Молочко', price: 129, src: '/hangar/life/cat-milk.webp' },
     sausage: { title: 'Колбаска', price: 249, src: '/hangar/life/cat-sausage.webp' },
+    sourcream: { title: 'Сметанка', price: 179, src: '/hangar/life/cat-sourcream.webp' },
+    fish: { title: 'Рыбка', price: 299, src: '/hangar/life/cat-fish.webp' },
 }
 // fedDate — день последнего кормления (YYYY-MM-DD по Москве), streak — сколько дней подряд кормили
 export type CatFoodStock = Record<CatFood, number> & { fedDate?: string | null; streak?: number }
