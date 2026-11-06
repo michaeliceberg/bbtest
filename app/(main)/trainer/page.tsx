@@ -46,8 +46,6 @@ import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
 import { getUnseenCashback } from '@/lib/referralRewards';
 import { TRIAL_SUBJECTS, TRIAL_TRACKS, subjectByTCourse } from '@/lib/trialTracks';
-import { photoTaskConfigured } from '@/lib/photoTask';
-import { AiHelperButton } from '@/components/ai-helper-button';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -331,11 +329,6 @@ const TLearnPage = async () => {
                     )}
 
                     </>)}
-
-                    {/* «Сфоткай задачу» (lib/photoTask.ts): пока нет ключа API — видно только админам. */}
-                    {(photoTaskConfigured() || userProgress.isAdmin === 1) && (
-                        <AiHelperButton />
-                    )}
 
                     {/* Разделитель между блоком пиццы и выбором темы тренажёра */}
                     <div

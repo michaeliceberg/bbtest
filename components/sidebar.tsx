@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket } from 'lucide-react'
+import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket, Sparkles } from 'lucide-react'
 import { ProSidebarButton } from '@/components/pro-sidebar-button'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
@@ -104,6 +104,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
     // { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Банда', href: '/gang', icon: Shield },
     { label: 'Ачивки', href: '/achievements', icon: Trophy },
+    // «Билд на задачу»: фото задачи → какие уроки пройти (lib/photoTask.ts)
+    { label: 'ИИ-помощник', href: '/photo-task', icon: Sparkles },
     // PRO — не пункт меню, а кнопка справа от аккаунта внизу (components/pro-sidebar-button.tsx)
     // Только админам — статистика (воронка) с телефона.
     ...(isAdmin ? [{ label: 'Админка', href: '/admin/funnel', icon: BarChart3 }] : []),
