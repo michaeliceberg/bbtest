@@ -278,15 +278,15 @@ const TodaySets = ({ done, goal }: { done: number; goal: number }) => {
     )
 }
 
-// Настроение Команданте по показанию прибора. Картинки — public/miguel; пока новых поз нет (промпты —
-// docs/miguel/leonardo-prompts-ballometer.md), стоят ближайшие из готовых — поменять src, когда придут.
+// Настроение Команданте по показанию прибора. Картинки — public/miguel (промпты — docs/miguel/leonardo-prompts-ballometer.md);
+// для «собраться» своей позы ещё нет — стоит бинокль.
 type Mood = 'chill' | 'calm' | 'mobilize' | 'alarm' | 'angry' | 'new'
 const MOOD: Record<Mood, { src: string; motion: 'bob' | 'shake' | 'jitter' | 'none' }> = {
-    chill: { src: '/miguel/miguel-coffee.webp', motion: 'bob' }, // шезлонг и коктейль: успеваем раньше срока
-    calm: { src: '/miguel/miguel-thumbs.webp', motion: 'bob' }, // идём по плану
+    chill: { src: '/miguel/miguel-chill.webp', motion: 'bob' }, // шезлонг и коктейль: успеваем раньше срока
+    calm: { src: '/miguel/miguel-calm.webp', motion: 'bob' }, // идём по плану
     mobilize: { src: '/miguel/miguel-binoculars.webp', motion: 'none' }, // жёлтая: собраться
-    alarm: { src: '/miguel/miguel-stopwatch.webp', motion: 'jitter' }, // красная: паника, часы
-    angry: { src: '/miguel/miguel-danger-pencil.webp', motion: 'shake' }, // почти стоим: злится крупным планом
+    alarm: { src: '/miguel/miguel-panic-watch.webp', motion: 'jitter' }, // красная: паника, часы
+    angry: { src: '/miguel/miguel-glare.webp', motion: 'shake' }, // почти стоим: злится крупным планом
     new: { src: '/miguel/miguel-think.webp', motion: 'none' },
 }
 const moodOf = (m: MeterResult): Mood => {
@@ -454,9 +454,9 @@ export function BallometerCard({ d }: { d: BallometerProps }) {
 }
 
 const HELLO: Record<Exclude<MeterZone, 'new'>, { src: string; lines: string[] }> = {
-    green: { src: '/miguel/miguel-thumbs.webp', lines: ['Боец, Баллометр в зелёной зоне! Идём по плану.', 'Зелёная зона, амиго. Так держать, ¡vamos!'] },
+    green: { src: '/miguel/miguel-calm.webp', lines: ['Боец, Баллометр в зелёной зоне! Идём по плану.', 'Зелёная зона, амиго. Так держать, ¡vamos!'] },
     yellow: { src: '/miguel/miguel-binoculars.webp', lines: ['Боец, Баллометр в жёлтой зоне. Чуть прибавим?', 'Жёлтая зона. Пара сетов, и снова будет зелёная.'] },
-    red: { src: '/miguel/miguel-megaphone.webp', lines: ['Тревога, боец! Баллометр в красной зоне. Настроим темп?', 'Красная зона, амиго. Маньяна кончилась, настроим программу!'] },
+    red: { src: '/miguel/miguel-panic-watch.webp', lines: ['Тревога, боец! Баллометр в красной зоне. Настроим темп?', 'Красная зона, амиго. Маньяна кончилась, настроим программу!'] },
 }
 const HELLO_KEY = 'ballometerHello'
 

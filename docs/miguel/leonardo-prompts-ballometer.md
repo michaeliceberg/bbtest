@@ -10,7 +10,7 @@ Leonardo: Image Guidance — `public/miguel/miguel-base.webp`, сила 0.45, ф
 |---|---|---|
 | miguel-chill.webp | chill | успеваем раньше срока (оценка ≥ 4,8 или цель взята) |
 | miguel-calm.webp | calm | зелёная зона, идём по плану |
-| miguel-mobilize.webp | mobilize | жёлтая зона, надо собраться |
+| miguel-mobilize.webp | mobilize | жёлтая зона, надо собраться (ещё нет — стоит бинокль) |
 | miguel-panic-watch.webp | alarm | красная зона, паника, часы |
 | miguel-glare.webp | angry | почти стоим, злится крупным планом |
 
@@ -28,11 +28,29 @@ Cartoon character illustration of a goose commander mascot: long neck, white fea
 Avoid: sticker, die-cut, white border, frame, text, letters, numbers, cigarette, cigar, smoke, spread wings, extra wings, four arms, extra fingers, realistic, 3d render, gradient background.
 ```
 
-## 3. miguel-mobilize — собраться, засучить рукава
+## 3. miguel-mobilize — «собраться» (вариант «засучил рукава» отклонён: скучно)
+
+Три варианта, выбрать один (или сгенерировать все и сравнить).
+
+### 3а. Горн «Подъём!»
 
 ```
-Cartoon character illustration of a goose commander mascot: long neck, white feathers, determined frowning eyebrows, focused eyes, black military peaked cap with a small red star, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot, olive green field jacket with sleeves being rolled up, exactly two white gloved arms, no wings. A yellow pencil in the corner of the beak, pink eraser end sticking out, sharpened tip hidden inside the mouth. He rolls up his sleeve with one hand while clenching the other fist in front of his chest, leaning slightly forward, ready to work hard, looking directly at the viewer, eye contact. Small sweat drop on the forehead. Full body, centered, thick clean black outline, flat cel shading, soft gray shading, bold simple shapes, kid-friendly. Flat solid pure magenta background #FF00FF.
-Avoid: sticker, die-cut, white border, frame, text, letters, cigarette, cigar, smoke, weapon, spread wings, extra wings, four arms, extra fingers, realistic, 3d render, gradient background.
+Cartoon character illustration of a goose commander mascot: long neck, white feathers, determined frowning eyebrows, black military peaked cap with a small red star, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot, olive green field jacket, exactly two white gloved arms, no wings. He leans back dynamically and blows hard into a shiny brass military bugle held with one hand, cheeks puffed out, the other hand raised in a fist, big comic sound burst lines and small music notes shooting out of the bugle, his cap bouncing up from the force. Energetic wake-up call, alarm mood, funny. Full body, centered, thick clean black outline, flat cel shading, soft gray shading, bold simple shapes, kid-friendly. Flat solid pure magenta background #FF00FF.
+Avoid: sticker, die-cut, white border, frame, text, letters, pencil, cigarette, cigar, smoke, spread wings, extra wings, four arms, extra fingers, realistic, 3d render, gradient background.
+```
+
+### 3б. Ведро холодной воды на себя
+
+```
+Cartoon character illustration of a goose commander mascot: long neck, white feathers, black military peaked cap with a small red star, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot, olive green field jacket, exactly two white gloved arms, no wings. He pours a metal bucket of ice-cold water over his own head with both hands, big splash of blue water and a few ice cubes flying, eyes wide open, shocked funny face, beak open shouting, feathers standing up, small shiver lines around him, instantly waking up. A yellow pencil flying away from his beak. Dynamic, funny, kid-friendly. Full body, centered, thick clean black outline, flat cel shading, soft gray shading, bold simple shapes. Flat solid pure magenta background #FF00FF.
+Avoid: sticker, die-cut, white border, frame, text, letters, puddle on the floor, background scenery, cigarette, cigar, smoke, spread wings, extra wings, four arms, extra fingers, realistic, 3d render, gradient background.
+```
+
+### 3в. Боксёрские перчатки
+
+```
+Cartoon character illustration of a goose commander mascot: long neck, white feathers, fierce determined frowning eyebrows, focused eyes looking directly at the viewer, eye contact, black military peaked cap with a small red star turned backwards, red bandana scarf with a small golden "GG" emblem and a tiny golden star on the front knot, olive green field jacket, exactly two arms, no wings. He wears big red boxing gloves and punches one glove toward the viewer in an action pose, the other glove guarding his face, legs in a wide fighting stance, speed lines behind the punch, a small sweat drop flying. A yellow pencil in the corner of the beak, pink eraser end sticking out, sharpened tip hidden inside the mouth. Energetic, "let's go!" mood, kid-friendly. Full body, centered, thick clean black outline, flat cel shading, soft gray shading, bold simple shapes. Flat solid pure magenta background #FF00FF.
+Avoid: sticker, die-cut, white border, frame, text, letters, blood, injury, opponent, cigarette, cigar, smoke, spread wings, extra wings, four arms, extra fingers, realistic, 3d render, gradient background.
 ```
 
 ## 4. miguel-panic-watch — паника, тычет в часы
