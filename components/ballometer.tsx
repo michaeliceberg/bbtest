@@ -127,7 +127,8 @@ const FLAG = {
 }
 
 // Флажок на карте: остриё в точке дороги, полотнище вправо, а у правого края — влево (отражаем картинку, не текст).
-function MapFlag({ kind, src, pole, ink, title, value, flip }: { kind: keyof typeof FLAG; src: string; pole: number; ink: string; title: string; value: string; flip: boolean }) {
+// bounce — дата меняется крупным отскоком (план сменили кнопками − / +); пока флажок тащат пальцем, без отскока.
+function MapFlag({ kind, src, pole, ink, title, value, flip, bounce }: { kind: keyof typeof FLAG; src: string; pole: number; ink: string; title: string; value: string; flip: boolean; bounce?: boolean }) {
     const f = FLAG[kind]
     const textLeft = flip ? f.poleX - f.textR : f.textL - f.poleX
     /* eslint-disable @next/next/no-img-element */
@@ -138,7 +139,10 @@ function MapFlag({ kind, src, pole, ink, title, value, flip }: { kind: keyof typ
             <img src={`/meter/${src}.webp`} alt="" draggable={false} className="absolute max-w-none" style={{ left: flip ? f.poleX - f.w : -f.poleX, top: 0, width: f.w, height: f.h, transform: flip ? 'scaleX(-1)' : undefined }} />
             <div className="absolute flex flex-col items-center justify-center whitespace-nowrap text-center leading-[1.15]" style={{ left: textLeft, width: f.textR - f.textL, top: f.textT, height: f.textB - f.textT, color: ink }}>
                 <span className="text-[8px] font-black uppercase tracking-wide opacity-90">{title}</span>
-                <span className="font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</span>
+                {bounce
+                    ? <motion.span key={value} initial={{ scale: 2.6 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}
+                        className="inline-block font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</motion.span>
+                    : <span className="font-black" style={{ fontSize: value.length >= 9 ? 8.5 : 10 }}>{value}</span>}
             </div>
         </div>
     )
@@ -242,7 +246,7 @@ function DateMap({ now, ready, showForecast, plan, goal, onDrag }: { now: Date; 
                 )}
                 <div className="absolute inset-0" style={{ transform: `translate(${shownPlanP * 100}%, ${routeY(shownPlanP)}px)`, transition: moved ? 'none' : 'transform .4s cubic-bezier(.3,1.6,.5,1)', zIndex: 3 }}>
                     <div className={`absolute inset-0 ${touched ? '' : 'bm-flag-nudge'}`}>
-                        <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} />
+                        <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} bounce={dragP === null} />
                         {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planColor }} />}
                         <span className="absolute -left-[15px] -top-[15px] flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] bg-[#FFF6E4]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>
                             <MoveHorizontal className="h-4 w-4" strokeWidth={3} style={{ color: INK }} />
