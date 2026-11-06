@@ -28,6 +28,8 @@ import { CaseReel } from '@/components/CaseReel'
 import { getLessonCasePool } from '@/lib/caseRewards'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 import { ZaNaukuArchive } from '@/components/za-nauku-archive'
+import { HangarQuotesButton } from '@/components/hangar-quotes-info'
+import { pickHangarJoke } from '@/lib/hangarJokes'
 import Confetti from 'react-confetti'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
@@ -41,36 +43,20 @@ export type SceneItem = {
     goldClaimed?: boolean // кейс за золото уже открыт
 }
 
-// По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить») и шутка — про предмет и про это задание.
+// По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить»). Фразы предметов — lib/hangarJokes.ts.
 // Какой предмет у задания — ITEM_OF_TASK (lib/hangarModel.ts).
 const FIX_LABEL: Record<number, string> = {
     1: 'Поставить стремянку', 2: 'Поднять флаг отряда', 3: 'Собрать инструменты в ящик', 4: 'Включить робота', 5: 'Распутать провода',
     6: 'Развесить ключи по местам', 7: 'Починить компьютер Мигеля', 8: 'Зажечь лампу над Фейнманом', 9: 'Зарядить шуруповёрт',
     10: 'Запустить генератор', 11: 'Починить вентилятор', 12: 'Повесить огнетушитель', 13: 'Поднять бочку с топливом',
 }
-const ITEM_JOKE: Record<number, string> = {
-    1: 'Стремянка, стена и пол — готовый прямоугольный треугольник. Залезем по нему повыше по шкале баллов 🪜',
-    2: 'Флаг показывает, куда дует ветер: направление и сила — это и есть вектор 🚩',
-    3: 'Ящик — прямоугольный параллелепипед. Разложишь инструменты — и стереометрия не страшна 🧰',
-    4: 'Робот без батарейки. Включится он или нет — вопрос вероятности. Посчитаем шансы — и он оживёт 🤖',
-    5: 'Спутанные провода — как дерево исходов. Распутаем по веточкам — и вероятность посчитается 🔌',
-    6: 'Какие шансы, что мы подберём нужный ключ? 🔧 Подскажет Мат. ожидание',
-    7: 'Без компа Команданте не может решить даже простейшее уравнение. Почини — и икс найдётся 💻',
-    8: 'Фейнман считал в уме быстрее калькулятора и взламывал сейфы. Включи свет — посчитаем так же 🔐',
-    9: 'Обороты шуруповёрта — это скорость, а скорость — производная координаты. Зарядим и закрутим 🪛',
-    10: 'Генератор — чистая физика: подставь в формулу — получишь энергию. Как в прикладной задаче ⚡',
-    11: 'Две трубы, поезд, бассейн… Вентилятор, чтобы текстовые задачи были не такими душными 🌀',
-    12: 'Струя из огнетушителя летит по параболе. Видишь график — тушишь задачу 🧯',
-    13: 'Топливо каждый год дорожает на r%. Посчитаем, сколько бочек брать сейчас, — и сэкономим ⛽',
-}
 // Что откроется после починки (рядом с шуткой в окне задания)
 const UNLOCK_HINT: Record<number, string> = {
-    7: 'В компьютере откроется архив физтех-шуток из газеты «За науку» 📰',
-    4: 'Робот будет рассказывать физтех-шутки из газеты «За науку» 💬',
+    7: 'В компьютере откроется архив физтех-шуток из газеты «За науку»',
+    4: 'Робот будет рассказывать физтех-шутки из газеты «За науку»',
 }
 const ARCHIVE_ITEM = 7 // компьютер
 const ROBOT_ITEM = 13 // робот (бывший «автомат»)
-const ROCKET_JOKE = 'Ракета летит в вуз мечты. Каждое задание второй части — новая деталь. Собери — и на старт 🚀'
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
 const WALL = new Set([2, 6, 8]) // id предметов на стене (стенд с ключами, флаг, лампа)
 const pct = (v: number) => `${(v / 1024) * 100}%`
@@ -207,6 +193,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
+    const [panelJoke, setPanelJoke] = useState('') // случайная фраза предмета, выбирается при открытии плашки
     // середина ангара по горизонтали в пикселях экрана — по ней центрируется плашка на компьютере
     const [panelX, setPanelX] = useState<number | null>(null)
     // на компьютере плашка — в body: страница задачника обёрнута анимацией (transform), и fixed внутри неё
@@ -230,7 +217,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
         setPanelNum(null)
         // закрыли плашку — снимаем «наведение»: на телефоне касание наводит и не снимает его (подсветка залипала)
         if (openNum === null) { setHover(null); trayGuard.current.closed = Date.now(); setTrayOpen(false); return }
-        const t = setTimeout(() => setPanelNum(openNum), ZOOM_MS)
+        const t = setTimeout(() => { setPanelJoke(pickHangarJoke(openNum)); setPanelNum(openNum) }, ZOOM_MS)
         return () => clearTimeout(t)
     }, [openNum])
     useEffect(() => { setTime(forcedTime ?? timeOf(new Date().getHours())) }, [forcedTime])
@@ -587,6 +574,10 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 )}
             </div>
             </div>
+            {!bare && !openItem && !trayOpen && (
+                // откуда фразы на предметах: над кнопкой «Вторая часть», на телефоне её нет — просто в углу
+                <HangarQuotesButton className={`absolute right-3 ${scrollMode ? 'bottom-3' : 'bottom-[60px]'}`} />
+            )}
             {!bare && !scrollMode && !openItem && !trayOpen && (
                 // компьютер: пульта нет — отдельная кнопка в правом нижнем углу открывает лоток 14–20 (нажатие на ракету тоже работает)
                 <button type="button" onClick={toggleTray}
@@ -631,7 +622,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
-                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.canUnveil ? 'Тренажёр взят, боец! Тяни брезент, посмотрим, что там 👀' : panelItem.locked ? 'Под брезентом что-то спрятано… 🤫 Пройди тренажёр — и узнаешь, что там' : panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
+                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.canUnveil ? 'Тренажёр взят, боец! Тяни брезент, посмотрим, что там' : panelItem.locked ? 'Под брезентом что-то спрятано… Пройди тренажёр и узнаешь, что там' : panelJoke}</p>
                     {!panelItem.locked && UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
                     {panelItem.state === 'fixed' ? (
                         <GoldClaim error={goldError} pending={pending} onClaim={() => claimGold(panelItem.num)} />

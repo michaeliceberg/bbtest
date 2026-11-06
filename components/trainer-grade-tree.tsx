@@ -16,7 +16,7 @@ import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen, Baby, Swords } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen, Baby, Swords } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -235,7 +235,7 @@ interface Props {
     // Открыт только этот таб (название темы/блока), остальные видны, но
     // заблокированы (просьба пользователя: в «ЕГЭ Физика» пока только Электродинамика).
     onlyActiveGroup?: string;
-    // Простой вид /trainer: без процентов у темы, «Справочник» — одна иконка.
+    // Простой вид /trainer: без процентов у темы.
     simple?: boolean;
     // Данные питомца (простой вид): он стоит у текущей точки дорожки.
     petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; away?: boolean; dayKey: number; poseKey?: number };
@@ -1451,30 +1451,6 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                             );
                         })()}
 
-                        {/* Иконка-ссылка на справочник — теперь настоящая маленькая
-                            кнопка (не голая иконка), на отдельной строке СРАЗУ ПОД
-                            рядом этапов и выровненная по тому же правому краю, что и
-                            сами этапы (ряд этапов растянут на всю ширину карточки —
-                            justify-end здесь автоматически даёт тот же правый край). */}
-                        <div className="flex justify-end mt-2">
-                            <Link
-                                href={`/reference?topic=${encodeURIComponent(REFERENCE_ALIAS[topic.title] ?? topic.title)}`}
-                                // h-8 фиксирует ОБЩУЮ высоту кнопки — иначе при
-                                // нажатии (active:border-b-2, было border-b-4) сама
-                                // высота элемента сокращалась на 2px и весь контент
-                                // страницы НИЖЕ (следующая тема/группа) подскакивал —
-                                // с явной высотой border-box просто "съедает" разницу
-                                // толщины нижней рамки, сама кнопка не меняет размер.
-                                className={cozy
-                                    ? "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 transition-colors text-xs font-bold text-[#FFE8C7] hover:text-white"
-                                    : "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"}
-                                style={cozy ? { background: COZY.wood, borderColor: COZY.woodEdge } : undefined}
-                                title={`Справочник — ${topic.title}`}
-                            >
-                                <Library className="w-3.5 h-3.5" />
-                                {!simple && 'Справочник'}
-                            </Link>
-                        </div>
                     </div>
         );
     };
