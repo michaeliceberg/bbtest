@@ -243,10 +243,6 @@ function DateMap({ now, ready, showForecast, plan, goal, onDrag }: { now: Date; 
                 <div className="absolute inset-0" style={{ transform: `translate(${shownPlanP * 100}%, ${routeY(shownPlanP)}px)`, transition: moved ? 'none' : 'transform .4s cubic-bezier(.3,1.6,.5,1)', zIndex: 3 }}>
                     <div className={`absolute inset-0 ${touched ? '' : 'bm-flag-nudge'}`}>
                         <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} />
-                        {/* Команданте слева от древка, под полотнищем; у левого края карты — справа, чтобы не обрезался */}
-                        <span className="absolute" style={{ top: -PLAN_POLE + FLAG.plan.h + 4, left: shownPlanP < 0.22 ? 7 : -53 }}>
-                            <PlanMoodBadge mood={planMoodOf(plan, goal)} />
-                        </span>
                         {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planColor }} />}
                         <span className="absolute -left-[15px] -top-[15px] flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] bg-[#FFF6E4]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>
                             <MoveHorizontal className="h-4 w-4" strokeWidth={3} style={{ color: INK }} />
@@ -327,7 +323,7 @@ const INK_ON_PAPER: Record<string, string> = { [ZONE_COLOR.green]: '#2F6B1E', [Z
 function moodLine(mood: Mood, m: MeterResult, primary: number, perWeek: number | null, now: Date) {
     // облачко бежевое — яркие цвета зон на нём не читаются, берём тёмные оттенки
     const date = m.readyDate ? <b style={{ color: INK_ON_PAPER[dateColor(m.readyDate, m.goalDate)] }}>{dateShort(m.readyDate)}</b> : null
-    const add = m.addSetsPerWeek > 0 ? <> Прибавь <b className="whitespace-nowrap rounded-md bg-[#2B2118] px-1.5 py-px text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
+    const add = m.addSetsPerWeek > 0 ? <><br />Прибавь <b className="whitespace-nowrap rounded-md bg-[#2B2118] px-1.5 py-px text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
     const weeksToExam = Math.max(0, (EGE_EXAM_DATE.getTime() - now.getTime()) / (7 * DAY))
     const examTest = Math.min(m.targetTest, primaryToTest(primary + (perWeek ?? 0) * weeksToExam))
     const atExam = <b style={{ color: mood === 'mobilize' ? INK_ON_PAPER[ZONE_COLOR.yellow] : INK_ON_PAPER[ZONE_COLOR.red] }}>{examTest} из {m.targetTest}</b>
@@ -336,9 +332,9 @@ function moodLine(mood: Mood, m: MeterResult, primary: number, perWeek: number |
     switch (mood) {
         case 'chill': return m.needPrimary === 0 ? <>Цель в кармане, амиго. Отдыхаю, но форму держим!</> : <>Чилим, амиго. {m.targetTest} возьмём к {date}, {ahead}.</>
         case 'calm': return <>Идём по плану, боец. {m.targetTest} возьмём к {date}.</>
-        case 'mobilize': return <>Собраться, боец! С таким темпом на ЕГЭ будет {atExam}.{add}</>
+        case 'mobilize': return <>Собраться, боец! С таким темпом на ЕГЭ будет только {atExam}.{add}</>
         case 'alarm': return <>Тревога! На ЕГЭ наберёшь только {atExam}.{add}</>
-        case 'angry': return <>Боец! Так на ЕГЭ будет {atExam}.{add ?? ' Закрой сет сегодня.'}</>
+        case 'angry': return <>Боец! Так на ЕГЭ будет только {atExam}.{add ?? <><br />Закрой сет сегодня.</>}</>
         default: return <>Прибор прогревается. Закрой первый сет, и я скажу, успеваем ли.</>
     }
 }
@@ -415,7 +411,7 @@ const CommandanteMood = ({ mood, src }: { mood: Mood; src: string | null }) => {
     return (
         <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
             <motion.div animate={mo.animate} transition={mo.transition}>
-                {src ? <MoodBust src={src} h={92} /> : <span className="block h-[92px] w-[133px]" />}
+                {src ? <MoodBust src={src} h={BUST_H} /> : <span className="block" style={{ width: BUST_W, height: BUST_H }} />}
             </motion.div>
         </motion.div>
     )
@@ -424,8 +420,10 @@ const CommandanteMood = ({ mood, src }: { mood: Mood; src: string | null }) => {
 // Облачко с репликой: сначала появляется Команданте, потом (если окно открыли нажатием) гогот, потом облачко
 // пружиной. На «Моём пути» окно на странице сразу — там без звука.
 const HONK_DELAY_MS = 750
+const BUST_H = 92
+const BUST_W = BUST_H * 1.45 // ширина MoodBust в верхней строке
 const BUBBLE_AFTER_HONK_MS = 280
-const MoodBubble = ({ src, honk }: { src: string | null; honk?: boolean }) => {
+const MoodBubble = ({ src, honk, rightPad = 0 }: { src: string | null; honk?: boolean; rightPad?: number }) => {
     const [text, setText] = useState<string | null>(null)
     useEffect(() => { if (honk) GOOSE_HONK_SOUNDS.forEach(preloadSound) }, [honk])
     useEffect(() => {
@@ -445,8 +443,9 @@ const MoodBubble = ({ src, honk }: { src: string | null; honk?: boolean }) => {
                     className="relative max-w-[88%] origin-top-right rounded-2xl rounded-tr-sm border-2 bg-[#F2F7FB] px-3 py-1.5 text-[13px] font-extrabold leading-snug text-[#1E2629]"
                     style={{ borderColor: INK }}>
                     {/* хвостик облачка — вверх к Команданте */}
-                    <span className="absolute -top-[9px] right-6 h-0 w-0 border-x-[7px] border-b-[9px] border-x-transparent" style={{ borderBottomColor: INK }} />
-                    <span className="absolute -top-[6px] right-[25px] h-0 w-0 border-x-[6px] border-b-[7px] border-x-transparent border-b-[#F2F7FB]" />
+                    {/* хвостик ровно под серединой Команданте: он справа, шириной BUST_W, плюс отступ под крестик */}
+                    <span className="absolute -top-[9px] h-0 w-0 border-x-[7px] border-b-[9px] border-x-transparent" style={{ borderBottomColor: INK, right: rightPad + BUST_W / 2 - 7 - 2 }} />
+                    <span className="absolute -top-[6px] h-0 w-0 border-x-[6px] border-b-[7px] border-x-transparent border-b-[#F2F7FB]" style={{ right: rightPad + BUST_W / 2 - 6 - 2 }} />
                     {text}
                 </motion.div>
             )}
@@ -454,19 +453,6 @@ const MoodBubble = ({ src, honk }: { src: string | null; honk?: boolean }) => {
     )
 }
 
-// Настроение плана: насколько спокойно с выбранной датой.
-const planMoodOf = (plan: Date, goal: Date): Mood =>
-    plan.getTime() <= goal.getTime() - 30 * DAY ? 'chill' : plan <= goal ? 'calm' : plan <= EGE_EXAM_DATE ? 'mobilize' : 'alarm'
-
-// Кружок с Команданте у флажка «План»: тащишь флажок — меняется с отскоком.
-const PlanMoodBadge = ({ mood }: { mood: Mood }) => {
-    const src = useMoodSrc(mood)
-    return (
-        <motion.span key={mood} initial={{ scale: 0.2 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 13 }} className="block">
-            {src ? <MoodBust src={src} h={46} round /> : <span className="block h-[46px] w-[46px]" />}
-        </motion.span>
-    )
-}
 
 // hideGoal — на «Моём пути» цель уже показана на шкале баллов, здесь её не дублируем.
 // onPickGoal — в «Моём пути»: нажатие на цель раскрывает выбор 60…100 прямо здесь (без него цель ведёт в «Мой путь»).
@@ -523,7 +509,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal, honk }
                 )}
                 <div className="justify-self-end"><CommandanteMood mood={mood} src={moodSrc} /></div>
             </div>
-            <MoodBubble src={moodSrc} honk={honk} />
+            <MoodBubble src={moodSrc} honk={honk} rightPad={onClose ? 20 : 0} />
             {onPickGoal && goalOpen && (
                 <div className="mt-2 flex items-center gap-1.5">
                     <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель:</span>
