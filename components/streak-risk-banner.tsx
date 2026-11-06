@@ -99,7 +99,7 @@ export const StreakRiskBanner = ({ streak, hasExtendedToday, freezes, gems }: Pr
                         <p className="text-sm text-[#9AA7B0]">Даже если сегодня не успеешь — заморозка спасёт. Но лучше пройди урок 😉</p>
                     </> : <>
                         <p className="font-bold text-amber-400">Не теряй серию из {streak} {daysWordGenitive(streak)}!</p>
-                        <p className="text-sm text-[#9AA7B0]">Пройди урок тренажёра или реши 5 задач, и серия спасена 🕒</p>
+                        <p className="text-sm text-[#9AA7B0]">Пройди урок тренажёра или реши задачу, и серия спасена 🕒</p>
                     </>}
                     {freezes !== undefined && gems !== undefined && <StreakFreezeCard compact freezes={freezes} gems={gems} onBought={onBought} />}
                 </div>

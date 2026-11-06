@@ -1,17 +1,16 @@
 // lib/streak.ts
 //
 // "Ударный режим" (стрик, огонёк) — одна серия на реальный курс (user_course_progress).
-// День засчитывается «закуской» (решение 2026-11-06): пройден урок тренажёра, привязанного
+// День засчитывается мягко (решение пользователя 2026-11-06): пройден урок тренажёра, привязанного
 // к курсу (actions/user-progress.ts), ИЛИ решено STREAK_TASKS_PER_DAY задач задачника за день
-// (actions/challenge-progress.ts). Весь сет не требуем: в загруженный день серия иначе оборвётся,
-// за целый сет — сундук. Квест дня и его серия «x1» (trainer_streaks) убраны, таблица осталась историей.
+// (actions/challenge-progress.ts). Весь сет не требуем: за целый сет — сундук. Квест дня и его серия «x1» (trainer_streaks) убраны, таблица осталась историей.
 
 import db from '@/db/drizzle';
 import { userCourseProgress, userProgress } from '@/db/schema';
 import { and, eq, gte, sql } from 'drizzle-orm';
 
 // Сколько верных задач задачника за день продлевают серию без урока тренажёра.
-export const STREAK_TASKS_PER_DAY = 5;
+export const STREAK_TASKS_PER_DAY = 1;
 
 export type StreakUpdateResult = {
     streak: number;
