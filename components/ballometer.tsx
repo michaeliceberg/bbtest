@@ -632,10 +632,9 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
     return (
         // колонка в ширину свёрнутой линейки
         <button type="button" onClick={onClick} aria-label={label}
-            className="flex w-[38px] flex-col items-center gap-1 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1.5 shadow-[-3px_3px_10px_#0007]">
-            <BellIcon n={bellN(d)} size={20} />
+            className="flex w-[38px] flex-col items-center gap-0.5 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1 shadow-[-3px_3px_10px_#0007]">
+            <BellIcon n={bellN(d)} size={18} />
             <TodayText {...t} size={10.5} />
-            <span className="h-px w-5 bg-[#3A464E]" />
             <MiniArc s={sm} />
             <span className="-mt-1 text-[12px]">{score}</span>
         </button>
@@ -644,7 +643,7 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
 
 // Вкладка у правого края + панель Баллометра, выезжающая справа налево. Портал: fixed внутри анимированных обёрток страницы
 // считался бы от обёртки. По умолчанию стоит над свёрнутой линейкой (та по центру экрана высотой ~370px).
-export function BallometerSide({ d, variant = 0, bottom = 'calc(50% + 196px)', demo }: { d: BallometerProps; variant?: number; bottom?: string; demo?: boolean }) {
+export function BallometerSide({ d, variant = 0, bottom = 'calc(50% + 194px)', demo }: { d: BallometerProps; variant?: number; bottom?: string; demo?: boolean }) {
     const [open, setOpenState] = useState(false)
     const [shown, setShown] = useState(false) // содержимое держим после первого открытия: иначе пропадало бы посреди уезжания
     const setOpen = (v: boolean) => { setOpenState(v); if (v) setShown(true) }

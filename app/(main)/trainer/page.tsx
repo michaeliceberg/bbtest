@@ -2,7 +2,7 @@ import { getEgeRulerData } from '@/lib/egeRuler'
 import { EgeRuler } from '@/components/ege-ruler'
 import { getSetBarData } from '@/lib/setBar';
 import { getBallometerData } from '@/lib/ballometer';
-import { BallometerChip, BallometerHello } from '@/components/ballometer';
+import { BallometerHello, BallometerSide } from '@/components/ballometer';
 // app/(main)/trainer/page.tsx
 
 import { hasProFor } from '@/lib/pro'
@@ -293,6 +293,8 @@ const TLearnPage = async () => {
                 {cashback.length > 0 && <ReferralCashbackScreen items={cashback} theme={uiTheme} />}
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} setBar={setBar} />
                 {egeRuler && <EgeRuler data={egeRuler} />}
+                {/* Сетометр — вкладка у правого края над линейкой ЕГЭ, панель выезжает справа */}
+                {ballometer && <BallometerSide d={ballometer} />}
                 {ballometer && <BallometerHello d={ballometer} />}
 
                 <div className='mt-2 lg:mt-5'>
@@ -306,13 +308,11 @@ const TLearnPage = async () => {
                                 streak={currentStreakForRisk}
                                 streakToday={hasExtendedStreakToday}
                                 streakFreezes={userProgress.streakFreezes}
-                                extraChip={ballometer ? <BallometerChip d={ballometer} className="h-11 shrink-0" /> : undefined}
                                 pizzaPanel={<PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />}
                             />
                         </>
                     )}
                     {!simple && (<>
-                    {ballometer && <div className='mb-3 flex justify-end'><BallometerChip d={ballometer} className="h-11" /></div>}
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
                     <div className='mb-4'>

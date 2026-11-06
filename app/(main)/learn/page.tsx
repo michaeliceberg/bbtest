@@ -24,7 +24,7 @@ import { redirect } from 'next/navigation';
 import { Header } from '../trainer/header';
 import { getSetBarData } from '@/lib/setBar';
 import { getBallometerData } from '@/lib/ballometer';
-import { BallometerCard, BallometerChip, BallometerHello } from '@/components/ballometer';
+import { BallometerCard, BallometerChip, BallometerHello, BallometerSide } from '@/components/ballometer';
 import { LearnUnitNav } from '@/components/learn-unit-nav';
 import { Unit } from './unit';
 import { format } from 'date-fns';
@@ -468,6 +468,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           {/* на экране ангара полоска сета лежит поверх картинки ангара (иначе пульт ангара не влезает в экран телефона) */}
           <Header title={`Задачник ${activeCourse.title}`} setBar={onHangarScreen ? null : setBar} />
                 {egeRuler && !onHangarScreen && <EgeRuler data={{ ...egeRuler, currentTaskNum: taskNum }} />}
+                {/* Сетометр у правого края над линейкой; на экране ангара линейки нет — там значок в углу ангара */}
+                {ballometer && !onHangarScreen && <BallometerSide d={ballometer} />}
           {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);
