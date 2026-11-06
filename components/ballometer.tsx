@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
 import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
-import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, nextSetLeft, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, daysPassedInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, SET_YELLOW_FROM, setsForDate, daysPassedInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
@@ -265,43 +265,24 @@ const ExamStar = () => (
 )
 
 // Крупная цель: 90 и справа в две строки «баллов ЕГЭ».
-const GoalBlock = ({ target, demo }: { target: number; demo?: boolean }) => (
-    <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель</p>
-        <div className="flex items-center gap-1.5">
-            <span className={`${stencilFont.className} text-[38px] leading-none text-[#F2C35B]`}>{target}</span>
-            <span className="whitespace-nowrap text-sm font-black leading-tight text-[#F2F7FB]">{declensionRu(target, 'балл', 'балла', 'баллов')}<br />ЕГЭ</span>
-        </div>
-        {!demo && <Link href="/path" className="mt-1 block text-[11px] font-bold text-[#7FC8F2] underline">Сменить цель</Link>}
-    </div>
-)
-
-// Сегодняшняя норма сетов: «1 из 2» и квадратики.
-// Норма считается на неделю (в день вышло бы меньше одного сета): «Эта неделя: 0 из 5», «осталось 3 дня» и квадратики.
-// То же число 5, что и «из 5 в неделю» на Сетометре, — один знаменатель везде.
-const WeekSets = ({ done, goal, daysLeft, weekEq }: { done: number; goal: number; daysLeft: number; weekEq?: number }) => {
-    const complete = goal > 0 && done >= goal
-    return (
-        <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Эта неделя</p>
-            <p className="leading-none">
-                <span className={`${stencilFont.className} text-[28px]`} style={{ color: complete ? '#78C93C' : '#F2F7FB' }}>{done}</span>
-                <span className="whitespace-nowrap text-xs font-black text-[#E8D9B8]"> из {goal} {setsWord(goal)}</span>
-            </p>
-            <div className="mt-1 flex flex-wrap items-center gap-1">
-                {Array.from({ length: Math.min(goal, 10) }, (_, i) => (
-                    <span key={i} className="h-2.5 w-2.5 rounded-[3px] border-2" style={{ borderColor: i < done ? '#78C93C' : '#5C6B73', background: i < done ? '#78C93C' : 'transparent' }} />
-                ))}
-            </div>
-            <p className="mt-1 whitespace-nowrap text-[10px] font-bold text-[#9AA7B0]">{complete ? 'Норма закрыта!' : `осталось ${daysLeft} ${declensionRu(daysLeft, 'день', 'дня', 'дней')}`}</p>
-            {/* сет копится из любых занятий: урок тренажёра = 5 задач, сет = урок + 5 задач */}
-            {!complete && weekEq !== undefined && (() => {
-                const n = nextSetLeft(weekEq)
-                return <p className="text-[10px] font-bold leading-tight text-[#C9B98F]">до сета: {n.tasks} {declensionRu(n.tasks, 'задача', 'задачи', 'задач')}{n.orLessonPlus ? ` или урок + ${n.orLessonPlus}` : ' или урок'}</p>
-            })()}
-        </div>
+// Верхняя строка окна (решение пользователя 2026-11-06): три ровные колонки в минимальном стиле —
+// «Цель 33/100 баллов ЕГЭ», «Эта неделя 1/5 сетов», крупный Команданте. Подпись сверху, крупная дробь, единица снизу.
+const TopStat = ({ label, children, unit, href }: { label: string; children: React.ReactNode; unit: string; href?: string }) => {
+    const body = (
+        <>
+            <span className="block text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">{label}</span>
+            <span className={`${stencilFont.className} mt-0.5 flex items-baseline whitespace-nowrap leading-none`}>{children}</span>
+            <span className="mt-1 block whitespace-nowrap text-[11px] font-bold text-[#9AA7B0]">{unit}</span>
+        </>
     )
+    return href ? <Link href={href} className="block min-w-0">{body}</Link> : <div className="min-w-0">{body}</div>
 }
+
+// «/5» — норма недели; при «− / +» в «Мой план» меняется крупным отскоком, чтобы было видно, что меняется и она.
+const BouncyTotal = ({ value, color, size, slash = true }: { value: number | string; color: string; size: number; slash?: boolean }) => (
+    <motion.span key={String(value)} initial={{ scale: 2.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
+        className="inline-block origin-left" style={{ color, fontSize: size }}>{slash ? '/' : ''}{value}</motion.span>
+)
 
 // Настроение Команданте по показанию прибора. Картинки — public/miguel (промпты — docs/miguel/leonardo-prompts-ballometer.md).
 // Если поз несколько, на каждое открытие берётся случайная (выбор уже в браузере, после монтирования).
@@ -363,7 +344,7 @@ const MoodBust = ({ src, h, round }: { src: string; h: number; round?: boolean }
     const full = BUST_FULL.includes(src)
     /* eslint-disable-next-line @next/next/no-img-element */
     const img = <img src={src} alt="" draggable={false} className="absolute left-1/2 top-0 max-w-none -translate-x-1/2"
-        style={full ? { height: h * (round ? 1.15 : 1), top: round ? 2 : 0 } : { width: h * 1.7, top: -h * 0.06 }} />
+        style={full ? { height: h * (round ? 1.15 : 1), top: round ? 2 : 0 } : { width: h * 1.7, top: h * 0.02 }} />
     return round
         ? <span className="relative block overflow-hidden rounded-full border-[3px] bg-[#F1E4C3]" style={{ width: h, height: h, borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>{img}</span>
         : <span className="relative block overflow-hidden" style={{ width: h * 1.45, height: h }}>{img}</span>
@@ -382,7 +363,7 @@ const CommandanteMood = ({ mood }: { mood: Mood }) => {
     return (
         <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
             <motion.div animate={mo.animate} transition={mo.transition}>
-                {src ? <MoodBust src={src} h={68} /> : <span className="block h-[68px] w-[99px]" />}
+                {src ? <MoodBust src={src} h={92} /> : <span className="block h-[92px] w-[133px]" />}
             </motion.div>
         </motion.div>
     )
@@ -424,14 +405,25 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
     const mood = moodOf(m)
     const sm = computeSetMeter(weekSetsOf(d), reached ? 0 : sets, now)
     const tone = planLate ? ZONE_COLOR.red : ZONE_COLOR.green
+    const weekDone = (d.weekEq ?? d.setsThisWeek * 10) / 10
 
     return (
         <div className="relative w-full">
             {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute -right-1.5 -top-1.5 z-10 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
             {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
-            <div className={`flex items-end justify-between gap-1 ${onClose ? 'pr-5' : ''}`}>
-                {!hideGoal && <GoalBlock target={m.targetTest} demo={demo} />}
-                {!reached && <WeekSets done={d.setsThisWeek} goal={sets} daysLeft={daysLeftInWeek(now)} weekEq={d.weekEq} />}
+            <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 ${onClose ? 'pr-5' : ''}`}>
+                {!hideGoal && (
+                    <TopStat label="Цель" unit={`${declensionRu(m.targetTest, 'балл', 'балла', 'баллов')} ЕГЭ`} href={demo ? undefined : '/path'}>
+                        <span className="text-[30px] text-[#F2F7FB]">{primaryToTest(d.primary)}</span>
+                        <span className="text-[20px] text-[#F2C35B]">/{m.targetTest}</span>
+                    </TopStat>
+                )}
+                {!reached && (
+                    <TopStat label="Эта неделя" unit={setsWord(sets)}>
+                        <span className="text-[30px]" style={{ color: weekDone >= sets ? ZONE_COLOR.green : '#F2F7FB' }}>{fmtSets(weekDone) || '0'}</span>
+                        <BouncyTotal value={sets} color="#F2C35B" size={20} />
+                    </TopStat>
+                )}
                 <CommandanteMood mood={mood} />
             </div>
             <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
@@ -474,7 +466,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
 const fmtSets = (v: number) => (v === 0 ? '' : (Math.round(v * 10) / 10).toString().replace('.', ','))
 const WeekGrid = ({ days, need, now }: { days: number[]; need: number; now: Date }) => {
     const today = daysPassedInWeek(now) + 7 // индекс сегодняшнего дня в сетке
-    const rows = [{ label: 'Прошлая', from: 0 }, { label: 'Эта', from: 7 }]
+    const rows = [{ label: 'Прошлая неделя', from: 0 }, { label: 'Эта неделя', from: 7 }]
     return (
         <div className="mt-2 rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 pb-1.5 pt-1">
             <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))_44px] gap-1 text-[10px] font-black uppercase text-[#C9B98F]">
@@ -505,7 +497,8 @@ const WeekGrid = ({ days, need, now }: { days: number[]; need: number; now: Date
                         })}
                         <span className="text-center leading-none">
                             <span className={`${stencilFont.className} text-[15px]`} style={{ color: closed ? '#78C93C' : current ? '#F2F7FB' : '#E5533D' }}>{fmtSets(sum) || '0'}</span>
-                            <span className="block text-[10px] font-bold text-[#9AA7B0]">{closed ? '✓ норма' : `из ${need}`}</span>
+                            {closed ? <span className="block text-[10px] font-bold text-[#9AA7B0]">✓ норма</span>
+                                : <span className="block text-[10px] font-bold text-[#9AA7B0]">из <BouncyTotal value={need} color="#F2C35B" size={15} slash={false} /></span>}
                         </span>
                     </div>
                 )
