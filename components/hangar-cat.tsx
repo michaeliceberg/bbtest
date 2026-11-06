@@ -388,7 +388,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const barrelRef = useRef(barrel)
     barrelRef.current = barrel
     const bedRef = useRef<{ x: number; y: number; k: number; floorY: number } | null>(null)
-    // Коробка Шрёдингера: idle — открыта и пуста; closed — котик внутри, закрыта («жив или спит?»);
+    // Коробка Шрёдингера: idle — открыта и пуста; closed — котик внутри, закрыта («спит или нет?»);
     // peek — открыли, котик выглядывает; sleep — открыли, котик спит внутри (Zzz), потом выглядывает.
     const [sbox, setSbox] = useState<'idle' | 'closed' | 'peek' | 'sleep'>('idle')
     const [sboxSay, setSboxSay] = useState<string | null>(null)
@@ -507,14 +507,14 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         return () => clearInterval(t)
     }, [basking])
 
-    // Открыть коробку: пополам — котик выглядывает («Жив!») или спит внутри («тоже жив, просто спит»), потом выпрыгивает.
+    // Открыть коробку: пополам — котик выглядывает («Не спит!») или спит внутри, потом выпрыгивает.
     const openSboxRef = useRef<((self?: boolean) => void) | null>(null)
     openSboxRef.current = (self = false) => {
         if (sbox !== 'closed') return
         if (!self) { playJustClick(); if (!onHome) reportAchievement('schrodinger') }
         const asleep = !self && Math.random() < 0.5
         setSbox(asleep ? 'sleep' : 'peek')
-        setSboxSay(asleep ? 'Тоже жив — просто спит 😴' : self ? 'Мяу! Надоело ждать 😼' : 'Мяу! Жив! 😺')
+        setSboxSay(asleep ? 'Спит без задних лап 😴' : self ? 'Мяу! Надоело ждать 😼' : 'Мяу! Не спит! 😺')
         const wait = asleep ? 3200 : 2600
         if (asleep) setTimeout(() => { setSbox((v) => (v === 'sleep' ? 'peek' : v)); setSboxSay('Мяу? Уже утро? 😺') }, 2400)
         setTimeout(() => sboxResume.current?.(), wait + (asleep ? 1600 : 0))
@@ -578,7 +578,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 leaveBox(front)
                 walk(boxFloor, front)
                 jump(front, top, front.x > top.x, {}, { ky: sb.y })
-                at(() => { setStroll(null); setSbox('closed'); setSboxSay('Котик жив или спит? 🤔') })
+                at(() => { setStroll(null); setSbox('closed'); setSboxSay('Котик спит или нет? 🤔') })
                 const opened = t
                 // продолжение: котик выглядывает, выпрыгивает и идёт домой
                 sboxResume.current = () => {
@@ -754,7 +754,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && sbox === 'closed' && (
                 <div className="pointer-events-none absolute w-[34%] -translate-x-1/2 rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4]/95 px-2 py-1 text-center text-[2.1cqw] font-bold leading-tight text-[#5A3A22] shadow-md sm:text-[1.7cqw]"
                     style={{ left: pct(Math.min(Math.max(sbP.x, 180), 844)), top: pct(sbP.y + 8), zIndex: 1160 }}>
-                    Пока коробка закрыта, котик для нас и жив, и спит сразу — это суперпозиция 🤓 Нажми, чтобы узнать!
+                    Пока коробка закрыта, котик и спит, и не спит сразу. Это суперпозиция 🤓 Нажми, чтобы узнать!
                 </div>
             )}
             {sbox === 'sleep' && (

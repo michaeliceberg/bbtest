@@ -238,7 +238,7 @@ interface Props {
     // Простой вид /trainer: без процентов у темы, «Справочник» — одна иконка.
     simple?: boolean;
     // Данные питомца (простой вид): он стоит у текущей точки дорожки.
-    petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number };
+    petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number; poseKey?: number };
     // Выбор курса сверху шторки «Юниты» (components/unit-sheet-course-picker.tsx).
     coursePicker?: { courses: PickerCourse[]; activeCourseId: number };
     // Ссылки-приглашения на пошаговые уроки (кнопка «поделиться» у плитки).

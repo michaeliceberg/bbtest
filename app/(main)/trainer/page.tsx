@@ -392,7 +392,7 @@ const TLearnPage = async () => {
                         egeTasksByTUnit={egeTasksByTUnit}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
                         coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title, imageSrc: c.imageSrc })), activeCourseId: resolvedActiveCourseId }}
-                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}
+                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate(), poseKey: Math.floor(Date.now() / 1000) } : undefined}
                     />
                 </div>
             </FeedWrapper>

@@ -290,7 +290,8 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 <motion.div className="pointer-events-none absolute left-1/2" style={{ top: table.bellTop, marginLeft: -TABLE_BELL_SIZE / 2 }}
                     initial={party > 0 ? { scale: 3, y: -40, opacity: 0 } : false} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', bounce: 0.6, duration: 0.8, delay: 0.15 }}>
-                    <span className="absolute inset-x-1 bottom-0 h-2.5 rounded-[50%] bg-black/35" />
+                    {/* тень как у вазы и шлема: мягкая, сразу под основанием и чуть вправо (низ колокольчика — на 0,89 высоты картинки) */}
+                    <span className="absolute" style={{ left: '-6%', width: '124%', top: TABLE_BELL_SIZE * 0.72, height: TABLE_BELL_SIZE * 0.34, background: 'radial-gradient(closest-side, rgba(10,20,15,0.6), rgba(10,20,15,0.35) 62%, rgba(10,20,15,0))' }} />
                     <BellIcon n={shownLvl} size={TABLE_BELL_SIZE} />
                 </motion.div>
                 {party > 0 && (

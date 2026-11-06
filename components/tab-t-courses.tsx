@@ -115,7 +115,7 @@ type Props = {
     // Стиль оформления (lib/uiTheme.ts): игровой или тёплый.
     theme?: UiTheme,
     simple?: boolean,
-    petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number },
+    petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number; poseKey?: number },
     coursePicker?: { courses: { id: number; title: string }[]; activeCourseId: number },
     shareInfo?: LessonShareInfo | null,
     egeTasksByTUnit?: Record<number, number[]>,

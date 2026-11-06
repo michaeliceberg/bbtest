@@ -4,8 +4,9 @@
 // короткая реплика в армейском тоне с юмором (docs/miguel/miguel.md). Поздний час и серия под угрозой →
 // секундомер; квест выполнен → чек-лист; серия продлена → огонь; иначе стоит и зовёт на урок (фраза по дню).
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { GlassKnockIntro } from './glass-knock-intro'
 import { GooseWalker } from '@/components/goose-walker'
 
 type Props = {
@@ -21,10 +22,34 @@ type Props = {
     walking?: boolean
     arrived?: boolean
     flip?: boolean
+    poseKey?: number
 }
 
 // На карте Команданте Мигель. Картинки — стикеры public/miguel/*, стоит — miguel-point (тычет в ученика).
 const GAGA_STAND = '/miguel/miguel-point.webp'
+// Позы на карте: у каждой вес (сколько раз встречается в пуле). Стекло — любимый приём, поэтому чаще; карандаш крупно
+// выглядит угрожающе, поэтому реже. big — поза сначала на весь экран со стуком по стеклу (components/glass-knock-intro.tsx).
+const POSE_POOL: { src: string; weight: number; big?: boolean }[] = [
+    { src: '/miguel/miguel-glass-stop.webp', weight: 8, big: true },
+    { src: '/miguel/miguel-glass-fist.webp', weight: 8, big: true },
+    { src: GAGA_STAND, weight: 2 },
+    { src: '/miguel/miguel-knock.webp', weight: 2 },
+    { src: '/miguel/miguel-watch.webp', weight: 2 },
+    { src: '/miguel/miguel-arms-crossed.webp', weight: 2 },
+    { src: '/miguel/miguel-beckon.webp', weight: 2 },
+    { src: '/miguel/miguel-book.webp', weight: 2 },
+    { src: '/miguel/miguel-book-small.webp', weight: 2 },
+    { src: '/miguel/miguel-shrug.webp', weight: 2 },
+    { src: '/miguel/miguel-crate.webp', weight: 2 },
+    { src: '/miguel/miguel-danger-pencil.webp', weight: 1, big: true },
+    { src: '/miguel/miguel-danger-pencil-2.webp', weight: 1, big: true },
+]
+// poseKey приходит с сервера: SSR и браузер выбирают одну и ту же позу
+const pickPose = (key: number) => {
+    const total = POSE_POOL.reduce((sum, p) => sum + p.weight, 0)
+    let left = ((key * 2654435761) >>> 0) % total
+    return POSE_POOL.find((p) => (left -= p.weight) < 0) ?? POSE_POOL[0]
+}
 
 // Мигель зовёт на урок (простой вид, когда нечего срочно делать).
 export const GOOSE_IDLE = [
@@ -104,7 +129,9 @@ export const PetBust = ({ src, size, width, bob = false, flip = false }: { src: 
     </div>
 )
 
-export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
+    const bustRef = useRef<HTMLDivElement>(null)
+    const [bustHidden, setBustHidden] = useState(false)
     // Час сверяем только после монтирования (часовой пояс браузера).
     const [late, setLate] = useState(false)
     useEffect(() => setLate(new Date().getHours() >= RISK_HOUR), [])
@@ -115,8 +142,9 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     if (cheer) mood = cheer
     else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/miguel/miguel-stopwatch.webp', text: 'Боец, серия сгорит! Хоть один урок? ⏱️' }
     else if (questDone) mood = { src: '/miguel/miguel-quest.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
-    else if (hasExtendedToday) mood = { src: '/miguel/miguel-streak.webp', text: 'Серия жива! Хорошо служишь 🔥' }
-    else mood = { src: GAGA_STAND, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
+    else if (hasExtendedToday) mood = { src: pickPose(poseKey).src, text: 'Серия жива! Хорошо служишь 🔥' }
+    else mood = { src: pickPose(poseKey).src, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
+    const big = POSE_POOL.some((p) => p.big && p.src === mood.src)
 
     if (compact && cheer && walking !== undefined) {
         // Мигель идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу
@@ -141,7 +169,8 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                 <div className="w-[122px] rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2 py-1.5 text-[14px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
-                <PetBust src={mood.src} size={156} width={140} />
+                <div ref={bustRef} style={{ visibility: bustHidden ? 'hidden' : undefined }}><PetBust src={mood.src} size={156} width={140} /></div>
+                {big && <GlassKnockIntro src={mood.src} targetRef={bustRef} size={156} onActive={setBustHidden} />}
             </div>
         )
     }
@@ -153,7 +182,8 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                 <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-2 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
-                <PetBust src={mood.src} size={184} width={150} bob />
+                <div ref={bustRef} style={{ visibility: bustHidden ? 'hidden' : undefined }}><PetBust src={mood.src} size={184} width={150} bob /></div>
+                {big && <GlassKnockIntro src={mood.src} targetRef={bustRef} size={184} onActive={setBustHidden} />}
             </div>
         )
     }

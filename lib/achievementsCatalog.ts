@@ -120,7 +120,7 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'dict_all', group: 'krupitsy', emoji: '📚', title: 'Ходячий словарь «За науку»', desc: 'Разгадал все слова словаря физтеха' },
 	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
 	{ key: 'fridge_sg', group: 'start', emoji: '⚖️', iconSrc: '/achievement-portraits/saul.webp', title: 'Сол Гудман был здесь!', desc: 'Нашёл надпись, нацарапанную в холодильнике котика' },
-	{ key: 'schrodinger', group: 'start', emoji: '📦', iconSrc: '/achievement-portraits/schrodinger.webp', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, жив котик или спит' },
+	{ key: 'schrodinger', group: 'start', emoji: '📦', iconSrc: '/achievement-portraits/schrodinger.webp', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, спит ли котик' },
 	{ key: 'cat_feed_10', group: 'habit', emoji: '🥛', title: 'Заботливый хозяин', desc: 'Кормил котика 10 дней подряд' },
 	{ key: 'cat_feed_50', group: 'habit', emoji: '🐟', title: 'Кошачий шеф', desc: 'Кормил котика 50 дней подряд' },
 	{ key: 'cat_feed_100', group: 'habit', emoji: '👑', title: 'Лучший друг котика', desc: 'Кормил котика 100 дней подряд — мыши обходят ангар стороной' },
