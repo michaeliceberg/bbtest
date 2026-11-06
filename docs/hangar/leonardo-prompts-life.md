@@ -312,3 +312,11 @@ Isolated on pure white background, no shadow.
 Avoid: text, letters, numbers, buttons inside sockets, tall plate, top bar, perspective, tilt, extra knobs, gauges, cables, glow, shadow.
 ```
 Название «ВТОРАЯ ЧАСТЬ ЕГЭ» на табличку и кнопки 14–20 в гнёзда кладём кодом.
+
+## Новая еда котика (2026-11-06, картинок ещё нет)
+Как остальные предметы: FLUX.1 Kontext + образец стиля ангара, хвост стиля — из начала файла.
+
+| Файл | Промпт | Зачем |
+|---|---|---|
+| `cat-sourcream.jpg` | small glass jar of white sour cream with a blue foil lid, no letters, standing | Банка рядом с миской |
+| `cat-fish.jpg` | one small silver fish lying on its side, slightly bent, cute | Лежит в миске, откусывается как колбаска |
