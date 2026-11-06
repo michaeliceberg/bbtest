@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
 import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
-import { computeMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, METER_GREEN_FROM, METER_YELLOW_FROM, setsForDate, setsTodayGoal, type MeterResult, type MeterZone } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, SET_YELLOW_FROM, setsForDate, setsTodayGoal, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
@@ -28,7 +28,7 @@ export type BallometerProps = {
     nowIso: string
 }
 
-const NAME = 'Баллометр'
+const NAME = 'Сетометр'
 export const ZONE_COLOR: Record<MeterZone, string> = { green: '#78C93C', yellow: '#F2C35B', red: '#E5533D', new: '#7E8F99' }
 const setsWord = (n: number) => declensionRu(n, 'сет', 'сета', 'сетов')
 const DAY = 86400000
@@ -41,41 +41,58 @@ const arc = (a0: number, a1: number, r: number) => {
     const [x0, y0] = pt(a0), [x1, y1] = pt(a1)
     return `M${x0} ${y0} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1}`
 }
-const toAngle = (s: number) => -120 + (s / 5) * 240
+const toAngle = (v: number, max: number) => -120 + (Math.min(Math.max(v, 0), max) / max) * 240
 
-const GAUGE_TICKS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
-
-// Армейский прибор из ангара: латунный корпус с заклёпками, тёмный циферблат, стрелка и окошко с показанием.
-export const BallometerGauge = ({ m, className = '' }: { m: MeterResult; className?: string }) => (
-    <svg viewBox="0 0 200 200" className={className}>
-        {/* корпус — картинка Leonardo (docs/hangar/tools/cut_meter.py), шкала и стрелка кодом */}
-        <image href="/meter/gauge.webp" x="0" y="0" width="200" height="200" />
-        <path d={arc(toAngle(0), toAngle(5), 62)} stroke="#12170F" strokeWidth="13" fill="none" />
-        <path d={arc(toAngle(0), toAngle(METER_YELLOW_FROM), 62)} stroke={ZONE_COLOR.red} strokeWidth="9" fill="none" />
-        <path d={arc(toAngle(METER_YELLOW_FROM), toAngle(METER_GREEN_FROM), 62)} stroke={ZONE_COLOR.yellow} strokeWidth="9" fill="none" />
-        <path d={arc(toAngle(METER_GREEN_FROM), toAngle(5), 62)} stroke={ZONE_COLOR.green} strokeWidth="9" fill="none" />
-        {GAUGE_TICKS.map((n) => {
-            const a = (toAngle(n) * Math.PI) / 180
-            const r0 = 55, r1 = n % 1 === 0 ? 47 : 51
-            const c2 = (v: number) => Math.round(v * 100) / 100
-            return <line key={n} x1={c2(100 + r0 * Math.sin(a))} y1={c2(100 - r0 * Math.cos(a))} x2={c2(100 + r1 * Math.sin(a))} y2={c2(100 - r1 * Math.cos(a))} stroke="#E8D9B8" strokeWidth={n % 1 === 0 ? 2.5 : 1.3} />
-        })}
-        {[0, 1, 2, 3, 4, 5].map((n) => {
-            const a = (toAngle(n) * Math.PI) / 180
-            return <text key={n} x={Math.round(100 + 38 * Math.sin(a))} y={Math.round(105 - 38 * Math.cos(a))} textAnchor="middle" fontSize="13" fill="#E8D9B8" className={stencilFont.className}>{n}</text>
-        })}
-        <text x="100" y="84" textAnchor="middle" fontSize="8.5" letterSpacing=".6" fill="#C9B98F" className={stencilFont.className}>БАЛЛОМЕТР</text>
-        <g style={{ transform: `rotate(${toAngle(m.score ?? 0)}deg)`, transformOrigin: '100px 100px', transition: 'transform .7s cubic-bezier(.3,1.5,.5,1)' }}>
-            <path d="M95.5 114 L100 44 L104.5 114 Z" fill={m.zone === 'new' ? ZONE_COLOR.new : '#E8552F'} stroke="#2B1E14" strokeWidth="1.6" strokeLinejoin="round" />
-        </g>
-        <circle cx="100" cy="100" r="9" fill="#B08E4E" stroke="#2B1E14" strokeWidth="2" />
-        <circle cx="100" cy="100" r="2.4" fill="#2B1E14" />
-        <rect x="72" y="124" width="56" height="28" rx="4" fill="#0B1012" stroke="#2B1E14" strokeWidth="3" />
-        <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
-        <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[m.zone]} className={stencilFont.className}>{formatScore(m.score)}</text>
-        <text x="100" y="165" textAnchor="middle" fontSize="8.5" fill="#C9B98F" className={stencilFont.className}>ИЗ 5</text>
-    </svg>
-)
+// Сетометр — армейский прибор: стрелка — твой темп (сетов в неделю), зелёная зона начинается с нужного числа сетов.
+// Справа — хорошо, как у спидометра. Внизу окошко «2,2» и под ним колокольчик «из 3».
+export const BallometerGauge = ({ s: sm, className = '' }: { s: SetMeter; className?: string }) => {
+    const { max, need } = sm
+    const step = max <= 8 ? 1 : max <= 14 ? 2 : 3
+    const ticks: number[] = []
+    for (let v = 0; v <= max + 1e-6; v += max <= 8 ? 0.5 : 1) ticks.push(Math.round(v * 10) / 10)
+    const labels = ticks.filter((v) => v % step === 0)
+    const yellowFrom = need * SET_YELLOW_FROM
+    const pt = (v: number, r: number) => {
+        const a = (toAngle(v, max) * Math.PI) / 180
+        return [Math.round((100 + r * Math.sin(a)) * 100) / 100, Math.round((100 - r * Math.cos(a)) * 100) / 100]
+    }
+    const needEdge = pt(need, 69), needIn = pt(need, 50)
+    return (
+        <svg viewBox="0 0 200 200" className={className}>
+            {/* корпус — картинка Leonardo (docs/hangar/tools/cut_meter.py), шкала и стрелка кодом */}
+            <image href="/meter/gauge.webp" x="0" y="0" width="200" height="200" />
+            <path d={arc(-120, 120, 62)} stroke="#12170F" strokeWidth="13" fill="none" />
+            {need > 0 && yellowFrom > 0 && <path d={arc(-120, toAngle(yellowFrom, max), 62)} stroke={ZONE_COLOR.red} strokeWidth="9" fill="none" />}
+            {need > 0 && <path d={arc(toAngle(yellowFrom, max), toAngle(need, max), 62)} stroke={ZONE_COLOR.yellow} strokeWidth="9" fill="none" />}
+            <path d={arc(toAngle(need, max), 120, 62)} stroke={ZONE_COLOR.green} strokeWidth="9" fill="none" />
+            {ticks.map((v) => {
+                const major = v % 1 === 0
+                const [x1, y1] = pt(v, 55), [x2, y2] = pt(v, major ? 47 : 51)
+                return <line key={v} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#E8D9B8" strokeWidth={major ? 2.2 : 1.2} />
+            })}
+            {labels.map((v) => {
+                const [x, y] = pt(v, 38)
+                return <text key={v} x={Math.round(x)} y={Math.round(y + 5)} textAnchor="middle" fontSize={max > 9 ? 11 : 13} fill="#E8D9B8" className={stencilFont.className}>{v}</text>
+            })}
+            {/* засечка «нужно»: начало зелёной зоны */}
+            {need > 0 && <line x1={needEdge[0]} y1={needEdge[1]} x2={needIn[0]} y2={needIn[1]} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />}
+            <text x="100" y="84" textAnchor="middle" fontSize="8.5" letterSpacing=".6" fill="#C9B98F" className={stencilFont.className}>СЕТОМЕТР</text>
+            <g style={{ transform: `rotate(${toAngle(sm.pace ?? 0, max)}deg)`, transformOrigin: '100px 100px', transition: 'transform .7s cubic-bezier(.3,1.5,.5,1)' }}>
+                <path d="M95.5 114 L100 44 L104.5 114 Z" fill={sm.zone === 'new' ? ZONE_COLOR.new : '#E8552F'} stroke="#2B1E14" strokeWidth="1.6" strokeLinejoin="round" />
+            </g>
+            <circle cx="100" cy="100" r="9" fill="#B08E4E" stroke="#2B1E14" strokeWidth="2" />
+            <circle cx="100" cy="100" r="2.4" fill="#2B1E14" />
+            <rect x="72" y="124" width="56" height="28" rx="4" fill="#0B1012" stroke="#2B1E14" strokeWidth="3" />
+            <rect x="72" y="124" width="56" height="28" rx="4" fill="none" stroke="#C4A765" strokeWidth="1" />
+            <text x="100" y="145" textAnchor="middle" fontSize="20" fill={ZONE_COLOR[sm.zone]} className={stencilFont.className}>{formatScore(sm.pace)}</text>
+            {/* колокольчик сета и «из N» */}
+            <g transform="translate(73 154)">
+                {['back', 'knob', 'body'].map((l) => <image key={l} href={`/set-bells/bell-1-${l}.webp`} x="0" y="0" width="19" height="19" />)}
+            </g>
+            <text x="95" y="168" fontSize="11" fill="#E8D9B8" className={stencilFont.className}>ИЗ {need}</text>
+        </svg>
+    )
+}
 
 const dateColor = (d: Date | null, goal: Date) => (!d || d > EGE_EXAM_DATE ? ZONE_COLOR.red : d > goal ? ZONE_COLOR.yellow : ZONE_COLOR.green)
 
@@ -399,7 +416,7 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
     }
     const reached = m.needPrimary === 0
     const mood = moodOf(m)
-    const nowRate = d.perWeek !== null ? String(Math.round((d.perWeek / d.setGain) * 10) / 10).replace('.', ',') : null
+    const sm = computeSetMeter(d.perWeek, d.setGain, reached ? 0 : sets)
     const tone = planLate ? ZONE_COLOR.red : ZONE_COLOR.green
 
     return (
@@ -412,13 +429,11 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
                 <CommandanteMood mood={mood} />
             </div>
             <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
-                <BallometerGauge m={m} className="h-[148px] w-[148px] self-center" />
+                <BallometerGauge s={sm} className="h-[148px] w-[148px] self-center" />
                 {!reached ? (
                     <div className="flex flex-col justify-center rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
-                        <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Твой темп</span>
-                            {nowRate && <span className="text-[10px] font-bold text-[#9AA7B0]">сейчас ≈{nowRate}</span>}
-                        </div>
+                        {/* сколько сетов в неделю ставим себе: это начало зелёной зоны на Сетометре */}
+                        <span className="text-center text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Мой план</span>
                         <div className="mt-1 flex items-center justify-between gap-1">
                             <button type="button" aria-label="Меньше сетов" onClick={() => change(sets - 1)} className="h-9 w-9 shrink-0 rounded-lg border-2 border-b-4 border-[#1E2629] bg-[#3A454B] text-lg font-black leading-none text-white active:border-b-0">−</button>
                             <div className="min-w-0 text-center leading-none">
@@ -456,13 +471,15 @@ const Modal = ({ d, onClose }: { d: BallometerProps; onClose: () => void }) => c
     document.body,
 )
 
+const setMeterFrom = (d: BallometerProps, m: MeterResult) => computeSetMeter(d.perWeek, d.setGain, needSetsOf(d.setsGoal, m, d.setGain, new Date(d.nowIso)))
 const meterFrom = (d: BallometerProps) => computeMeter({ primary: d.primary, perWeek: d.perWeek, targetTest: d.targetTest, setGain: d.setGain, goalDate: d.goalDateIso ? new Date(d.goalDateIso) : null, now: new Date(d.nowIso) })
 
 // Значок: цветная дуга и оценка. Нажатие открывает окно.
 export function BallometerChip({ d, className = '' }: { d: BallometerProps; className?: string }) {
     const [open, setOpen] = useState(false)
     const m = meterFrom(d)
-    const c = ZONE_COLOR[m.zone]
+    const sm = setMeterFrom(d, m)
+    const c = ZONE_COLOR[sm.zone]
     useEffect(() => {
         const on = () => setOpen(true)
         window.addEventListener('ballometer-open', on)
@@ -470,13 +487,13 @@ export function BallometerChip({ d, className = '' }: { d: BallometerProps; clas
     }, [])
     return (
         <>
-            <button type="button" aria-label={`${NAME}: ${formatScore(m.score)} из 5`} onClick={() => setOpen(true)}
+            <button type="button" aria-label={`${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю`} onClick={() => setOpen(true)}
                 className={`inline-flex items-center justify-center gap-1 rounded-xl border-2 border-b-4 bg-[#161F23] px-2 active:border-b-0 ${className}`} style={{ borderColor: c }}>
                 <svg viewBox="28 28 144 100" className="h-5 w-7 shrink-0">
                     <path d={arc(-120, 120, 60)} stroke="#3A464E" strokeWidth="16" fill="none" />
-                    <path d={arc(-120, Math.max(-119, toAngle(m.score ?? 0)), 60)} stroke={c} strokeWidth="16" fill="none" />
+                    <path d={arc(-120, Math.max(-119, toAngle(sm.pace ?? 0, sm.max)), 60)} stroke={c} strokeWidth="16" fill="none" />
                 </svg>
-                <span className="text-sm font-black" style={{ color: c }}>{formatScore(m.score)}</span>
+                <span className="text-sm font-black" style={{ color: c }}>{formatScore(sm.pace)}<span className="text-[11px] text-[#9AA7B0]">/{sm.need}</span></span>
             </button>
             {open && <Modal d={d} onClose={() => setOpen(false)} />}
         </>
@@ -487,10 +504,11 @@ export function BallometerChip({ d, className = '' }: { d: BallometerProps; clas
 export function BallometerCard({ d }: { d: BallometerProps }) {
     const [open, setOpen] = useState(false)
     const m = meterFrom(d)
+    const sm = setMeterFrom(d, m)
     return (
         <>
             <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#151F23] p-3 text-left active:border-b-0">
-                <BallometerGauge m={m} className="h-20 w-20 shrink-0" />
+                <BallometerGauge s={sm} className="h-20 w-20 shrink-0" />
                 <span className="min-w-0 text-sm font-bold leading-snug text-[#E8D9B8]">
                     <b className="block text-base text-white">{NAME}</b>
                     {m.zone === 'new' ? 'Прогревается' : m.needPrimary === 0 ? 'Цель взята' : m.readyDate ? <>Цель {m.targetTest} к <span style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateShort(m.readyDate)}</span></> : 'Скорость нулевая'}
@@ -503,18 +521,19 @@ export function BallometerCard({ d }: { d: BallometerProps }) {
 }
 
 const HELLO: Record<Exclude<MeterZone, 'new'>, { src: string; lines: string[] }> = {
-    green: { src: '/miguel/miguel-calm.webp', lines: ['Боец, Баллометр в зелёной зоне! Идём по плану.', 'Зелёная зона, амиго. Так держать, ¡vamos!'] },
-    yellow: { src: '/miguel/miguel-mobilize-bucket.webp', lines: ['Боец, Баллометр в жёлтой зоне. Чуть прибавим?', 'Жёлтая зона. Пара сетов, и снова будет зелёная.'] },
-    red: { src: '/miguel/miguel-panic-watch.webp', lines: ['Тревога, боец! Баллометр в красной зоне. Настроим темп?', 'Красная зона, амиго. Маньяна кончилась, настроим программу!'] },
+    green: { src: '/miguel/miguel-calm.webp', lines: ['Боец, Сетометр в зелёной зоне! Идём по плану.', 'Зелёная зона, амиго. Так держать, ¡vamos!'] },
+    yellow: { src: '/miguel/miguel-mobilize-bucket.webp', lines: ['Боец, Сетометр в жёлтой зоне. Чуть прибавим?', 'Жёлтая зона. Пара сетов, и снова будет зелёная.'] },
+    red: { src: '/miguel/miguel-panic-watch.webp', lines: ['Тревога, боец! Сетометр в красной зоне. Настроим темп?', 'Красная зона, амиго. Маньяна кончилась, настроим программу!'] },
 }
 const HELLO_KEY = 'ballometerHello'
 
 // Раз в день Команданте сообщает показание и предлагает открыть прибор.
 export function BallometerHello({ d }: { d: BallometerProps }) {
     const m = meterFrom(d)
+    const zone = setMeterFrom(d, m).zone // как на стрелке Сетометра
     const [show, setShow] = useState(false)
     useEffect(() => {
-        if (m.zone === 'new' || m.needPrimary === 0) return
+        if (zone === 'new' || m.needPrimary === 0) return
         const today = new Date().toDateString()
         try { if (localStorage.getItem(HELLO_KEY) === today) return } catch { return }
         // отмечаем показ только когда он случился: иначе ушёл со страницы раньше — и за день ни разу не увидел
@@ -523,13 +542,13 @@ export function BallometerHello({ d }: { d: BallometerProps }) {
             setShow(true)
         }, 1800)
         return () => clearTimeout(t)
-    }, [m.zone, m.needPrimary])
-    if (!show || m.zone === 'new') return null
-    const h = HELLO[m.zone]
+    }, [zone, m.needPrimary])
+    if (!show || zone === 'new') return null
+    const h = HELLO[zone]
     const line = h.lines[new Date().getDate() % h.lines.length]
     return createPortal(
         <motion.div initial={{ opacity: 0, y: 40, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="fixed bottom-4 left-3 right-3 z-[2900] mx-auto flex max-w-md items-end gap-2 rounded-2xl border-2 bg-[#151F23] p-2.5 shadow-xl" style={{ borderColor: ZONE_COLOR[m.zone] }}>
+            className="fixed bottom-4 left-3 right-3 z-[2900] mx-auto flex max-w-md items-end gap-2 rounded-2xl border-2 bg-[#151F23] p-2.5 shadow-xl" style={{ borderColor: ZONE_COLOR[zone] }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={h.src} alt="" className="-mt-8 h-20 w-20 shrink-0 object-contain" />
             <div className="min-w-0 flex-1">
@@ -537,7 +556,7 @@ export function BallometerHello({ d }: { d: BallometerProps }) {
                 <div className="mt-2 flex gap-2">
                     <button type="button" onClick={() => { setShow(false); window.dispatchEvent(new Event('ballometer-open')) }}
                         className="rounded-lg border-b-4 px-3 py-1.5 text-xs font-black text-[#151F24] active:border-b-0" style={{ background: '#F2C35B', borderBottomColor: '#B8862E' }}>
-                        Открыть Баллометр
+                        Открыть Сетометр
                     </button>
                     <button type="button" onClick={() => setShow(false)} className="rounded-lg px-2 py-1.5 text-xs font-bold text-[#9AA7B0]">Позже</button>
                 </div>
@@ -557,10 +576,10 @@ const todayOf = (d: BallometerProps, m: MeterResult) => {
 // колокольчик следующего сета: 1-й сет за день — серебряный, 2-й — синий… (как на столе сета)
 const bellN = (d: BallometerProps) => Math.min(d.setsToday + 1, 4)
 
-const MiniArc = ({ m, w = 26 }: { m: MeterResult; w?: number }) => (
+const MiniArc = ({ s: sm, w = 26 }: { s: SetMeter; w?: number }) => (
     <svg viewBox="28 28 144 100" style={{ width: w, height: (w * 100) / 144 }} className="shrink-0">
         <path d={arc(-120, 120, 60)} stroke="#3A464E" strokeWidth="18" fill="none" />
-        <path d={arc(-120, Math.max(-119, toAngle(m.score ?? 0)), 60)} stroke={ZONE_COLOR[m.zone]} strokeWidth="18" fill="none" />
+        <path d={arc(-120, Math.max(-119, toAngle(sm.pace ?? 0, sm.max)), 60)} stroke={ZONE_COLOR[sm.zone]} strokeWidth="18" fill="none" />
     </svg>
 )
 const TodayText = ({ done, total, size = 11 }: { done: number; total: number; size?: number }) => (
@@ -574,18 +593,20 @@ export const BALLOMETER_TAB_VARIANTS = ['Колонка', 'Латунь', 'Ши�
 // Вкладка: сверху колокольчик и «сегодня сетов 1/3», ниже показание прибора «3,8». Прижата к правому краю экрана.
 export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps; variant?: number; onClick?: () => void }) {
     const m = meterFrom(d)
-    const c = ZONE_COLOR[m.zone]
+    const sm = setMeterFrom(d, m)
+    const c = ZONE_COLOR[sm.zone]
     const t = todayOf(d, m)
-    const label = `${NAME}: ${formatScore(m.score)} из 5, сегодня сетов ${t.done} из ${t.total}`
-    const score = <span className={`${stencilFont.className} leading-none`} style={{ color: c }}>{formatScore(m.score)}</span>
+    const label = `${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю, сегодня сетов ${t.done} из ${t.total}`
+    // показание: темп и мелко «/3» — сколько нужно в неделю
+    const score = <span className={`${stencilFont.className} leading-none`} style={{ color: c }}>{formatScore(sm.pace)}<span className="text-[0.7em] text-[#9AA7B0]">/{sm.need}</span></span>
     if (variant === 1) return (
         // латунный корпус, как у прибора; показание в круглом окошке
         <button type="button" onClick={onClick} aria-label={label}
-            className="flex w-[42px] flex-col items-center gap-1 rounded-l-xl border-y-2 border-l-2 border-[#5E4A26] py-1.5 shadow-[-3px_3px_10px_#0007]"
+            className="flex w-[48px] flex-col items-center gap-1 rounded-l-xl border-y-2 border-l-2 border-[#5E4A26] py-1.5 shadow-[-3px_3px_10px_#0007]"
             style={{ background: 'linear-gradient(90deg,#C9A45C,#9A7838 45%,#6E5426)' }}>
             <BellIcon n={bellN(d)} size={22} />
             <TodayText {...t} />
-            <span className="mt-0.5 flex h-[32px] w-[32px] items-center justify-center rounded-full border-2 border-[#2B1E14] bg-[#12170F] text-[12px]" style={{ boxShadow: `inset 0 0 0 2px ${c}` }}>{score}</span>
+            <span className="mt-0.5 flex h-[40px] w-[40px] items-center justify-center rounded-full border-2 border-[#2B1E14] bg-[#12170F] text-[12px]" style={{ boxShadow: `inset 0 0 0 2px ${c}` }}>{score}</span>
         </button>
     )
     if (variant === 2) return (
@@ -594,14 +615,14 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
             className="flex w-[58px] flex-col items-center gap-1 rounded-l-xl border-y-2 border-l-2 bg-[#151F23] py-1.5 pl-1 shadow-[-3px_3px_10px_#0007]" style={{ borderColor: c }}>
             <span className="flex items-center gap-0.5"><BellIcon n={bellN(d)} size={18} /><TodayText {...t} /></span>
             <span className="h-px w-9 bg-[#3A464E]" />
-            <MiniArc m={m} w={34} />
+            <MiniArc s={sm} w={34} />
             <span className="-mt-1.5 text-[14px]">{score}</span>
         </button>
     )
     if (variant === 3) return (
         // капсула со свечением цвета зоны
         <button type="button" onClick={onClick} aria-label={label}
-            className="mr-1 flex w-[38px] flex-col items-center gap-1 rounded-full border-2 bg-[#151F23] px-0.5 py-2" style={{ borderColor: c, boxShadow: `0 0 10px ${c}66, -3px 3px 10px #0007` }}>
+            className="mr-1 flex w-[42px] flex-col items-center gap-1 rounded-full border-2 bg-[#151F23] px-0.5 py-2" style={{ borderColor: c, boxShadow: `0 0 10px ${c}66, -3px 3px 10px #0007` }}>
             <BellIcon n={bellN(d)} size={20} />
             <TodayText {...t} size={10.5} />
             <span className="h-[2px] w-5 rounded-full" style={{ background: c }} />
@@ -611,11 +632,11 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
     return (
         // колонка в ширину свёрнутой линейки
         <button type="button" onClick={onClick} aria-label={label}
-            className="flex w-[34px] flex-col items-center gap-1 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1.5 shadow-[-3px_3px_10px_#0007]">
+            className="flex w-[38px] flex-col items-center gap-1 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1.5 shadow-[-3px_3px_10px_#0007]">
             <BellIcon n={bellN(d)} size={20} />
             <TodayText {...t} size={10.5} />
             <span className="h-px w-5 bg-[#3A464E]" />
-            <MiniArc m={m} />
+            <MiniArc s={sm} />
             <span className="-mt-1 text-[12px]">{score}</span>
         </button>
     )

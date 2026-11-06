@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getEgeMap } from '@/lib/egeMap'
 import { setNumberToday } from '@/lib/egeMove'
-import { computeMeter, dateRu, EGE_DEFAULT_TARGET, formatScore, type MeterResult } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateRu, EGE_DEFAULT_TARGET, formatScore, needSetsOf, type MeterResult } from '@/lib/egeMeter'
 
 type Row = Record<string, unknown>
 const SPEED_WINDOW_DAYS = 14
@@ -100,9 +100,11 @@ export async function ballometerReportLine(userId: string): Promise<string | nul
     const [c] = (await db.execute(sql`
         SELECT c.title FROM user_progress up JOIN courses c ON c.id = up.active_course_id WHERE up.user_id = ${userId}`)) as unknown as Row[]
     if (!String(c?.title ?? '').startsWith('ЕГЭ Математика')) return null
-    const m = meterOf(await getBallometerData(userId))
+    const d = await getBallometerData(userId)
+    const m = meterOf(d)
     if (m.zone === 'new') return null
-    const mark = m.zone === 'green' ? '🟢' : m.zone === 'yellow' ? '🟡' : '🔴'
+    const s = computeSetMeter(d.perWeek, d.setGain, needSetsOf(d.setsGoal, m, d.setGain, new Date()))
+    const mark = s.zone === 'green' ? '🟢' : s.zone === 'yellow' ? '🟡' : '🔴'
     const when = m.needPrimary === 0 ? 'цель уже взята' : m.readyDate ? `цель ${m.targetTest} баллов будет взята к ${dateRu(m.readyDate)}` : 'на этой скорости цель не приближается'
-    return `${mark} Баллометр: *${formatScore(m.score)} из 5*, ${when}`
+    return `${mark} Сетометр: темп *${formatScore(s.pace)} из ${s.need} сетов в неделю*, ${when}`
 }

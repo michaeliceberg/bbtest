@@ -68,3 +68,19 @@ export function computeMeter(p: { primary: number; perWeek: number | null; targe
 export const formatScore = (s: number | null) => (s === null ? '–' : s.toFixed(1).replace('.', ','))
 export const dateRu = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).replace(' г.', ' года')
 export const dateShort = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })
+
+// ——— Сетометр: прибор в сетах в неделю. Стрелка — твой темп, зелёная зона начинается с нужного числа сетов. ———
+export const SET_YELLOW_FROM = 0.7 // от 70% нужного темпа — жёлтая зона, ниже — красная
+
+export type SetMeter = { pace: number | null; need: number; max: number; zone: MeterZone }
+
+export function computeSetMeter(perWeek: number | null, setGain: number, need: number): SetMeter {
+    const pace = perWeek === null ? null : Math.round((perWeek / Math.max(0.01, setGain)) * 10) / 10
+    const max = Math.min(MAX_SETS_WEEK, Math.max(5, Math.ceil(Math.max(need * 1.6, (pace ?? 0) * 1.15))))
+    const zone: MeterZone = pace === null ? 'new' : need === 0 || pace >= need - 0.05 ? 'green' : pace >= need * SET_YELLOW_FROM ? 'yellow' : 'red'
+    return { pace, need, max, zone }
+}
+
+// Нужно сетов в неделю: что ученик сам выбрал, иначе минимум, чтобы успеть к дате цели.
+export const needSetsOf = (setsGoal: number | null, m: MeterResult, setGain: number, now: Date) =>
+    m.needPrimary === 0 ? 0 : setsGoal ?? setsForDate(m.needPrimary, m.goalDate, setGain, now)
