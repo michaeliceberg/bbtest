@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
 import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
-import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, SET_YELLOW_FROM, setsForDate, setsTodayGoal, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
+import { computeMeter, computeSetMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, needSetsOf, SET_YELLOW_FROM, setsForDate, daysLeftInWeek, type MeterResult, type MeterZone, type SetMeter } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
 import { primaryToTest } from '@/lib/egeScale'
 import { BellIcon } from '@/components/set-bar'
@@ -265,35 +265,31 @@ const GoalBlock = ({ target, demo }: { target: number; demo?: boolean }) => (
     <div className="min-w-0">
         <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Цель</p>
         <div className="flex items-center gap-1.5">
-            <span className={`${stencilFont.className} text-[44px] leading-none text-[#F2C35B]`}>{target}</span>
-            <span className="text-sm font-black leading-tight text-[#F2F7FB]">{declensionRu(target, 'балл', 'балла', 'баллов')}<br />ЕГЭ</span>
+            <span className={`${stencilFont.className} text-[38px] leading-none text-[#F2C35B]`}>{target}</span>
+            <span className="whitespace-nowrap text-sm font-black leading-tight text-[#F2F7FB]">{declensionRu(target, 'балл', 'балла', 'баллов')}<br />ЕГЭ</span>
         </div>
         {!demo && <Link href="/path" className="mt-1 block text-[11px] font-bold text-[#7FC8F2] underline">Сменить цель</Link>}
     </div>
 )
 
 // Сегодняшняя норма сетов: «1 из 2» и квадратики.
-const TodaySets = ({ done, goal }: { done: number; goal: number }) => {
-    const total = Math.max(goal, done)
-    const complete = total > 0 && done >= total
+// Норма считается на неделю (в день вышло бы меньше одного сета): «Эта неделя: 0 из 5», «осталось 3 дня» и квадратики.
+// То же число 5, что и «из 5 в неделю» на Сетометре, — один знаменатель везде.
+const WeekSets = ({ done, goal, daysLeft }: { done: number; goal: number; daysLeft: number }) => {
+    const complete = goal > 0 && done >= goal
     return (
         <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Сегодня</p>
-            {total === 0 ? (
-                <p className="mt-1 text-sm font-black leading-tight text-[#78C93C]">Норма недели<br />закрыта</p>
-            ) : (
-                <>
-                    <p className="leading-none">
-                        <span className={`${stencilFont.className} text-3xl`} style={{ color: complete ? '#78C93C' : '#F2F7FB' }}>{done}</span>
-                        <span className="text-sm font-black text-[#E8D9B8]"> из {total} {total % 10 === 1 && total % 100 !== 11 ? 'сета' : 'сетов'}</span>
-                    </p>
-                    <div className="mt-1 flex gap-1">
-                        {Array.from({ length: Math.min(total, 8) }, (_, i) => (
-                            <span key={i} className="h-2.5 w-2.5 rounded-[3px] border-2" style={{ borderColor: i < done ? '#78C93C' : '#5C6B73', background: i < done ? '#78C93C' : 'transparent' }} />
-                        ))}
-                    </div>
-                </>
-            )}
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#C9B98F]">Эта неделя</p>
+            <p className="leading-none">
+                <span className={`${stencilFont.className} text-[28px]`} style={{ color: complete ? '#78C93C' : '#F2F7FB' }}>{done}</span>
+                <span className="whitespace-nowrap text-xs font-black text-[#E8D9B8]"> из {goal} {setsWord(goal)}</span>
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+                {Array.from({ length: Math.min(goal, 10) }, (_, i) => (
+                    <span key={i} className="h-2.5 w-2.5 rounded-[3px] border-2" style={{ borderColor: i < done ? '#78C93C' : '#5C6B73', background: i < done ? '#78C93C' : 'transparent' }} />
+                ))}
+            </div>
+            <p className="mt-1 whitespace-nowrap text-[10px] font-bold text-[#9AA7B0]">{complete ? 'Норма закрыта!' : `осталось ${daysLeft} ${declensionRu(daysLeft, 'день', 'дня', 'дней')}`}</p>
         </div>
     )
 }
@@ -324,15 +320,18 @@ const MOOD_MOTION = {
     none: { animate: {}, transition: {} },
 }
 
-// Что говорит Команданте: настроение + факт (дата прогноза или сколько прибавить).
+// Тёмные оттенки цветов зон — для текста на бежевом облачке.
+const INK_ON_PAPER: Record<string, string> = { [ZONE_COLOR.green]: '#2F6B1E', [ZONE_COLOR.yellow]: '#8A5A00', [ZONE_COLOR.red]: '#A3271C', [ZONE_COLOR.new]: '#4A5560' }
+
 // Что говорит Команданте. В красной/жёлтой зоне — сколько баллов будет на ЕГЭ с нынешним темпом:
-// «к ЕГЭ ≈84 из 90» понятнее, чем «цель к 22 июня 2027 года».
+// «на ЕГЭ будет 84 из 90» понятнее, чем «цель к 22 июня 2027 года».
 function moodLine(mood: Mood, m: MeterResult, primary: number, perWeek: number | null, now: Date) {
-    const date = m.readyDate ? <b style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateShort(m.readyDate)}</b> : null
-    const add = m.addSetsPerWeek > 0 ? <> Прибавь <b className="text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
+    // облачко бежевое — яркие цвета зон на нём не читаются, берём тёмные оттенки
+    const date = m.readyDate ? <b style={{ color: INK_ON_PAPER[dateColor(m.readyDate, m.goalDate)] }}>{dateShort(m.readyDate)}</b> : null
+    const add = m.addSetsPerWeek > 0 ? <> Прибавь <b className="whitespace-nowrap rounded-md bg-[#2B2118] px-1.5 py-px text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
     const weeksToExam = Math.max(0, (EGE_EXAM_DATE.getTime() - now.getTime()) / (7 * DAY))
     const examTest = Math.min(m.targetTest, primaryToTest(primary + (perWeek ?? 0) * weeksToExam))
-    const atExam = <b style={{ color: mood === 'mobilize' ? ZONE_COLOR.yellow : ZONE_COLOR.red }}>≈{examTest} из {m.targetTest}</b>
+    const atExam = <b style={{ color: mood === 'mobilize' ? INK_ON_PAPER[ZONE_COLOR.yellow] : INK_ON_PAPER[ZONE_COLOR.red] }}>{examTest} из {m.targetTest}</b>
     const early = m.readyDate ? Math.round((EGE_EXAM_DATE.getTime() - m.readyDate.getTime()) / DAY) : 0
     const ahead = early >= 45 ? `за ${Math.round(early / 30)} ${declensionRu(Math.round(early / 30), 'месяц', 'месяца', 'месяцев')} до ЕГЭ` : `за ${Math.max(1, Math.round(early / 7))} ${declensionRu(Math.max(1, Math.round(early / 7)), 'неделю', 'недели', 'недель')} до ЕГЭ`
     switch (mood) {
@@ -374,7 +373,7 @@ const CommandanteMood = ({ mood }: { mood: Mood }) => {
     return (
         <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
             <motion.div animate={mo.animate} transition={mo.transition}>
-                {src ? <MoodBust src={src} h={78} /> : <span className="block h-[78px] w-[113px]" />}
+                {src ? <MoodBust src={src} h={68} /> : <span className="block h-[68px] w-[99px]" />}
             </motion.div>
         </motion.div>
     )
@@ -423,7 +422,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal }: { d: BallometerP
             {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
             <div className={`flex items-end justify-between gap-1 ${onClose ? 'pr-5' : ''}`}>
                 {!hideGoal && <GoalBlock target={m.targetTest} demo={demo} />}
-                {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
+                {!reached && <WeekSets done={d.setsThisWeek} goal={sets} daysLeft={daysLeftInWeek(now)} />}
                 <CommandanteMood mood={mood} />
             </div>
             <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
@@ -510,7 +509,7 @@ export function BallometerCard({ d }: { d: BallometerProps }) {
                 <span className="min-w-0 text-sm font-bold leading-snug text-[#E8D9B8]">
                     <b className="block text-base text-white">{NAME}</b>
                     {m.zone === 'new' ? 'Прогревается' : m.needPrimary === 0 ? 'Цель взята' : m.readyDate ? <>Цель {m.targetTest} к <span style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateShort(m.readyDate)}</span></> : 'Скорость нулевая'}
-                    {m.needPrimary > 0 && <span className="block text-xs text-[#9AA7B0]">Сегодня сетов: {d.setsToday} из {Math.max(d.setsToday, setsTodayGoal(d.setsGoal ?? setsForDate(m.needPrimary, m.goalDate, d.setGain, new Date(d.nowIso)), d.setsThisWeek, d.setsToday, new Date(d.nowIso)))}</span>}
+                    {m.needPrimary > 0 && <span className="block text-xs text-[#9AA7B0]">На этой неделе сетов: {d.setsThisWeek} из {sm.need}</span>}
                 </span>
             </button>
             {open && <Modal d={d} onClose={() => setOpen(false)} />}
@@ -566,11 +565,8 @@ export function BallometerHello({ d }: { d: BallometerProps }) {
 
 // ——— Мини-значок у правого края экрана (над свёрнутой линейкой ЕГЭ) и панель, выезжающая справа ———
 
-const todayOf = (d: BallometerProps, m: MeterResult) => {
-    const now = new Date(d.nowIso)
-    const goal = setsTodayGoal(d.setsGoal ?? setsForDate(m.needPrimary, m.goalDate, d.setGain, now), d.setsThisWeek, d.setsToday, now)
-    return { done: d.setsToday, total: Math.max(goal, d.setsToday) }
-}
+// сетов на этой неделе из недельной нормы (тот же знаменатель, что на Сетометре)
+const weekOf = (d: BallometerProps, sm: SetMeter) => ({ done: d.setsThisWeek, total: sm.need })
 // колокольчик следующего сета: 1-й сет за день — серебряный, 2-й — синий… (как на столе сета)
 const bellN = (d: BallometerProps) => Math.min(d.setsToday + 1, 4)
 
@@ -593,8 +589,8 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
     const m = meterFrom(d)
     const sm = setMeterFrom(d, m)
     const c = ZONE_COLOR[sm.zone]
-    const t = todayOf(d, m)
-    const label = `${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю, сегодня сетов ${t.done} из ${t.total}`
+    const t = weekOf(d, sm)
+    const label = `${NAME}: темп ${formatScore(sm.pace)} из ${sm.need} сетов в неделю, на этой неделе сделано ${t.done} из ${t.total}`
     // показание: темп и мелко «/3» — сколько нужно в неделю
     const score = <span className={`${stencilFont.className} leading-none`} style={{ color: c }}>{formatScore(sm.pace)}<span className="text-[0.7em] text-[#9AA7B0]">/{sm.need}</span></span>
     if (variant === 1) return (
@@ -631,9 +627,9 @@ export function BallometerTab({ d, variant = 0, onClick }: { d: BallometerProps;
         // колонка в ширину свёрнутой линейки
         <button type="button" onClick={onClick} aria-label={label}
             className="flex w-[38px] flex-col items-center gap-0.5 rounded-l-lg border-y border-l border-[#2C3A41] bg-[#151F23] py-1 shadow-[-3px_3px_10px_#0007]">
-            {/* одно число — сколько сетов сегодня; темп за неделю только цветом дуги (две дроби рядом путали) */}
+            {/* одно число — сетов на этой неделе из нормы; темп только цветом дуги (две дроби рядом путали) */}
             <BellIcon n={bellN(d)} size={18} />
-            <span className="text-[7.5px] font-black uppercase leading-none text-[#9AA7B0]">сегодня</span>
+            <span className="text-[7.5px] font-black uppercase leading-none text-[#9AA7B0]">неделя</span>
             <TodayText {...t} size={12} />
             <MiniArc s={sm} />
         </button>

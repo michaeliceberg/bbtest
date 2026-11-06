@@ -172,7 +172,7 @@ function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here
     const ref = useRef<HTMLButtonElement>(null)
     return (
         <button ref={ref} type="button" onClick={onOpen} aria-label="Открыть линейку ЕГЭ"
-            className="relative flex w-[30px] flex-col items-stretch rounded-l-lg border-y border-l pb-2 pt-1.5 shadow-[-3px_3px_10px_#0007]"
+            className="relative flex w-[38px] flex-col items-stretch rounded-l-lg border-y border-l pb-2 pt-1.5 shadow-[-3px_3px_10px_#0007]"
             style={{ background: `linear-gradient(90deg, ${s.light}, ${s.body} 40%, ${s.edge})`, borderColor: s.edge }}>
             <HereBand containerRef={ref as React.RefObject<HTMLElement>} num={here.size ? Math.min(...here) : null} radius={3} />
             <span className="mb-1 text-center text-[8px] font-black tracking-wider" style={{ color: TICK }}>ЕГЭ</span>
@@ -181,8 +181,8 @@ function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here
                 return (
                     <span key={t.num} data-ruler-row={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`}
                         style={{ borderColor: `${TICK}66` }}>
-                        <span className="w-[12px] text-right font-mono text-[8px] font-bold leading-none" style={{ color: here.has(t.num) ? '#FFFFFF' : `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
-                        <span className="h-[2px] rounded-full" style={{ width: 3 + 10 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
+                        <span className="w-[14px] text-right font-mono text-[9px] font-bold leading-none" style={{ color: here.has(t.num) ? '#FFFFFF' : `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
+                        <span className="h-[2px] rounded-full" style={{ width: 4 + 13 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
                         {data.setTaskNum === t.num && <span className="absolute right-[2px] h-[6px] w-[6px] rounded-full" style={{ background: '#F2C35B', boxShadow: '0 0 6px #F2C35B' }} />}
                     </span>
                 )

@@ -39,6 +39,12 @@ export const setsForDate = (needPrimary: number, date: Date, setGain: number, no
 }
 
 // Сколько сетов нужно сегодня: остаток недельной нормы делим на оставшиеся дни недели (неделя с понедельника, по Москве).
+// Сколько дней недели осталось, считая сегодня (неделя с понедельника, по Москве): в пятницу — 3.
+export const daysLeftInWeek = (now: Date) => {
+    const weekday = new Date(now.getTime() + 3 * 3600000).getUTCDay() // 0 — воскресенье
+    return weekday === 0 ? 1 : 8 - weekday
+}
+
 export const setsTodayGoal = (setsPerWeek: number, doneThisWeek: number, doneToday: number, now: Date) => {
     const weekday = new Date(now.getTime() + 3 * 3600000).getUTCDay() // 0 — воскресенье
     const daysLeft = weekday === 0 ? 1 : 8 - weekday
