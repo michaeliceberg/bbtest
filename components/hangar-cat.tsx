@@ -24,7 +24,7 @@ import { liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
-import { playSound, playJustClick, preloadSound, CASE_PRIZE_SOUND, CAT_MEW_SOUNDS, CAT_PURR_SOUND } from '@/lib/sound'
+import { playSound, playJustClick, preloadSound, CASE_PRIZE_SOUND, CAT_MEW_SOUNDS, CAT_PURR_SOUND, FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME } from '@/lib/sound'
 
 const CAT_PURR_CHANCE = 0.75
 type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'eat' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
@@ -490,7 +490,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     }
     useEffect(() => {
         if (bare || stage < 1) return
-        ;[CAT_PURR_SOUND, ...CAT_MEW_SOUNDS].forEach((s) => preloadSound(s))
+        ;[CAT_PURR_SOUND, ...CAT_MEW_SOUNDS, FRIDGE_OPEN_SOUND].forEach((s) => preloadSound(s))
     }, [bare, stage])
     const [fridgeOpen, setFridgeOpen] = useState(false)
     const [fridgeBusy, setFridgeBusy] = useState(false)
@@ -811,7 +811,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playJustClick(); setNameOpen(false); setShopOpen(true) }} />
+            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
             {shopOpen && typeof document !== 'undefined' && createPortal(
                 <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
                     fedToday={food.fedDate === moscowToday()} feedStreak={liveFeedStreak(food.fedDate, food.streak)}
