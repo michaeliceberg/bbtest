@@ -1,18 +1,18 @@
 // components/trainer-quest-rewards-screen.tsx
 //
-// Экран «Квесты дня» — ПОСЛЕДНИЙ в цепочке финала урока тренажёра
+// Экран «Испытания дня» — ПОСЛЕДНИЙ в цепочке финала урока тренажёра
 // (итоги → рулетка, если выпала → этот экран), показывается после любого
 // урока. Премиальный стиль экрана кейсов (фон, металлические рамки), без звёзд.
 //
 // Квесты (дневные, начинаются заново каждый день; считает сервер —
 // actions/generate-trainer-quest.ts, reportLessonQuestSignals):
-//   Продли серию дней → Обычный кейс; 2 урока без ошибок → Редкий;
+//   2 урока без ошибок → Редкий;
 //   КОМБО 8 в трёх уроках → Мифический; ДЗ на сегодня (если есть) → МЕГА.
 // Карточка: название, прогресс-бар и сундук справа; кейс получен — золотая
 // блестящая карточка. Неоткрытые кейсы выполненных квестов открываются по
 // «Дальше» автоматически, по очереди от менее редких к более редким
 // (CaseReel; награду решает сервер — claimQuestCase, раз в день на квест).
-// Каждый выполненный квест = +1 квест-поинт; внизу — сумма за месяц.
+// Каждое выполненное испытание = +1 очко; внизу — сумма за месяц.
 
 'use client'
 
@@ -64,7 +64,6 @@ const TIER_ACCENT: Record<LessonCaseTier, string> = {
 }
 
 const questTitle = (q: DailyQuest) => {
-    if (q.key === 'streak') return 'Продли серию дней'
     if (q.key === 'perfect') return `Пройди ${q.target} ${declensionRu(q.target, 'урок', 'урока', 'уроков')} без ошибок`
     if (q.key === 'combo8') return `КОМБО 8 в ${q.target} уроках`
     return 'Сделай домашние задания'
@@ -126,7 +125,7 @@ const buildTimings = (quests: DailyQuest[]): RowTiming[] => {
 }
 
 // «+1» квест-поинт на карточке квеста, выполненного именно в этом уроке
-// (из них складывается «+N квест-поинт!» в заголовке). Появляется с отскоком
+// (из них складывается «+N очков!» в заголовке). Появляется с отскоком
 // после заполнения прогресс-бара.
 const badgeStyle = (cozy?: boolean): React.CSSProperties =>
     cozy
@@ -418,9 +417,9 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
             </div>
 
             <div className="relative z-10 flex flex-col gap-3 px-4 pt-8">
-                {/* Заголовок в огненном стиле: «+N квест-поинт!» с горящей цифрой
+                {/* Заголовок в огненном стиле: «+N очков!» с горящей цифрой
                     (public/Lottie/numbers/burnN.json); если за этот урок новых
-                    поинтов нет — просто «Квесты дня». */}
+                    поинтов нет — просто «Испытания дня». */}
                 <motion.h1
                     initial={{ opacity: 0, y: 10, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -435,11 +434,11 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                                 {digitLottie && <Lottie animationData={digitLottie} loop autoplay className="h-full w-full" />}
                             </span>
                             <span className={cozy ? "" : "bg-clip-text text-transparent"} style={cozy ? undefined : { backgroundImage: FIRE_GRADIENT }}>
-                                {declensionRu(earned, 'квест-поинт', 'квест-поинта', 'квест-поинтов')}!
+                                {declensionRu(earned, 'очко', 'очка', 'очков')}!
                             </span>
                         </>
                     ) : (
-                        <span className={cozy ? "" : "bg-clip-text text-transparent"} style={cozy ? undefined : { backgroundImage: FIRE_GRADIENT }}>Квесты дня</span>
+                        <span className={cozy ? "" : "bg-clip-text text-transparent"} style={cozy ? undefined : { backgroundImage: FIRE_GRADIENT }}>Испытания дня</span>
                     )}
                 </motion.h1>
 
@@ -463,7 +462,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     style={cozy ? { background: COZY.wood, border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 6px 0 ${COZY.woodEdge}` } : undefined}
                 >
                     <span className="text-sm font-bold" style={{ color: cozy ? '#FFE8C7' : '#D5DEE5' }}>
-                        Квест-поинты за {monthName}
+                        Очки испытаний за {monthName}
                     </span>
                     <span className="flex items-center gap-1 text-[#FFB020]">
                         <motion.span

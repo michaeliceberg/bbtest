@@ -70,7 +70,7 @@ export const GangRoster = ({ gangId, members, currentUserId, isLeader }: Props) 
                             <p className="text-xs text-[#9AA7B0] flex items-center gap-1">
                                 {m.role !== 'member' && <RoleIcon className={`h-3.5 w-3.5 shrink-0 ${ROLE_COLOR[m.role] ?? ''}`} />}
                                 <span className={m.role !== 'member' ? ROLE_COLOR[m.role] : ''}>{ROLE_LABEL[m.role] ?? m.role}</span>
-                                <span>· 🎴{m.ggStickers} · {m.questsTotal} квестов</span>
+                                <span>· 🎴{m.ggStickers} · {m.questsTotal} сетов и испытаний</span>
                             </p>
                         </div>
                         {isLeader && !isSelf && m.role !== 'leader' && (

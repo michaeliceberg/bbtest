@@ -1,22 +1,17 @@
 // lib/streak.ts
 //
-// "Ударный режим" (стрик) — общий помощник для user_course_progress.
-// По решению пользователя стрик ведётся ОДИН на реальный курс (напр.
-// "ЕГЭ Физика"), и продлевается ЛЮБЫМ источником активности по этому
-// курсу — решением задачи в задачнике (actions/challenge-progress.ts)
-// ИЛИ прохождением урока тренажёра, привязанного к этому курсу через
-// t_courses.courseId (actions/user-progress.ts, upsertTrainerLessonProgress).
-// Оба места вызывают этот же bumpCourseStreak, чтобы логика подсчёта
-// (сегодня/вчера/пропуск) не дублировалась и не могла разъехаться.
-//
-// trainer_streaks (отдельная таблица, "стрик по дневному квесту
-// тренажёра") этим не заменяется и не трогается — это отдельная, более
-// узкая механика ("+1 к стрику" за полное выполнение дневного квеста из
-// 3-5 уроков), сознательно оставленная как есть.
+// "Ударный режим" (стрик, огонёк) — одна серия на реальный курс (user_course_progress).
+// День засчитывается «закуской» (решение 2026-11-06): пройден урок тренажёра, привязанного
+// к курсу (actions/user-progress.ts), ИЛИ решено STREAK_TASKS_PER_DAY задач задачника за день
+// (actions/challenge-progress.ts). Весь сет не требуем: в загруженный день серия иначе оборвётся,
+// за целый сет — сундук. Квест дня и его серия «x1» (trainer_streaks) убраны, таблица осталась историей.
 
 import db from '@/db/drizzle';
 import { userCourseProgress, userProgress } from '@/db/schema';
 import { and, eq, gte, sql } from 'drizzle-orm';
+
+// Сколько верных задач задачника за день продлевают серию без урока тренажёра.
+export const STREAK_TASKS_PER_DAY = 5;
 
 export type StreakUpdateResult = {
     streak: number;
@@ -35,7 +30,7 @@ export async function bumpCourseStreak(
     userId: string,
     courseId: number,
     today: Date,
-    extra?: { pointsDelta?: number; gemsDelta?: number },
+    extra?: { pointsDelta?: number; gemsDelta?: number; countDay?: boolean },
 ): Promise<StreakUpdateResult> {
     const pointsDelta = extra?.pointsDelta ?? 0;
     const gemsDelta = extra?.gemsDelta ?? 0;
@@ -49,6 +44,24 @@ export async function bumpCourseStreak(
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
+
+    // Ещё не набрали норму дня: только очки и гемы курса, серию не трогаем.
+    if (extra?.countDay === false) {
+        const streak = courseProgress?.streak ?? 0;
+        const longestStreak = courseProgress?.longestStreak ?? 0;
+        if (courseProgress) {
+            await db.update(userCourseProgress)
+                .set({
+                    points: sql`${userCourseProgress.points} + ${pointsDelta}`,
+                    gems: sql`${userCourseProgress.gems} + ${gemsDelta}`,
+                    updatedAt: new Date(),
+                })
+                .where(eq(userCourseProgress.id, courseProgress.id));
+        } else {
+            await db.insert(userCourseProgress).values({ userId, courseId, points: pointsDelta, gems: gemsDelta, progressPercent: 0, streak: 0, longestStreak: 0, updatedAt: new Date() });
+        }
+        return { streak, longestStreak, extended: false, frozenDays: 0 };
+    }
 
     const lastActive = courseProgress?.lastActiveDate ? new Date(courseProgress.lastActiveDate) : null;
     if (lastActive) lastActive.setHours(0, 0, 0, 0);
@@ -107,15 +120,3 @@ export async function bumpCourseStreak(
     return { streak: newStreak, longestStreak: newLongestStreak, extended, frozenDays };
 }
 
-// Текущий стрик курса без записи (для чтения на экране наград
-// тренажёра — там к моменту вызова курс уже продлён самим
-// upsertTrainerLessonProgress этой же попытки, повторно бампать не нужно).
-export async function getCourseStreak(userId: string, courseId: number): Promise<number> {
-    const courseProgress = await db.query.userCourseProgress.findFirst({
-        where: and(
-            eq(userCourseProgress.userId, userId),
-            eq(userCourseProgress.courseId, courseId)
-        ),
-    });
-    return courseProgress?.streak ?? 0;
-}

@@ -9,9 +9,10 @@ import 'server-only'
 
 import { sql, and, eq } from 'drizzle-orm'
 import db from '@/db/drizzle'
-import { egeMoves } from '@/db/schema'
+import { egeMoves, questPoints, userProgress } from '@/db/schema'
 import { getEgeMap } from '@/lib/egeMap'
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
+import { bumpCourseStreak } from '@/lib/streak'
 import type { LessonCaseTier } from '@/lib/caseRewards'
 
 export type EgeMoveRow = typeof egeMoves.$inferSelect
@@ -93,6 +94,25 @@ export function nextStepAfter(m: EgeMoveRow, from: string): string {
     if (from === 'trainer' && m.tLessonId2) return 'trainer2'
     if (from === 'trainer' || from === 'trainer2') return moveChallengeIds(m).length ? 'tasks' : 'done'
     return 'done'
+}
+
+// Сет закрыт — единственная точка: шаг 'done', +10 очков и запись в quest_points (битва банд +2,
+// бонус за приглашение). Атомарно по шагу: награда выдаётся один раз. Возвращает false, если шаг уже сменился.
+export const SET_POINT_REWARD = 10
+const EGE_MATH_COURSE_ID = 11
+export async function finishEgeMove(m: EgeMoveRow, from: string): Promise<boolean> {
+    const done = await db.update(egeMoves)
+        .set({ step: 'done', finishedAt: new Date() })
+        .where(and(eq(egeMoves.id, m.id), eq(egeMoves.step, from)))
+        .returning({ id: egeMoves.id })
+    if (done.length === 0) return false
+    await db.update(userProgress).set({ points: sql`${userProgress.points} + ${SET_POINT_REWARD}` }).where(eq(userProgress.userId, m.userId))
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    await db.insert(questPoints).values({ userId: m.userId, questKey: `set-${m.id}`, date: today }).onConflictDoNothing()
+    // Сет без урока тренажёра и меньше 5 задач: огонёк сам не продлился бы
+    if (!m.tLessonId) await bumpCourseStreak(m.userId, EGE_MATH_COURSE_ID, today)
+    return true
 }
 
 // Сундук сета растёт с числом сетов, съеденных за день (по Москве): 1-й — обычный, 2-й — редкий, 3-й и дальше — мифический.

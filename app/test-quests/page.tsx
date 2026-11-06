@@ -1,6 +1,6 @@
 'use client'
 
-// Тестовая страница экрана «Квесты дня» (components/trainer-quest-rewards-screen.tsx)
+// Тестовая страница экрана «Испытания дня» (components/trainer-quest-rewards-screen.tsx)
 // с примерными данными: 2 кейса ждут открытия (обычный, редкий), КОМБО 8 —
 // уже получен (золотая карточка), ДЗ не сделано. «Дальше» открывает кейсы по
 // очереди — настоящим запросом (награда реально начисляется, в обход проверки квестов).
@@ -37,7 +37,6 @@ export default function TestQuestsPage() {
                     monthPoints: 9,
                     earnedNow: 2,
                     quests: [
-                        { key: 'streak', progress: 1, target: 1, done: true, claimed: false, tier: 'common', streakDays: 3, prevProgress: 0, pointNow: true },
                         { key: 'perfect', progress: 2, target: 2, done: true, claimed: false, tier: 'rare', prevProgress: 1, pointNow: true },
                         { key: 'combo8', progress: 3, target: 3, done: true, claimed: true, tier: 'mythic' },
                         { key: 'hw', progress: 0, target: 1, done: false, claimed: false, tier: 'mega' },

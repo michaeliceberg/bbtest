@@ -1,14 +1,22 @@
 'use client'
 
-// Кнопка с цитатой в углу ангара и окно «Откуда эти фразы»: источники вынесены сюда, чтобы не занимать место в плашке предмета.
+// Кнопка с цитатой в углу ангара и окно «Откуда эти фразы»: только описание и список выпусков, сами фразы не повторяем.
 
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Quote, X } from 'lucide-react'
-import { HANGAR_JOKES, HANGAR_JOKE_GROUP } from '@/lib/hangarJokes'
-import { ZN_RUBRIC_TITLE } from '@/lib/zaNauku'
+import { HANGAR_JOKES } from '@/lib/hangarJokes'
+import { ZN_RUBRIC_TITLE, type ZnRubric } from '@/lib/zaNauku'
 
-const GROUPS = Object.keys(HANGAR_JOKES).map(Number)
+// Рубрики и выпуски газеты без повторов: «Автограф в зачётке» → № 25 (848), 1 сентября 1983 г.; № 4 (867)…
+const SOURCES: { rubric: ZnRubric; list: string[] }[] = (() => {
+    const by = new Map<ZnRubric, Set<string>>()
+    Object.values(HANGAR_JOKES).flat().forEach((j) => {
+        if (!by.has(j.rubric)) by.set(j.rubric, new Set())
+        by.get(j.rubric)!.add(j.source)
+    })
+    return Array.from(by, ([rubric, set]) => ({ rubric, list: Array.from(set).sort() }))
+})()
 
 export function HangarQuotesButton({ className = '' }: { className?: string }) {
     const [open, setOpen] = useState(false)
@@ -29,20 +37,12 @@ export function HangarQuotesButton({ className = '' }: { className?: string }) {
                         </div>
                         <div className="overflow-y-auto p-3.5">
                             <p className="text-sm font-bold leading-snug text-[#E8D9B8]">
-                                Цитаты на предметах ангара взяты из газеты МФТИ «За науку». Над этими шутками физтехи смеялись на лекциях и экзаменах задолго до нас. Мы нашли их в сборнике «Время было такое» (1959–1995).
+                                Цитаты на предметах ангара взяты из газеты МФТИ «За науку», из сборника «Время было такое» (1959–1995). Спасибо всем её авторам! Слова после цитаты дописал Команданте.
                             </p>
-                            <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">
-                                Слова после цитаты дописал Команданте. Ещё больше шуток лежит в архиве на починенном компьютере.
-                            </p>
-                            {GROUPS.map((g) => (
-                                <div key={g} className="mt-4">
-                                    <p className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">{HANGAR_JOKE_GROUP[g]}</p>
-                                    {HANGAR_JOKES[g].map((j) => (
-                                        <div key={j.quote} className="mt-2">
-                                            <p className="text-sm leading-snug text-[#F2F7FB]">{j.quote}</p>
-                                            <p className="mt-0.5 text-[11px] font-bold text-[#7E8F99]">{ZN_RUBRIC_TITLE[j.rubric]}, {j.source}</p>
-                                        </div>
-                                    ))}
+                            {SOURCES.map((s) => (
+                                <div key={s.rubric} className="mt-3">
+                                    <p className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">{ZN_RUBRIC_TITLE[s.rubric]}</p>
+                                    <p className="mt-0.5 text-sm leading-snug text-[#C9D3D9]">{s.list.join('; ')}</p>
                                 </div>
                             ))}
                         </div>

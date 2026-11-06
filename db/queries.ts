@@ -79,7 +79,7 @@ export const getUserProgressById = cache(async (userId: string) => {
   return data;
 });
 
-// Лайфтайм-счётчик выполненных квестов дня (без фильтра по дате, в
+// Лайфтайм-счётчик сетов и испытаний дня (quest_points) (без фильтра по дате, в
 // отличие от помесячного inline-запроса в generate-trainer-quest.ts) —
 // нужен для масштабирования реферального бонуса по "активности"
 // приглашающего (Фаза 2).
@@ -1072,24 +1072,6 @@ export const getUserStreaks = cache(async (userId: string) => {
 
 
 // db/queries.ts
-
-// Получить сегодняшний квест тренажера
-export const getTodayTrainerQuest = cache(async (userId: string, courseId: number) => {
-    if (!userId) return null;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const quest = await db.query.trainerQuests.findFirst({
-        where: and(
-            eq(trainerQuests.userId, userId),
-            eq(trainerQuests.tCourseId, courseId),
-            eq(trainerQuests.date, today)
-        ),
-    });
-    
-    return quest;
-});
 
 
 

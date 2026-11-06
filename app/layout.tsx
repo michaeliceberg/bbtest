@@ -27,7 +27,6 @@ import { AttributionCatcher } from '@/components/attribution-catcher';
 import { PwaResume } from '@/components/pwa-resume';
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 const StageCurtainProvider = dynamic(() => import('@/components/stage-curtain-provider').then(mod => ({ default: mod.StageCurtainProvider })), { ssr: false });
-const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
 // TrainerMemeModal — по прямой просьбе пользователя больше не
 // монтируется (отвлекала во время решения тренажёра). Компонент/стор
 // (components/modals/trainer-meme-modal.tsx, store/use-trainer-meme-modal.ts)
@@ -75,7 +74,6 @@ export default function RootLayout({
 				<NoVideoPopout />
 				<AttributionCatcher />
 				<PwaResume />
-				<QuestCompleteModalProvider />
 				<StageCurtainProvider />
 			</body>
 		</html>

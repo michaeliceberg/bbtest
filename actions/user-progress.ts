@@ -16,7 +16,6 @@ import { grantLevelCaseKeys } from '@/lib/levelCase';
 import { recalculateAchievements } from './check-achievements';
 import { syncAchievements, syncInviterOf, unlockAchievements } from '@/lib/achievements';
 import { bumpCourseStreak } from '@/lib/streak';
-import { getDailyQuestStatus } from './generate-trainer-quest';
 import { REFERRAL_COOKIE } from '@/lib/referral';
 import { grantReferralChainRewards, type ReferralWelcomeGift } from '@/lib/referralRewards';
 import { ALL_TRACK_LESSONS } from '@/lib/trialTracks';
@@ -349,9 +348,6 @@ export const upsertTrainerLessonProgress = async (
 	let streakExtended = false;
     let streakFrozenDays = 0;
 	let newStreak: number | undefined;
-	let questJustCompleted = false;
-	let questStreak: number | undefined;
-	let questPointsReward: number | undefined;
 	let referralGift: ReferralWelcomeGift | null = null;
 	let unveilReady: { num: number; title: string }[] = [];
 
@@ -395,20 +391,6 @@ export const upsertTrainerLessonProgress = async (
 			newStreak = streakResult.streak;
 		}
 
-		// Квест дня — "пройди урок тренажёра" мог только что закрыться
-		// именно этой попыткой (t_lessonProgress уже вставлена строкой
-		// выше, до входа в этот if — getDailyQuestStatus обязан увидеть её
-		// свежей). tCourseId для квеста — t_unit.t_courseId (тема
-		// тренажёра), НЕ linkedCourseId выше (тот — основной курс
-		// задачника, другое понятие).
-		const tCourseId = lesson?.t_unit?.t_courseId;
-		if (tCourseId) {
-			const questStatus = await getDailyQuestStatus(tCourseId);
-			questJustCompleted = questStatus?.justCompleted ?? false;
-			questStreak = questStatus?.streak;
-			questPointsReward = questStatus?.pointsReward;
-		}
-
 		// Приглашённый прошёл все 3 разбора электродинамики — раздаём пиццу ему
 		// и вверх по ветке (один раз).
 		if (ALL_TRACK_LESSONS.includes(t_lessonId)) {
@@ -445,7 +427,7 @@ export const upsertTrainerLessonProgress = async (
 		void notifyParentsEgeGain(userId, egeGain).catch(() => null);
 	}
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain, unveilReady };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, bossWins, referralGift, egeGain, unveilReady };
 };
 
 

@@ -11,7 +11,6 @@ import {
     challenges,
     lessons,
     units,
-    t_courses
 } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
@@ -19,9 +18,7 @@ import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { grantLevelCaseKeys } from '@/lib/levelCase';
 import { recalculateAchievements, type NewlyCompletedAchievement } from './check-achievements';
-import { bumpCourseStreak } from '@/lib/streak';
-import { getDailyQuestStatus } from './generate-trainer-quest';
-import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
+import { bumpCourseStreak, STREAK_TASKS_PER_DAY } from '@/lib/streak';
 import { getEgeGain, type EgeGain } from '@/lib/egeMap';
 import { notifyParentsEgeGain } from '@/lib/parentNotify';
 
@@ -49,9 +46,6 @@ interface ChallengeProgressResponse {
     streakExtended?: boolean;
     streakFrozenDays?: number;
     newStreak?: number;
-    questJustCompleted?: boolean;
-    questStreak?: number;
-    questPointsReward?: number;
     egeGain?: EgeGain | null;
     catCalled?: boolean;
 }
@@ -201,17 +195,11 @@ export async function updateChallengeProgress({
             })
             .where(eq(userProgress.userId, userId));
         
-        // "Ударный режим" (streak) — общий помощник (lib/streak.ts),
-        // делит логику с трениажёром (см. actions/user-progress.ts): по
-        // решению пользователя один и тот же курсовый стрик продлевается
-        // ЛИБО задачей из задачника, ЛИБО уроком тренажёра, привязанного
-        // к этому курсу — "хотя бы что-то оттуда или оттуда". До правки
-        // это поле не обновлялось НИГДЕ в живом коде (только в мёртвом
-        // закомментированном блоке ниже в этом файле) — таблица
-        // user_course_progress была пуста для всех пользователей.
+        // Огонёк (lib/streak.ts): задачи продлевают серию, когда за день набрано STREAK_TASKS_PER_DAY верных.
         const streakResult = await bumpCourseStreak(userId, courseId, today, {
             pointsDelta: pointsEarned,
             gemsDelta: gemsEarned,
+            countDay: newChallengesRight >= STREAK_TASKS_PER_DAY,
         });
         streakExtended = streakResult.extended;
             streakFrozenDays = streakResult.frozenDays;
@@ -291,24 +279,6 @@ export async function updateChallengeProgress({
         });
     }
     
-    // 12.5. Квест дня — "реши задачу курса" мог только что закрыться этим
-    // самым ответом (userDailyStats.challengesRight уже сохранён строкой
-    // выше — getDailyQuestStatus обязан видеть его СВЕЖИМ). Только для
-    // реального (не практика) верного ответа — это единственный случай,
-    // когда taskDone вообще может перейти false→true.
-    let questJustCompleted = false;
-    let questStreak: number | undefined;
-    let questPointsReward: number | undefined;
-    if (!isPractice && doneRight && !existingProgress?.completed) {
-        const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.courseId, courseId) });
-        if (tCourse && !HIDDEN_T_COURSE_IDS.includes(tCourse.id)) {
-            const questStatus = await getDailyQuestStatus(tCourse.id);
-            questJustCompleted = questStatus?.justCompleted ?? false;
-            questStreak = questStatus?.streak;
-            questPointsReward = questStatus?.pointsReward;
-        }
-    }
-
     // 13. Обновляем сердца при неправильном ответе
     if (!isPractice && !doneRight && !existingProgress?.completed) {
         const newHearts = Math.max((userProgressData?.hearts ?? 0) - 1, 0);
@@ -352,9 +322,6 @@ export async function updateChallengeProgress({
         streakExtended,
         streakFrozenDays,
         newStreak,
-        questJustCompleted,
-        questStreak,
-        questPointsReward,
     };
 }
 

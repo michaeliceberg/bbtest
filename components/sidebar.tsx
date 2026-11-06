@@ -35,9 +35,7 @@ interface SidebarProps {
   theme?: UiTheme
   courses?: SidebarCourse[]
   activeCourseId?: number | null
-  hasTrainerQuest?: boolean
   hasHomework?: boolean
-  trainerQuestProgress?: string
   className?: string
   // Профиль из userProgress — источник правды, в отличие от сессии
   // NextAuth, которая обновляется только при новом входе.
@@ -58,7 +56,7 @@ interface SidebarProps {
   isPro?: boolean // купленная подписка: кнопка PRO спокойная
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false, isPro = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false, isPro = false }: SidebarProps) => {
   const claimCount = useAchievementClaimStore((st) => st.count)
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
@@ -100,7 +98,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     // сделать пункт неактивным (приглушён, замок, не ссылка).
     // У задачника — ракета (как на пульте ангара), но тем же серым значком, что остальные пункты.
     { label: 'Задачник', href: '/learn', icon: Rocket, disabled: learnLocked },
-    { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
+    { label: 'Тренажёр', href: '/trainer', icon: Dumbbell },
     { label: 'Мой путь', href: '/path', icon: Route },
     // Справочник временно убран (2026-10-29): будет премиальной страницей с теорией из пройденных step-by-step.
     // { label: 'Справочник', href: '/reference', icon: Library },
@@ -238,7 +236,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
               <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
                 {navIconEl(item, isActive)}
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
-                {item.badge && <div className="ml-auto h-5 w-5 rounded-full bg-red-500"></div>}
                 {item.href === '/achievements' && claimCount > 0 && (
                   <span className="ml-auto flex h-[22px] min-w-[22px] animate-pulse items-center justify-center rounded-full bg-[#FFC53D] px-1.5 text-xs font-black text-[#4A3206] shadow-[0_0_12px_rgba(255,197,61,0.7)]" title="Есть награды за ачивки">{claimCount}</span>
                 )}

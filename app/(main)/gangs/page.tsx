@@ -1,8 +1,8 @@
 // app/(main)/gangs/page.tsx
 //
 // Рейтинг банд: по умолчанию — битва текущей недели (lib/gangWeek.ts:
-// +1 за урок тренажёра, +2 за квест дня, с понедельника), вкладка
-// "Всё время" — старый рейтинг (gg-стикеры + квесты за всю жизнь).
+// +1 за урок тренажёра, +2 за сет и испытание дня, с понедельника), вкладка
+// "Всё время" — старый рейтинг (gg-стикеры + сеты и испытания за всю жизнь).
 
 import Link from 'next/link';
 import { auth } from '@/lib/server-auth';
@@ -69,11 +69,11 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                         </div>
                         <div className="mt-3 flex justify-center gap-2">
                             <span className="rounded-full border-2 border-[#2E4A2A] bg-[#1C2A1A] px-3 py-1 text-xs font-black text-[#A1D151]">📚 урок тренажёра +{GANG_WEEK_POINTS.lesson}</span>
-                            <span className="rounded-full border-2 border-[#4A3A1C] bg-[#2A2116] px-3 py-1 text-xs font-black text-[#F2C35B]">🎯 квест дня +{GANG_WEEK_POINTS.quest}</span>
+                            <span className="rounded-full border-2 border-[#4A3A1C] bg-[#2A2116] px-3 py-1 text-xs font-black text-[#F2C35B]">🎯 сет или испытание +{GANG_WEEK_POINTS.quest}</span>
                         </div>
                     </>
                 ) : (
-                    <p className="mt-3 text-sm text-[#9AA7B0]">Те же очки, что в битве недели (урок тренажёра +1, квест дня +2), — за всё время.</p>
+                    <p className="mt-3 text-sm text-[#9AA7B0]">Те же очки, что в битве недели (урок тренажёра +1, сет или испытание дня +2), — за всё время.</p>
                 )}
             </div>
 

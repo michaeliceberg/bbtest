@@ -1,8 +1,8 @@
 'use client'
 
 // Простой вид /trainer: вместо стопки карточек — одна полоска из иконок и
-// цифр (уровень) и «таблетки» — серия дней, пицца и квест
-// дня; по тапу таблетка раскрывает привычную подробную карточку.
+// цифр (уровень) и «таблетки» — серия дней и пицца;
+// по тапу таблетка раскрывает привычную подробную карточку.
 // Слово «простой» — выбор в сайдбаре (lib/trainerView.ts).
 
 import { ReactNode, useState } from 'react'
@@ -13,10 +13,7 @@ import { daysWord } from '@/usefulFunctions'
 type Props = {
     xp: number
     pizzaSlices: number
-    questDone: number
-    questTotal: number
     pizzaPanel: ReactNode
-    questPanel?: ReactNode
     // Серия дней по курсу (lib/streak.ts): огонёк серый, пока сегодня ещё не занимался.
     streak?: number
     streakToday?: boolean
@@ -26,12 +23,12 @@ type Props = {
 const RING_R = 17
 const RING_C = 2 * Math.PI * RING_R
 
-export const TrainerTopBar = ({ xp, pizzaSlices, questDone, questTotal, pizzaPanel, questPanel, streak = 0, streakToday = false, streakFreezes = 0 }: Props) => {
+export const TrainerTopBar = ({ xp, pizzaSlices, pizzaPanel, streak = 0, streakToday = false, streakFreezes = 0 }: Props) => {
     const info = getLevelInfo(xp)
-    const [open, setOpen] = useState<null | 'pizza' | 'quest' | 'streak'>(null)
-    const toggle = (k: 'pizza' | 'quest' | 'streak') => setOpen((cur) => (cur === k ? null : k))
+    const [open, setOpen] = useState<null | 'pizza' | 'streak'>(null)
+    const toggle = (k: 'pizza' | 'streak') => setOpen((cur) => (cur === k ? null : k))
 
-    const chip = (k: 'pizza' | 'quest' | 'streak', label: ReactNode, active: boolean, activeColor = '#A1D151') => (
+    const chip = (k: 'pizza' | 'streak', label: ReactNode, active: boolean, activeColor = '#A1D151') => (
         <button
             type="button"
             onClick={() => toggle(k)}
@@ -52,7 +49,6 @@ export const TrainerTopBar = ({ xp, pizzaSlices, questDone, questTotal, pizzaPan
                 <LevelRing level={info.level} percent={info.progressPercent} />
                 {chip('streak', <><span style={streakToday ? undefined : { filter: 'grayscale(1)', opacity: 0.55 }}>🔥</span> {streak}</>, streakToday && streak > 0, '#FFB347')}
                 {chip('pizza', <>🍕 {pizzaSlices}/8</>, pizzaSlices >= 8)}
-                {questPanel && chip('quest', <>🎯 {questDone}/{questTotal}</>, questDone >= questTotal)}
             </div>
 
             {open && (
@@ -62,7 +58,7 @@ export const TrainerTopBar = ({ xp, pizzaSlices, questDone, questTotal, pizzaPan
                     transition={{ duration: 0.2 }}
                     className="mt-2 rounded-2xl border-2 border-[#3A464E] bg-[#151F23] p-3"
                 >
-                    {open === 'pizza' ? pizzaPanel : open === 'quest' ? questPanel : (
+                    {open === 'pizza' ? pizzaPanel : (
                         <StreakPanel streak={streak} today={streakToday} freezes={streakFreezes} />
                     )}
                 </motion.div>
@@ -97,8 +93,8 @@ const StreakPanel = ({ streak, today, freezes }: { streak: number; today: boolea
                 {today
                     ? 'Сегодня серия продлена. Красава! Возвращайся завтра 💪'
                     : streak > 0
-                        ? 'Сегодня ещё не занимался. Реши задание, чтобы не потерять серию ⏳'
-                        : 'Занимайся каждый день — огонёк будет расти'}
+                        ? 'Пройди урок тренажёра или реши 5 задач, чтобы не потерять серию ⏳'
+                        : 'Один урок тренажёра или 5 задач в день — и огонёк растёт'}
             </span>
             {freezes > 0 && <span className="text-xs text-[#7FC8F2]">❄️ Заморозок про запас: {freezes}</span>}
         </div>

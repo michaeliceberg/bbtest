@@ -4,7 +4,7 @@ import { pickActiveCourseId } from '@/lib/trainer-topic'
 import { MobileHeader } from '@/components/mobile-header'
 import { Sidebar } from '@/components/sidebar'
 import { auth } from '@/lib/server-auth'
-import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest, getUserProgress } from '@/db/queries'
+import { getUserCourses, getUserCourseStreak, getUserHomework, getUserProgress } from '@/db/queries'
 import { cookies } from 'next/headers'
 import { getUiTheme } from '@/lib/uiThemeServer'
 import { isLearnUnlocked, learnSubjectOf } from '@/lib/learn-unlock'
@@ -75,15 +75,9 @@ const MainLayout = async ({ children }: Props) => {
             const pendingTrainerHomework = allHomework.filter(h => h.tLessonIds && (h.status === 'pending' || h.status === 'expired'))
             const hasUnfinishedTrainerHomework = pendingTrainerHomework.length > 0
             
-            // Получаем статус квеста тренажера
-            const trainerQuest = await getTodayTrainerQuest(userId, course.id)
-            const hasUnfinishedTrainerQuest = trainerQuest ? !trainerQuest.isCompleted : false
-            
             // Объединяем все уведомления для этого курса
-            const hasNotification = hasUnfinishedHomework || hasUnfinishedTrainerHomework || hasUnfinishedTrainerQuest
-            
-            console.log(`📊 Курс ${course.title}: homework=${hasUnfinishedHomework}, trainerHomework=${hasUnfinishedTrainerHomework}, quest=${hasUnfinishedTrainerQuest}`)
-            
+            const hasNotification = hasUnfinishedHomework || hasUnfinishedTrainerHomework
+
             return {
                 id: course.id,
                 title: course.title,
@@ -101,13 +95,9 @@ const MainLayout = async ({ children }: Props) => {
     const activePendingTrainerHomework = activeAllHomework.filter(h => h.tLessonIds && (h.status === 'pending' || h.status === 'expired'))
     const hasHomework = activePendingHomework.length > 0 || activePendingTrainerHomework.length > 0
     
-    const activeTrainerQuest = await getTodayTrainerQuest(userId, activeCourseId)
-    const hasTrainerQuest = activeTrainerQuest ? !activeTrainerQuest.isCompleted : false
-    const trainerQuestProgress = activeTrainerQuest ? `${activeTrainerQuest.completedCount}/${activeTrainerQuest.totalCount}` : ''
     
 
 
-    console.log(`🔴 Активный курс ${activeCourseId}: hasTrainerQuest=${hasTrainerQuest}, trainerQuest=${activeTrainerQuest}`)
 
     
     const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
@@ -125,7 +115,6 @@ const MainLayout = async ({ children }: Props) => {
                 courseTitle={activeCourseTitle}
                 courses={coursesWithData}
                 activeCourseId={activeCourseId}
-                hasTrainerQuest={hasTrainerQuest}
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
@@ -138,8 +127,6 @@ const MainLayout = async ({ children }: Props) => {
                 courses={coursesWithData}
                 activeCourseId={activeCourseId}
                 hasHomework={hasHomework}
-                hasTrainerQuest={hasTrainerQuest}
-                trainerQuestProgress={trainerQuestProgress}
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}

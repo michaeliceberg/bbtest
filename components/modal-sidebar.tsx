@@ -11,7 +11,6 @@ import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
 type Props = {
 	courses?: SidebarCourse[]
 	activeCourseId?: number | null
-	hasTrainerQuest?: boolean
 	userName?: string
 	userImageSrc?: string
 	learnLocked?: boolean
@@ -20,7 +19,7 @@ type Props = {
 	isPro?: boolean
 }
 
-export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro }: Props) => {
+export const MobileSidebar = ({ courses, activeCourseId, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro }: Props) => {
 	const [open, setOpen] = useState(false)
 	const pathname = usePathname()
 	const claimCount = useAchievementClaimStore((st) => st.count)
@@ -46,7 +45,6 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userNa
 				<Sidebar
 					courses={courses}
 					activeCourseId={activeCourseId}
-					hasTrainerQuest={hasTrainerQuest}
 					userName={userName}
 					userImageSrc={userImageSrc}
 					learnLocked={learnLocked}

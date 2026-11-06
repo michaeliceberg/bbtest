@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
-import { addMoveReplacements, createEgeMove, getActiveEgeMove, getEgeMove, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf } from '@/lib/egeMove'
+import { addMoveReplacements, finishEgeMove, createEgeMove, getActiveEgeMove, getEgeMove, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf } from '@/lib/egeMove'
 import { applyCaseReward, type OpenCaseResult } from '@/lib/caseApply'
 import { getLessonCasePool } from '@/lib/caseRewards'
 
@@ -39,9 +39,8 @@ export async function advanceEgeMove(id: number, fromArg: 'trainer' | 'trainer2'
         }
     }
     const next = nextStepAfter(m, from)
-    await db.update(egeMoves)
-        .set({ step: next, finishedAt: next === 'done' ? new Date() : null })
-        .where(and(eq(egeMoves.id, m.id), eq(egeMoves.step, from)))
+    if (next === 'done') await finishEgeMove(m, from)
+    else await db.update(egeMoves).set({ step: next }).where(and(eq(egeMoves.id, m.id), eq(egeMoves.step, from)))
     return 'next'
 }
 

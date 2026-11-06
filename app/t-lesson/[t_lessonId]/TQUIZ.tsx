@@ -47,7 +47,6 @@ import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/traine
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 import { useLevelUpStore } from "@/store/use-level-up-store"
-import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 import { ReferralGiftScreen } from "@/components/referral-screens"
@@ -250,7 +249,6 @@ export default function TQuiz({
   // экран уровня закроют.
   const pendingLevelUpRef = useRef<{ oldLevel: number; newLevel: number; gems: number } | null>(null)
   const [waitingLevelUp, setWaitingLevelUp] = useState(false)
-  const showQuestComplete = useQuestCompleteStore((state) => state.showQuestComplete)
 
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
@@ -709,13 +707,6 @@ export default function TQuiz({
         progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
         // Ачивки нового типа (Steam-стиль): сервер выдал их при сохранении — забираем и показываем.
         checkAchievements()
-        // Квест дня мог закрыться именно этой попыткой (первый из двух
-        // пунктов, "пройди урок тренажёра", или оба разом если "реши
-        // задачу курса" уже был выполнен сегодня раньше) — модалка вместо
-        // тихого тоста, как и при повышении уровня.
-        if (progressResult?.questJustCompleted && progressResult.questStreak) {
-          showQuestComplete(progressResult.questStreak, progressResult.questPointsReward ?? 0)
-        }
         showEgeGain(progressResult?.egeGain)
       }
       await updateQuestProgress()

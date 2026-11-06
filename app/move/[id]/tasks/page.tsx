@@ -5,10 +5,7 @@ import { redirect } from 'next/navigation'
 import 'katex/dist/katex.min.css'
 import { auth } from '@/lib/auth'
 import { getUserProgress, getTLessonProgress } from '@/db/queries'
-import { getEgeMove, getMoveChallenges, moveHasTwins, moveTaskStatus } from '@/lib/egeMove'
-import db from '@/db/drizzle'
-import { egeMoves } from '@/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { finishEgeMove, getEgeMove, getMoveChallenges, moveHasTwins, moveTaskStatus } from '@/lib/egeMove'
 import { Quiz } from '@/app/lesson/quiz'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import { GetTUnitStat } from '@/usefulFunctions'
@@ -48,8 +45,7 @@ const MoveTasksPage = async ({ params }: { params: { id: string } }) => {
     // Нужное число верных набрано (например, вернулись по старой ссылке) — сразу к финалу хода.
     const st = await moveTaskStatus(m, userId)
     if (st.correct >= st.target) {
-        await db.update(egeMoves).set({ step: 'done', finishedAt: new Date() })
-            .where(and(eq(egeMoves.id, m.id), eq(egeMoves.step, 'tasks')))
+        await finishEgeMove(m, 'tasks')
         redirect(`/move/${m.id}`)
     }
     // Всё отвечено, верных не хватает, а задач-близнецов в задании больше нет —

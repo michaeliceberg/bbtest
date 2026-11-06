@@ -13,7 +13,6 @@ import { UserProgress } from '@/components/user-progress';
 import {
   getChallengeProgress,
   getCourses,
-  getTCourses,
   getTodayStats,
   getUserAllStatsByCourse,
   getUserCourseProgress,
@@ -48,9 +47,7 @@ import { getHangarLayout } from '@/actions/hangar-layout';
 import { hangarItemPic, hangarTarpPic } from '@/lib/hangarModel';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
-import { TrainerQuestCard } from '@/components/trainer-quest-card';
-import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
-import { LEARN_ONLY_UNIT, pickActiveCourseId, resolveActiveTCourse } from '@/lib/trainer-topic';
+import { LEARN_ONLY_UNIT, pickActiveCourseId } from '@/lib/trainer-topic';
 import { Suspense } from 'react';
 import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
@@ -356,25 +353,6 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   todayForStreak.setHours(0, 0, 0, 0);
   const hasExtendedStreakToday = !!streakLastActive && streakLastActive.getTime() === todayForStreak.getTime();
 
-  // "Квест дня" (components/trainer-quest-card.tsx) — раньше существовал
-  // только на /trainer, пользователь справедливо указал, что это должен
-  // быть один и тот же компонент/понятие на обеих страницах. Тема
-  // тренажёра — через lib/trainer-topic.ts (resolveActiveTCourse), общую
-  // с /trainer: привязка к активному курсу через t_courses.courseId, с
-  // фильтром скрытых тем и фоллбэком на первую видимую. Раньше здесь был
-  // прямой `.find()` БЕЗ фильтра скрытых — если активный курс формально
-  // был привязан к скрытой (пустой) теме тренажёра (например, courseId
-  // курса "ЕГЭ Математика" ссылается на скрытую "М9 МАТЕМАТИКА-9"),
-  // карточка находила именно её и навсегда показывала "0/1" для
-  // "пройди урок тренажёра" — в скрытой теме физически нет уроков,
-  // прогресс по ней в принципе не мог набраться, даже если пользователь
-  // реально занимался в тренажёре по другой (видимой) теме (см. CLAUDE.md,
-  // разбор рассинхрона /trainer↔/learn).
-  const allTCourses = await getTCourses();
-  const linkedTCourse = resolveActiveTCourse(allTCourses, activeCourseId);
-  const dailyQuest = linkedTCourse ? await getDailyQuestStatus(linkedTCourse.id) : null;
-  const questHistory = linkedTCourse ? await getRecentQuestHistory(linkedTCourse.id) : [];
-
   // Фокус (просьба пользователя 2026-09-29): в некоторых курсах открыт только
   // один юнит — остальные заблокированы, страница сама скроллит к нему.
   const focusUnitMatch = LEARN_ONLY_UNIT[activeCourseId];
@@ -457,18 +435,6 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
             ggStickers={userProgress.ggStickers}
             hasActiveSubscription={false}
           />
-
-          {dailyQuest && (
-            <TrainerQuestCard
-              trainerDone={dailyQuest.trainerDone}
-              taskDone={dailyQuest.taskDone}
-              isCompleted={dailyQuest.isCompleted}
-              streak={dailyQuest.streak}
-              dueDateIso={dailyQuest.dueDateIso}
-              pointsReward={dailyQuest.pointsReward}
-              history={questHistory}
-            />
-          )}
 
           <HomeworkList
             activeHomework={activeHomework}

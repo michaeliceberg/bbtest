@@ -128,15 +128,31 @@ function HereBand({ containerRef, num, radius, inset = 0 }: { containerRef: Reac
     const placed = useRef(false)
     useLayoutEffect(() => {
         const c = containerRef.current
-        const row = num !== null && c ? c.querySelector<HTMLElement>(`[data-ruler-row="${num}"]`) : null
-        if (!row || !c) { setBox(null); return }
-        const measure = () => setBox({ y: row.getBoundingClientRect().top - c.getBoundingClientRect().top + c.scrollTop, h: row.offsetHeight })
-        measure()
+        if (!c) return
+        // Строка ищется и меряется заново при любой смене: высота строк зависит от режима и переноса квадратов.
+        // Через offsetTop, а не getBoundingClientRect: панель выезжает анимацией, а transform искажал бы замер.
+        const measure = () => {
+            const row = num !== null ? c.querySelector<HTMLElement>(`[data-ruler-row="${num}"]`) : null
+            if (!row) { setBox(null); return }
+            let y = 0
+            let el: HTMLElement | null = row
+            while (el && el !== c) { y += el.offsetTop; el = el.offsetParent as HTMLElement | null }
+            const h = row.offsetHeight
+            setBox((b) => (b && b.y === y && b.h === h ? b : { y, h }))
+        }
+        const ro = new ResizeObserver(measure)
+        const watch = () => {
+            ro.disconnect()
+            ro.observe(c)
+            c.querySelectorAll('[data-ruler-row]').forEach((r) => ro.observe(r))
+            measure()
+        }
+        watch()
         if (placed.current) setAnimate(true)
         else { placed.current = true; requestAnimationFrame(() => setAnimate(true)) }
-        const ro = new ResizeObserver(measure)
-        ro.observe(c)
-        return () => ro.disconnect()
+        const mo = new MutationObserver(watch) // смена режима перерисовывает строки
+        mo.observe(c, { childList: true, subtree: true })
+        return () => { ro.disconnect(); mo.disconnect() }
     }, [containerRef, num])
     if (!box) return null
     const ease = 'cubic-bezier(0.65, 0, 0.35, 1)'
@@ -347,10 +363,12 @@ export function EgeRuler({ data, inline = false }: { data: RulerData; inline?: b
 
     // «Ты здесь»: в задачнике — открытый раздел (?task=N), в тренажёре — задания, к которым относится тема на экране.
     const navTitle = useTrainerNavStore((st) => st.title)
-    const here = new Set<number>(
+    const hereAll = new Set<number>(
         data.currentTaskNum ? [data.currentTaskNum]
             : navTitle ? data.tasks.filter((t) => t.trainers.some((k) => k.title === navTitle)).map((t) => t.num) : [],
     )
+    // «Ты здесь» — всегда одна строка: тема тренажёра может готовить к нескольким заданиям, показываем первое
+    const here = new Set<number>(hereAll.size ? [Math.min(...hereAll)] : [])
 
     if (inline) return <Panel data={data} mode={mode} setMode={setMode} here={here} />
 

@@ -65,7 +65,7 @@ const GangPage = async () => {
     const isLeader = membership.role === 'leader';
     const canInvite = membership.role === 'leader' || membership.role === 'kapo';
     const [weekScores, allScores] = await Promise.all([getGangWeekScores(0), getGangWeekScores('all')]);
-    // «Очки за всё время» — та же формула, что у недели (+1 урок, +2 квест), без границ по дате.
+    // «Очки за всё время» — та же формула, что у недели (+1 урок, +2 сет или испытание), без границ по дате.
     const rating = allScores.find((g) => g.gangId === membership.gangId)?.score ?? 0;
     const weekIdx = weekScores.findIndex((g) => g.gangId === membership.gangId);
     const weekScore = weekIdx >= 0 ? weekScores[weekIdx].score : 0;

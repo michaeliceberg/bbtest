@@ -9,7 +9,7 @@ import 'server-only'
 import { sql, and, eq } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
-import { getActiveEgeMove, getUnclaimedMoveCase, getEgeMove, moveChallengeIds, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf, type EgeMoveRow } from '@/lib/egeMove'
+import { finishEgeMove, getActiveEgeMove, getUnclaimedMoveCase, getEgeMove, moveChallengeIds, moveTaskStatus, nextStepAfter, setNumberToday, setTierOf, type EgeMoveRow } from '@/lib/egeMove'
 import type { LessonCaseTier } from '@/lib/caseRewards'
 
 export type SetBarData = {
@@ -85,15 +85,14 @@ async function catchUp(m: EgeMoveRow, userId: string): Promise<EgeMoveRow> {
         if (cur.step !== step || !lessonId) continue
         if (!(await lessonDoneSince(userId, lessonId, cur.createdAt))) continue
         const next = nextStepAfter(cur, step)
-        await db.update(egeMoves).set({ step: next, finishedAt: next === 'done' ? new Date() : null })
-            .where(and(eq(egeMoves.id, cur.id), eq(egeMoves.step, step)))
+        if (next === 'done') await finishEgeMove(cur, step)
+        else await db.update(egeMoves).set({ step: next }).where(and(eq(egeMoves.id, cur.id), eq(egeMoves.step, step)))
         cur = { ...cur, step: next, finishedAt: next === 'done' ? new Date() : null }
     }
     if (cur.step === 'tasks') {
         const st = await moveTaskStatus(cur, userId)
         if (st.target > 0 && st.correct >= st.target) {
-            await db.update(egeMoves).set({ step: 'done', finishedAt: new Date() })
-                .where(and(eq(egeMoves.id, cur.id), eq(egeMoves.step, 'tasks')))
+            await finishEgeMove(cur, 'tasks')
             cur = { ...cur, step: 'done' }
         }
     }

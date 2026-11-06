@@ -33,7 +33,6 @@ import { vibrate } from "@/lib/haptics";
 import { useAchievementStore } from "@/store/use-achievement-store";
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store";
 import { useLevelUpStore } from "@/store/use-level-up-store";
-import { useQuestCompleteStore } from "@/store/use-quest-complete-store";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
@@ -210,7 +209,6 @@ export const Quiz = ({
     const showAchievement = useAchievementStore((state) => state.showAchievement)
     const showStreakCelebration = useStreakCelebrationStore((state) => state.showStreakCelebration)
     const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
-    const showQuestComplete = useQuestCompleteStore((state) => state.showQuestComplete)
 
     useMount(() => {
         if (initialPercentage === 100) {
@@ -613,12 +611,6 @@ export const Quiz = ({
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
                         // первая верная задача задачника — у ворот ангара мяукает котик (components/hangar-cat.tsx)
                         if (response?.catCalled) setTimeout(showCatCall, 1500)
-                        // Квест дня мог закрыться именно этим ответом (второй
-                        // из двух пунктов, "реши задачу курса") — модалка,
-                        // как при повышении уровня, а не тихий тост.
-                        if (response?.questJustCompleted && response.questStreak) {
-                            showQuestComplete(response.questStreak, response.questPointsReward ?? 0)
-                        }
                         showEgeGain(response?.egeGain)
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))

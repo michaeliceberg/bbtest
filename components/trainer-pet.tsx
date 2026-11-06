@@ -2,7 +2,7 @@
 
 // Питомец на простом виде /trainer — Команданте Мигель (с 2026-10-28, раньше Га-Га): стикер с эмоцией и ОДНА
 // короткая реплика в армейском тоне с юмором (docs/miguel/miguel.md). Пропал или вечером серия под угрозой → стучит
-// в стекло; квест выполнен или серия продлена → радуется и благодарит; иначе спокойно зовёт на урок (фраза по дню).
+// в стекло; сет съеден или серия продлена → радуется и благодарит; иначе спокойно зовёт на урок (фраза по дню).
 
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { motion } from 'framer-motion'
@@ -12,7 +12,7 @@ import { GooseWalker } from '@/components/goose-walker'
 type Props = {
     streak: number
     hasExtendedToday: boolean
-    questDone: boolean
+    setDone: boolean
     away?: boolean // с прошлого занятия прошло 2 дня и больше
     firstName?: string | null
     dayKey: number // день месяца с сервера — чтобы SSR и клиент выбирали одно и то же
@@ -101,11 +101,11 @@ export const GOOSE_AWAY = [
     'Давно тебя не видел. Возвращайся в строй!',
     'Маньяна кончилась, боец. Урок сегодня!',
 ]
-// Квест дня выполнен.
+// Сет за сегодня съеден.
 export const GOOSE_QUEST = [
-    'Квест закрыт! Заношу в личное дело 📋',
+    'Сет закрыт! Заношу в личное дело 📋',
     'Задание дня выполнено. Хорошо служишь 🫡',
-    'Га-га-га! Квест в кармане, боец 😎',
+    'Га-га-га! Сет в кармане, боец 😎',
     'Чётко! Командование довольно 🎖️',
 ]
 // После урока, когда Мигель дошёл до следующего урока по дорожке.
@@ -166,7 +166,7 @@ export const PetBust = ({ src, size, width, bob = false, flip = false }: { src: 
     </div>
 )
 
-export const TrainerPet = ({ streak, hasExtendedToday, questDone, away = false, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, setDone, away = false, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
     const bustRef = useRef<HTMLDivElement>(null)
     const [bustHidden, setBustHidden] = useState(false)
     // Час сверяем только после монтирования (часовой пояс браузера).
@@ -179,7 +179,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, away = false, 
     if (cheer) mood = cheer
     else if (away) mood = { src: pickPose(AWAY_POSES, poseKey).src, text: GOOSE_AWAY[dayKey % GOOSE_AWAY.length] }
     else if (streak > 0 && !hasExtendedToday && late) mood = { src: pickPose(GLASS_POSES, poseKey).src, text: GOOSE_LATE[dayKey % GOOSE_LATE.length] }
-    else if (questDone) mood = { src: pickPose(HAPPY_POSES, poseKey).src, text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
+    else if (setDone) mood = { src: pickPose(HAPPY_POSES, poseKey).src, text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
     else if (hasExtendedToday) mood = { src: pickPose(HAPPY_POSES, poseKey).src, text: GOOSE_THANKS[dayKey % GOOSE_THANKS.length] }
     else mood = { src: pickPose(IDLE_POSES, poseKey).src, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
     const big = ALL_POSES.some((p) => p.big && p.src === mood.src)

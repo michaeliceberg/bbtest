@@ -29,8 +29,6 @@ import { getEgeTasksByTUnit } from '@/lib/egeTrainerLinks';
 import { getOrCreateInvite } from '@/lib/invite';
 import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
-import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
-import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
@@ -215,12 +213,10 @@ const TLearnPage = async () => {
     const activeTCourse = resolveActiveTCourse(t_coursesRaw, resolvedActiveCourseId);
     // Код приглашения — для кнопки «поделиться» у пошаговых уроков на карте.
     const shareInvite = await getOrCreateInvite(userProgress.userId).catch(() => null);
-    const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     // Полоска «Сета» в шапке (lib/setBar.ts) — только для «ЕГЭ Математика»
     const setBar = userId ? await getSetBarData(userId, activeTCourse?.title) : null;
     // «Линейка ЕГЭ» у правого края — там же, где сет (только «ЕГЭ Математика»)
     const egeRuler = setBar && userId ? await getEgeRulerData(userId, { hasPro: hasProFor(userProgress), setTaskNum: setBar.taskNum }).catch(() => null) : null;
-    const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
     const currentPoints = userProgress.points;
     const currentGems = userProgress.gems;
@@ -288,18 +284,6 @@ const TLearnPage = async () => {
                     hasActiveSubscription={false}
                 />
 
-                {/* Квест тренажера */}
-                {dailyQuest && (
-                    <TrainerQuestCard
-                        trainerDone={dailyQuest.trainerDone}
-                        taskDone={dailyQuest.taskDone}
-                        isCompleted={dailyQuest.isCompleted}
-                        streak={dailyQuest.streak}
-                        dueDateIso={dailyQuest.dueDateIso}
-                        pointsReward={dailyQuest.pointsReward}
-                        history={questHistory}
-                    />
-                )}
             </StickyWrapper>
 
             <FeedWrapper>
@@ -316,23 +300,10 @@ const TLearnPage = async () => {
                             <TrainerTopBar
                                 xp={currentXp}
                                 pizzaSlices={currentPizzaSlices}
-                                questDone={(dailyQuest?.trainerDone ? 1 : 0) + (dailyQuest?.taskDone ? 1 : 0)}
-                                questTotal={2}
                                 streak={currentStreakForRisk}
                                 streakToday={hasExtendedStreakToday}
                                 streakFreezes={userProgress.streakFreezes}
                                 pizzaPanel={<PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />}
-                                questPanel={dailyQuest ? (
-                                    <TrainerQuestCard
-                                        trainerDone={dailyQuest.trainerDone}
-                                        taskDone={dailyQuest.taskDone}
-                                        isCompleted={dailyQuest.isCompleted}
-                                        streak={dailyQuest.streak}
-                                        dueDateIso={dailyQuest.dueDateIso}
-                                        pointsReward={dailyQuest.pointsReward}
-                                        history={questHistory}
-                                    />
-                                ) : undefined}
                             />
                         </>
                     )}
@@ -395,7 +366,7 @@ const TLearnPage = async () => {
                         egeTasksByTUnit={egeTasksByTUnit}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
                         coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title, imageSrc: c.imageSrc })), activeCourseId: resolvedActiveCourseId }}
-                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, away: isAwayFromTrainer, dayKey: new Date().getDate(), poseKey: Math.floor(Date.now() / 1000) } : undefined}
+                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, setDone: (setBar?.setNumber ?? 1) > 1 || setBar?.step === 'done', away: isAwayFromTrainer, dayKey: new Date().getDate(), poseKey: Math.floor(Date.now() / 1000) } : undefined}
                     />
                 </div>
             </FeedWrapper>
