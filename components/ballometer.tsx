@@ -13,6 +13,7 @@ import { saveBallometerProgram } from '@/actions/ballometer'
 import { stencilFont } from '@/lib/fonts'
 import { computeMeter, dateForSets, dateRu, dateShort, EGE_EXAM_DATE, formatScore, MAX_SETS_WEEK, METER_GREEN_FROM, METER_YELLOW_FROM, setsForDate, setsTodayGoal, type MeterResult, type MeterZone } from '@/lib/egeMeter'
 import { declensionRu } from '@/usefulFunctions'
+import { primaryToTest } from '@/lib/egeScale'
 
 export type BallometerProps = {
     primary: number
@@ -124,7 +125,7 @@ function MapFlag({ kind, src, pole, ink, title, value, flip }: { kind: keyof typ
 
 // Карта: сегодня → экзамен и дальше. Флажок «Прогноз» показывает, куда придёшь с нынешней скоростью,
 // флажок «План» ученик ставит сам: тащит или нажимает на любое место карты.
-function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; onDrag: (d: Date) => void }) {
+function DateMap({ now, ready, showForecast, plan, goal, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; goal: Date; onDrag: (d: Date) => void }) {
     const end = EGE_EXAM_DATE.getTime() + ROAD_AFTER_EXAM_DAYS * DAY
     const pos = (d: Date) => Math.max(0, Math.min(1, (d.getTime() - now.getTime()) / (end - now.getTime())))
     const mapRef = useRef<HTMLDivElement>(null)
@@ -220,6 +221,10 @@ function DateMap({ now, ready, showForecast, plan, onDrag }: { now: Date; ready:
                 <div className="absolute inset-0" style={{ transform: `translate(${shownPlanP * 100}%, ${routeY(shownPlanP)}px)`, transition: moved ? 'none' : 'transform .4s cubic-bezier(.3,1.6,.5,1)', zIndex: 3 }}>
                     <div className={`absolute inset-0 ${touched ? '' : 'bm-flag-nudge'}`}>
                         <MapFlag kind="plan" src={late ? 'flag-plan-late' : 'flag-plan'} pole={PLAN_POLE} ink="#FFFFFF" flip={shownPlanP > 0.6} title="★ План" value={dateShort(plan)} />
+                        {/* Команданте слева от древка, под полотнищем; у левого края карты — справа, чтобы не обрезался */}
+                        <span className="absolute" style={{ top: -PLAN_POLE + FLAG.plan.h + 4, left: shownPlanP < 0.22 ? 7 : -53 }}>
+                            <PlanMoodBadge mood={planMoodOf(plan, goal)} />
+                        </span>
                         {!touched && <span className="bm-knob-ring absolute -left-5 -top-5 h-10 w-10 rounded-full border-[3px]" style={{ borderColor: planColor }} />}
                         <span className="absolute -left-[15px] -top-[15px] flex h-[30px] w-[30px] items-center justify-center rounded-full border-[3px] bg-[#FFF6E4]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>
                             <MoveHorizontal className="h-4 w-4" strokeWidth={3} style={{ color: INK }} />
@@ -305,16 +310,22 @@ const MOOD_MOTION = {
 }
 
 // Что говорит Команданте: настроение + факт (дата прогноза или сколько прибавить).
-function moodLine(mood: Mood, m: MeterResult) {
-    // после ЕГЭ — с годом, иначе «10 марта» выглядит как «успеваем»
-    const date = m.readyDate ? <b style={{ color: dateColor(m.readyDate, m.goalDate) }}>{m.readyDate > EGE_EXAM_DATE ? dateRu(m.readyDate) : dateShort(m.readyDate)}</b> : null
+// Что говорит Команданте. В красной/жёлтой зоне — сколько баллов будет на ЕГЭ с нынешним темпом:
+// «к ЕГЭ ≈84 из 90» понятнее, чем «цель к 22 июня 2027 года».
+function moodLine(mood: Mood, m: MeterResult, primary: number, perWeek: number | null, now: Date) {
+    const date = m.readyDate ? <b style={{ color: dateColor(m.readyDate, m.goalDate) }}>{dateShort(m.readyDate)}</b> : null
     const add = m.addSetsPerWeek > 0 ? <> Прибавь <b className="text-[#F2C35B]">+{m.addSetsPerWeek} {setsWord(m.addSetsPerWeek)}</b> в неделю.</> : null
+    const weeksToExam = Math.max(0, (EGE_EXAM_DATE.getTime() - now.getTime()) / (7 * DAY))
+    const examTest = Math.min(m.targetTest, primaryToTest(primary + (perWeek ?? 0) * weeksToExam))
+    const atExam = <b style={{ color: mood === 'mobilize' ? ZONE_COLOR.yellow : ZONE_COLOR.red }}>≈{examTest} из {m.targetTest}</b>
+    const early = m.readyDate ? Math.round((EGE_EXAM_DATE.getTime() - m.readyDate.getTime()) / DAY) : 0
+    const ahead = early >= 45 ? `за ${Math.round(early / 30)} ${declensionRu(Math.round(early / 30), 'месяц', 'месяца', 'месяцев')} до ЕГЭ` : `за ${Math.max(1, Math.round(early / 7))} ${declensionRu(Math.max(1, Math.round(early / 7)), 'неделю', 'недели', 'недель')} до ЕГЭ`
     switch (mood) {
-        case 'chill': return m.needPrimary === 0 ? <>Цель в кармане, амиго. Отдыхаю, но форму держим!</> : <>Чилим, амиго. Цель возьмём к {date}, раньше срока.</>
-        case 'calm': return <>Идём по плану, боец. Цель к {date}.</>
-        case 'mobilize': return <>Собраться, боец! С таким темпом цель только к {date}.{add}</>
-        case 'alarm': return date ? <>Тревога! Цель только к {date}, {m.readyDate! > EGE_EXAM_DATE ? 'это после ЕГЭ' : 'не успеваем к сроку'}!{add}</> : <>Тревога! Скорость нулевая!{add}</>
-        case 'angry': return <>Боец! Так мы к экзамену не успеем.{add ?? ' Закрой сет сегодня.'}</>
+        case 'chill': return m.needPrimary === 0 ? <>Цель в кармане, амиго. Отдыхаю, но форму держим!</> : <>Чилим, амиго. {m.targetTest} возьмём к {date}, {ahead}.</>
+        case 'calm': return <>Идём по плану, боец. {m.targetTest} возьмём к {date}.</>
+        case 'mobilize': return <>Собраться, боец! С таким темпом на ЕГЭ будет {atExam}.{add}</>
+        case 'alarm': return <>Тревога! На ЕГЭ наберёшь только {atExam}.{add}</>
+        case 'angry': return <>Боец! Так на ЕГЭ будет {atExam}.{add ?? ' Закрой сет сегодня.'}</>
         default: return <>Прибор прогревается. Закрой первый сет, и я скажу, успеваем ли.</>
     }
 }
@@ -323,18 +334,48 @@ const pickMoodSrc = (mood: Mood) => {
     const src = MOOD[mood].src
     return typeof src === 'string' ? src : src[Math.floor(Math.random() * src.length)]
 }
+// Стикер обрезан по пояс: виден верх картинки (полный рост тратил место). miguel-glare уже нарисован крупно — его целиком.
+const BUST_FULL = ['/miguel/miguel-glare.webp']
+const MoodBust = ({ src, h, round }: { src: string; h: number; round?: boolean }) => {
+    const full = BUST_FULL.includes(src)
+    /* eslint-disable-next-line @next/next/no-img-element */
+    const img = <img src={src} alt="" draggable={false} className="absolute left-1/2 top-0 max-w-none -translate-x-1/2"
+        style={full ? { height: h * (round ? 1.15 : 1), top: round ? 2 : 0 } : { width: h * 1.7, top: -h * 0.06 }} />
+    return round
+        ? <span className="relative block overflow-hidden rounded-full border-[3px] bg-[#F1E4C3]" style={{ width: h, height: h, borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }}>{img}</span>
+        : <span className="relative block overflow-hidden" style={{ width: h * 1.45, height: h }}>{img}</span>
+}
+
+// Случайная поза выбранного настроения (выбор уже в браузере, после монтирования).
+const useMoodSrc = (mood: Mood) => {
+    const [src, setSrc] = useState<string | null>(null)
+    useEffect(() => { setSrc(pickMoodSrc(mood)) }, [mood])
+    return src
+}
 
 const CommandanteMood = ({ mood }: { mood: Mood }) => {
     const mo = MOOD_MOTION[MOOD[mood].motion]
-    const [src, setSrc] = useState<string | null>(null)
-    useEffect(() => { setSrc(pickMoodSrc(mood)) }, [mood])
+    const src = useMoodSrc(mood)
     return (
-        <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }} className="h-[112px] w-[112px]">
-            <motion.div animate={mo.animate} transition={mo.transition} className="h-full w-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {src && <img src={src} alt="" draggable={false} className="h-full w-full object-contain" />}
+        <motion.div key={mood} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
+            <motion.div animate={mo.animate} transition={mo.transition}>
+                {src ? <MoodBust src={src} h={78} /> : <span className="block h-[78px] w-[113px]" />}
             </motion.div>
         </motion.div>
+    )
+}
+
+// Настроение плана: насколько спокойно с выбранной датой.
+const planMoodOf = (plan: Date, goal: Date): Mood =>
+    plan.getTime() <= goal.getTime() - 30 * DAY ? 'chill' : plan <= goal ? 'calm' : plan <= EGE_EXAM_DATE ? 'mobilize' : 'alarm'
+
+// Кружок с Команданте у флажка «План»: тащишь флажок — меняется с отскоком.
+const PlanMoodBadge = ({ mood }: { mood: Mood }) => {
+    const src = useMoodSrc(mood)
+    return (
+        <motion.span key={mood} initial={{ scale: 0.2 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 13 }} className="block">
+            {src ? <MoodBust src={src} h={46} round /> : <span className="block h-[46px] w-[46px]" />}
+        </motion.span>
     )
 }
 
@@ -363,13 +404,13 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
     return (
         <div className="relative w-full">
             {onClose && <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute -right-1.5 -top-1.5 z-10 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>}
-            {/* слева цель и сегодня, справа Команданте; ниже прибор и темп */}
-            <div className="grid grid-cols-[148px_minmax(0,1fr)] gap-x-2 gap-y-1">
-                <div className="flex min-w-0 flex-col gap-2">
-                    <GoalBlock target={m.targetTest} demo={demo} />
-                    {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
-                </div>
-                <div className={`flex items-end justify-end ${onClose ? 'pr-5' : ''}`}><CommandanteMood mood={mood} /></div>
+            {/* сверху цель, сегодня и Команданте; ниже прибор и темп */}
+            <div className={`flex items-end justify-between gap-1 ${onClose ? 'pr-5' : ''}`}>
+                <GoalBlock target={m.targetTest} demo={demo} />
+                {!reached && <TodaySets done={d.setsToday} goal={setsTodayGoal(sets, d.setsThisWeek, d.setsToday, now)} />}
+                <CommandanteMood mood={mood} />
+            </div>
+            <div className="mt-2 grid grid-cols-[148px_minmax(0,1fr)] gap-x-2">
                 <BallometerGauge m={m} className="h-[148px] w-[148px] self-center" />
                 {!reached ? (
                     <div className="flex flex-col justify-center rounded-xl border-2 border-[#2C3A41] bg-black/20 px-2 py-1.5">
@@ -395,10 +436,10 @@ export function BallometerPanel({ d, onClose, demo }: { d: BallometerProps; onCl
             </div>
             {/* реплика Команданте: облачко с хвостиком к нему */}
             <div className="relative mt-2 rounded-xl border-2 bg-[#F1E4C3] px-3 py-1.5 text-[13px] font-bold leading-snug text-[#2B2118]" style={{ borderColor: ZONE_COLOR[m.zone] }}>
-                <span className="relative">{moodLine(mood, m)}</span>
+                <span className="relative">{moodLine(mood, m, d.primary, d.perWeek, now)}</span>
             </div>
             {!reached && (
-                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan}
+                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate}
                     onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
             )}
         </div>
