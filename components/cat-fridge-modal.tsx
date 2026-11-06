@@ -19,6 +19,9 @@ import { CAT_FOOD, CAT_FOODS, type CatFood, type CatFoodStock } from '@/lib/catF
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
+// Контур камеры холодильника, снятый с самой картинки (в %): затемнение при мигании лампы не вылезает за скруглённые углы.
+const FRIDGE_CHAMBER_CLIP = 'polygon(13.7% 43.8%, 13.9% 37.2%, 14.4% 16.4%, 15.8% 14.2%, 19.1% 13.3%, 80.9% 13.3%, 84.2% 14.2%, 85.4% 16.4%, 85.9% 35.0%, 86.0% 43.8%, 86.0% 56.9%, 85.9% 63.5%, 85.7% 67.8%, 85.4% 74.4%, 85.1% 78.8%, 84.9% 81.0%, 81.3% 86.2%, 79.2% 86.8%, 75.0% 87.2%, 70.7% 87.5%, 66.5% 87.7%, 60.1% 88.0%, 55.9% 88.1%, 45.3% 88.1%, 41.0% 88.0%, 30.4% 87.5%, 28.3% 87.4%, 24.0% 87.1%, 21.9% 86.9%, 19.8% 86.5%, 17.7% 86.0%, 14.7% 81.0%, 14.3% 74.4%, 13.9% 63.5%, 13.7% 56.9%)'
+
 // снежинки: место по x, размер, длительность и задержка (фиксированные — без рассинхрона сервера и браузера)
 const FLAKES = Array.from({ length: 16 }, (_, i) => ({
     x: (i * 37) % 100, s: 10 + ((i * 7) % 4) * 4, d: 6 + ((i * 5) % 5), delay: -((i * 1.3) % 8),
@@ -211,7 +214,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, fed
                     </div>
                     {/* лампочка мигнула — всё внутри на миг тускнеет; zIndex выше продуктов (у пакетов свой zIndex 1–3, иначе они рисовались поверх тени) */}
                     <div className="pointer-events-none absolute transition-opacity duration-75"
-                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.55)', opacity: dark, zIndex: 30 }} />
+                        style={{ inset: 0, clipPath: FRIDGE_CHAMBER_CLIP, background: 'rgba(12,20,32,0.55)', opacity: dark, zIndex: 30 }} />
                 </div>
                 {/* кормление: раз в день одна купленная порция, серия дней подряд */}
                 <div className="mt-3 rounded-2xl border-2 border-[#3A2A1E] bg-[#FFF6E4] p-2.5 text-center text-[#3A2A1E]">

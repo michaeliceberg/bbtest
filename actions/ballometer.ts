@@ -1,6 +1,6 @@
 'use server'
 
-// actions/ballometer.ts — калибровка Баллометра: ученик сам выбирает дату цели и получает программу (сетов в неделю).
+// actions/ballometer.ts — настройка темпа в Баллометре: ученик сам выбирает дату цели и получает программу (сетов в неделю).
 
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'

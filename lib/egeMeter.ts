@@ -12,7 +12,7 @@ export const METER_YELLOW_FROM = 3
 export const MAX_SETS_WEEK = 21 // больше трёх сетов в день не предлагаем
 
 const WEEK_MS = 7 * 86400000
-// Без этого ровно 3,001 сета округлялось бы до 4: время с момента калибровки немного ушло.
+// Без этого ровно 3,001 сета округлялось бы до 4: время с момента настройки немного ушло.
 const SETS_TOLERANCE = 0.05
 
 export type MeterZone = 'green' | 'yellow' | 'red' | 'new'
@@ -36,6 +36,13 @@ export const dateForSets = (needPrimary: number, setsPerWeek: number, setGain: n
 export const setsForDate = (needPrimary: number, date: Date, setGain: number, now: Date) => {
     const weeks = Math.max(1 / 7, (date.getTime() - now.getTime()) / WEEK_MS)
     return Math.max(1, Math.min(MAX_SETS_WEEK, Math.ceil(needPrimary / weeks / setGain - SETS_TOLERANCE)))
+}
+
+// Сколько сетов нужно сегодня: остаток недельной нормы делим на оставшиеся дни недели (неделя с понедельника, по Москве).
+export const setsTodayGoal = (setsPerWeek: number, doneThisWeek: number, doneToday: number, now: Date) => {
+    const weekday = new Date(now.getTime() + 3 * 3600000).getUTCDay() // 0 — воскресенье
+    const daysLeft = weekday === 0 ? 1 : 8 - weekday
+    return Math.ceil(Math.max(0, setsPerWeek - (doneThisWeek - doneToday)) / daysLeft)
 }
 
 export function computeMeter(p: { primary: number; perWeek: number | null; targetTest?: number; setGain?: number; goalDate?: Date | null; now?: Date }): MeterResult {

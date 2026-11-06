@@ -2,7 +2,7 @@
 
 // Проба Баллометра: настоящее окно (components/ballometer.tsx) на придуманных данных. Сохранение отключено.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BallometerPanel, BallometerChip } from '@/components/ballometer'
 import { EGE_DEFAULT_TARGET } from '@/lib/egeMeter'
 
@@ -18,8 +18,11 @@ const PRESETS: { label: string; primary: number; perWeek: number | null }[] = [
 export default function TestEgeMeterPage() {
     const [primary, setPrimary] = useState(8)
     const [perWeek, setPerWeek] = useState<number | null>(0.43)
-    const [nowIso] = useState(() => new Date().toISOString())
-    const d = { primary, perWeek, targetTest: EGE_DEFAULT_TARGET, setGain: 0.2, goalDateIso: null, setsGoal: null, setsThisWeek: 0, nowIso }
+    // дата только в браузере: иначе сервер и браузер считают карту от разного времени
+    const [nowIso, setNowIso] = useState<string | null>(null)
+    useEffect(() => { setNowIso(new Date().toISOString()) }, [])
+    if (!nowIso) return <main className="min-h-screen bg-[#131D22]" />
+    const d = { primary, perWeek, targetTest: EGE_DEFAULT_TARGET, setGain: 0.2, goalDateIso: null, setsGoal: null, setsThisWeek: 2, setsToday: 1, nowIso }
     return (
         <main className="mx-auto min-h-screen max-w-md space-y-3 bg-[#131D22] p-3 text-[#F2F7FB]">
             <section className="rounded-2xl border border-[#2C3A41] bg-[#151F23] p-3 text-sm">

@@ -7,6 +7,7 @@ import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getEgeMap } from '@/lib/egeMap'
+import { setNumberToday } from '@/lib/egeMove'
 import { computeMeter, dateRu, EGE_DEFAULT_TARGET, formatScore, type MeterResult } from '@/lib/egeMeter'
 
 type Row = Record<string, unknown>
@@ -23,6 +24,7 @@ export type BallometerData = {
     goalDateIso: string | null
     setsGoal: number | null
     setsThisWeek: number
+    setsToday: number
     nowIso: string
 }
 
@@ -76,6 +78,7 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
     const [s] = (await db.execute(sql`
         SELECT count(*)::int AS n FROM ege_moves WHERE user_id = ${userId} AND step = 'done' AND finished_at IS NOT NULL
           AND finished_at + interval '3 hours' >= date_trunc('week', now() AT TIME ZONE 'Europe/Moscow')`)) as unknown as Row[]
+    const setsToday = await setNumberToday(userId, null) - 1
 
     const mv = map.move
     const moveGain = mv ? mv.toPrimary - mv.fromPrimary : 0
@@ -87,6 +90,7 @@ export async function getBallometerData(userId: string): Promise<BallometerData>
         goalDateIso: u?.ballometer_goal_date ? new Date(String(u.ballometer_goal_date)).toISOString() : null,
         setsGoal: u?.ballometer_sets_week ? Number(u.ballometer_sets_week) : null,
         setsThisWeek: Number(s?.n ?? 0),
+        setsToday,
         nowIso: new Date().toISOString(),
     }
 }
