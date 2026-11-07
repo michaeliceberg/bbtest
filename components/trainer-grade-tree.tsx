@@ -234,7 +234,7 @@ interface Props {
     theme?: UiTheme;
     // Открыт только этот таб (название темы/блока), остальные видны, но
     // заблокированы (просьба пользователя: в «ЕГЭ Физика» пока только Электродинамика).
-    onlyActiveGroup?: string;
+    onlyActiveGroup?: string[];
     // Простой вид /trainer: без процентов у темы.
     simple?: boolean;
     // Данные питомца (простой вид): он стоит у текущей точки дорожки.
@@ -893,9 +893,8 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
     const groupKey = (g: RenderGroup) => (g.kind === 'block' ? g.title : `solo-${g.topic.id}`);
     const groupLabel = (g: RenderGroup) => (g.kind === 'block' ? g.title : g.topic.title);
     const groupTopics = (g: RenderGroup) => (g.kind === 'block' ? g.topics : [g.topic]);
-    const isGroupLocked = (g: RenderGroup) => !!onlyActiveGroup && groupLabel(g) !== onlyActiveGroup;
-    const defaultGroup = (onlyActiveGroup ? renderGroups.find((g) => groupLabel(g) === onlyActiveGroup) : undefined)
-        ?? renderGroups.find((g) => !isGroupLocked(g) && groupTopics(g).some((t) => t.isLastActive))
+    const isGroupLocked = (g: RenderGroup) => !!onlyActiveGroup && !onlyActiveGroup.includes(groupLabel(g));
+    const defaultGroup = renderGroups.find((g) => !isGroupLocked(g) && groupTopics(g).some((t) => t.isLastActive))
         ?? renderGroups.find((g) => !isGroupLocked(g)) ?? renderGroups[0];
     const [activeGroupKeyState, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
     // При смене курса (Математика → Физика) компонент не пересоздаётся и помнит ключ юнита прежнего курса —

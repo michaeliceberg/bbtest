@@ -52,8 +52,9 @@ export function resolveActiveTCourse<T extends { id: number; courseId: number | 
 // В каком тренажёре открыта только одна тема (остальные вкладки видны, но
 // заблокированы) — просьба пользователя 2026-09-29: сначала проходят
 // Электродинамику (там три пошаговых урока).
-export const TRAINER_ONLY_ACTIVE_GROUP: Record<string, string> = {
-    'ЕГЭ Физика': 'Электродинамика',
+// 2026-11-07: открыта и «Кинематика» (первый пошаговый урок — бросок под углом).
+export const TRAINER_ONLY_ACTIVE_GROUP: Record<string, string[]> = {
+    'ЕГЭ Физика': ['Электродинамика', 'Кинематика'],
 }
 
 // Какой курс считать активным — ОДНА функция для сайдбара (layout), /trainer и
