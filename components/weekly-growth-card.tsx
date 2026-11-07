@@ -3,7 +3,8 @@
 // components/weekly-growth-card.tsx — «Моя неделя» на /path: уроки, задачи, серия и рост прогноза ЕГЭ
 // «было → стало» с кнопкой «в сторис» (картинка 1080×1920, components/share-story-button.tsx). Данные — lib/weeklyReport.ts.
 
-import { TrendingUp } from 'lucide-react'
+import { BookOpen, CircleCheck, Flame, TrendingUp } from 'lucide-react'
+import { declensionRu } from '@/usefulFunctions'
 import { ShareStoryButton } from '@/components/share-story-button'
 import type { WeeklySummary } from '@/lib/weeklyReport'
 
@@ -24,14 +25,22 @@ export const WeeklyGrowthCard = ({ w, inviteUrl }: { w: WeeklySummary; inviteUrl
             )}
             {grew && <div className="-mt-2 text-xs font-bold text-[#8FA3AE]">прогноз балла ЕГЭ за неделю</div>}
             <div className="flex flex-wrap gap-2 text-sm font-black text-[#D7E0E5]">
-                <span className="rounded-lg bg-black/25 px-2.5 py-1">📚 {w.lessons} уроков</span>
-                <span className="rounded-lg bg-black/25 px-2.5 py-1">✅ {w.tasks} задач</span>
-                {w.streak > 0 && <span className="rounded-lg bg-black/25 px-2.5 py-1">🔥 серия {w.streak}</span>}
+                <Stat icon={<BookOpen className="h-4 w-4 text-[#53ADEF]" />}>{w.lessons} {declensionRu(w.lessons, 'урок', 'урока', 'уроков')}</Stat>
+                <Stat icon={<CircleCheck className="h-4 w-4 text-[#78C93C]" />}>{w.tasks} {declensionRu(w.tasks, 'задача', 'задачи', 'задач')}</Stat>
+                {w.streak > 0 && <Stat icon={<Flame className="h-4 w-4 text-[#F09B38]" />}>серия {w.streak}</Stat>}
             </div>
             {grew && (
-                <ShareStoryButton label="📸 Похвастаться в сторис"
-                    data={{ title: 'Мой рост за неделю', big: `${w.testBefore} → ${w.testNow}`, prize: `+${d} баллов ЕГЭ за неделю 🚀`, url: inviteUrl }} />
+                <ShareStoryButton label="Похвастаться в сторис"
+                    data={{ title: 'Мой рост за неделю', big: `${w.testBefore} → ${w.testNow}`, prize: `+${d} баллов ЕГЭ за неделю`, url: inviteUrl }} />
             )}
         </div>
     )
 }
+
+// Плашка-счётчик: иконка в цветном кружке + число. Эмодзи в интерфейсе не используем (2026-11-07).
+const Stat = ({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) => (
+    <span className="flex items-center gap-1.5 rounded-lg bg-black/25 py-1 pl-1.5 pr-2.5">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/5">{icon}</span>
+        {children}
+    </span>
+)
