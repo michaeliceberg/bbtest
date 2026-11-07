@@ -8,6 +8,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { getEgeMap } from '@/lib/egeMap'
 import { setNumberToday } from '@/lib/egeMove'
+import { getVuz } from '@/lib/vuzList'
 import { computeMeter, computeSetMeter, dateRu, LESSON_EQ, SET_EQ, EGE_DEFAULT_TARGET, formatScore, needSetsOf, type MeterResult } from '@/lib/egeMeter'
 
 type Row = Record<string, unknown>
@@ -31,6 +32,7 @@ export type BallometerData = {
     gridStartIso: string // понедельник первой строки сетки, 'YYYY-MM-DD'
     weekHistory: number[] // сеты по неделям за полгода, последняя — эта неделя
     setsToday: number
+    vuz: { short: string; logo: string | null } | null // выбранный вуз — значок над звездой ЕГЭ на карте
     nowIso: string
 }
 
@@ -42,7 +44,7 @@ export const meterOf = (d: BallometerData): MeterResult => computeMeter({
 // weeks — сколько календарных недель в сетке по дням: в окне Сетометра 2, в «Моём пути» 5.
 export async function getBallometerData(userId: string, weeks = 2): Promise<BallometerData> {
     const map = await getEgeMap(userId, 'math_profile')
-    const [u] = (await db.execute(sql`SELECT ege_target, ballometer_goal_date FROM user_progress WHERE user_id = ${userId}`)) as unknown as Row[]
+    const [u] = (await db.execute(sql`SELECT ege_target, ballometer_goal_date, target_vuz FROM user_progress WHERE user_id = ${userId}`)) as unknown as Row[]
 
     // Счёт в «сетах» (решение пользователя): сет = 1 урок тренажёра + 5 задач, неважно — через кнопку «Начать сет» или сам.
     // Урок приравнен к 5 задачам, сет = 10 «задач». Считаем только то, что относится к заданиям ЕГЭ (станции карты):
@@ -142,6 +144,7 @@ export async function getBallometerData(userId: string, weeks = 2): Promise<Ball
         gridStartIso: String(gs?.start),
         weekHistory,
         setsToday,
+        vuz: (() => { const v = getVuz(u?.target_vuz ? String(u.target_vuz) : null); return v ? { short: v.short, logo: v.logo ?? null } : null })(),
         nowIso: new Date().toISOString(),
     }
 }

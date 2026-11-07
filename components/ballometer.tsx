@@ -30,6 +30,7 @@ export type BallometerProps = {
     gridStartIso?: string // понедельник первой строки сетки, 'YYYY-MM-DD'
     weekHistory?: number[] // сеты по неделям за полгода, последняя — эта неделя
     setsToday: number
+    vuz?: { short: string; logo: string | null } | null // выбранный вуз: значок над звездой ЕГЭ на карте
     nowIso: string
 }
 
@@ -152,7 +153,7 @@ function MapFlag({ kind, src, pole, ink, title, value, flip, bounce }: { kind: k
 // Карта: сегодня → экзамен и дальше. Флажок «Прогноз» показывает, куда придёшь с нынешней скоростью,
 // флажок «План» ученик ставит сам: тащит или нажимает на любое место карты.
 // target — цель в баллах: зелёный флажок читается «★ 100 баллов к 10 февраля».
-function DateMap({ now, ready, showForecast, plan, goal, target, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; goal: Date; target: number; onDrag: (d: Date) => void }) {
+function DateMap({ now, ready, showForecast, plan, goal, target, vuz, onDrag }: { now: Date; ready: Date | null; showForecast: boolean; plan: Date; goal: Date; target: number; vuz?: BallometerProps['vuz']; onDrag: (d: Date) => void }) {
     const end = EGE_EXAM_DATE.getTime() + ROAD_AFTER_EXAM_DAYS * DAY
     const pos = (d: Date) => Math.max(0, Math.min(1, (d.getTime() - now.getTime()) / (end - now.getTime())))
     const mapRef = useRef<HTMLDivElement>(null)
@@ -255,12 +256,29 @@ function DateMap({ now, ready, showForecast, plan, goal, target, onDrag }: { now
                     </div>
                 </div>
             </div>
+            {/* вуз-цель над звездой ЕГЭ; флажки важнее — если стоят рядом, они поверх */}
+            {vuz && <span className="pointer-events-none absolute -translate-x-1/2" style={{ left: `${5 + 90 * examP}%`, top: routeY(examP) - 14 - VUZ_PIN_H, zIndex: 2 }}><VuzPin vuz={vuz} /></span>}
             {/* волна там, куда нажали */}
             {ripple && <span key={ripple.id} onAnimationEnd={() => setRipple(null)} className="bm-ripple pointer-events-none absolute h-12 w-12 rounded-full border-[3px]" style={{ left: ripple.x - 24, top: ripple.y - 24, borderColor: INK }} />}
         </div>
         </div>
     )
 }
+
+// Вуз-цель над звездой ЕГЭ — как отметка на старой карте: кружок цвета бумаги в чернильной рамке,
+// логотип чуть состарен (sepia), ножка-пунктир к звезде. Нет логотипа — короткое название.
+const VUZ_PIN_H = 50
+const VuzPin = ({ vuz }: { vuz: NonNullable<BallometerProps['vuz']> }) => (
+    <span className="flex flex-col items-center" style={{ height: VUZ_PIN_H }}>
+        <span className="flex h-[38px] w-[38px] items-center justify-center rounded-full border-[3px] bg-[#F4E8C8]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55), inset 0 0 0 2px #E2CFA0' }}>
+            {vuz.logo
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={vuz.logo} alt={vuz.short} className="h-[24px] w-[24px] object-contain" style={{ filter: 'sepia(.35) saturate(.85) contrast(1.05)' }} />
+                : <span className="text-[10px] font-black leading-none" style={{ color: INK }}>{vuz.short.slice(0, 6)}</span>}
+        </span>
+        <span className="w-0 flex-1 border-l-[3px] border-dotted" style={{ borderColor: INK }} />
+    </span>
+)
 
 const ExamStar = () => (
     <svg viewBox="0 0 24 24" className="h-6 w-6">
@@ -549,7 +567,7 @@ export function BallometerPanel({ d, onClose, demo, hideGoal, onPickGoal, honk }
                 <span className="relative">{moodLine(mood, m, d.primary, d.perWeek, now)}</span>
             </div>
             {!reached && (
-                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate} target={m.targetTest}
+                <DateMap now={now} ready={m.readyDate} showForecast={m.zone !== 'new'} plan={plan} goal={m.goalDate} target={m.targetTest} vuz={d.vuz}
                     onDrag={(date) => change(setsForDate(m.needPrimary, date, d.setGain, now))} />
             )}
         </div>
