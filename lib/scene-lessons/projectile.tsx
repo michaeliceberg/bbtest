@@ -1,7 +1,7 @@
 'use client'
 
 // Блок «Кинематика» (ЕГЭ Физика) → урок «Бросок под углом к горизонту» (SCENEWALK). Сценарий пользователя 2026-11-07:
-//   Команданте бросает гранату-конфетти, траектория рисуется параболой (котик спит в траве) →
+//   Команданте бросает колбаску-конфетти, траектория рисуется параболой (котик спит в траве) →
 //   зум в начало броска: вектор v₀ под 60° → v₀ отдельно, его проекции vₓ = v₀cos α и vᵧ = v₀sin α
 //   («понятно?» → по желанию тренировка на треугольниках) → g действует только на vᵧ, на vₓ — крестик →
 //   проверка → в цифрах: v₀ = 52 м/с, 60°, vₓ = 26, vᵧ = 45 → секунда за секундой вверх (vₓ = 26 всегда,
@@ -17,6 +17,8 @@ import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import { playJustClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { cn } from '@/lib/utils'
+import { hexToRgba } from '@/src/constants/lessonButtonColors'
+import { Typewriter } from '@/components/geometry/Typewriter'
 import type { SceneLesson } from './types'
 
 // Цвета: v₀ — синий, vₓ — бирюзовый, vᵧ — фиолетовый, g — жёлтый. Красный — только «не влияет».
@@ -27,6 +29,10 @@ const G_COL = '#F2C35B'
 const BAD = '#DC605B'
 const INK = '#F2F7FB'
 const FONT = 'var(--font-nunito), sans-serif'
+// Сцена в стиле ангара: приглушённое небо как в его окне, трава с тёмно-коричневым контуром.
+const HALO = '#1E2A30'
+const OUTLINE = '#3B2A1C'
+const TXT = { stroke: HALO, strokeWidth: 2.4, strokeOpacity: 0.6, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
 const POP = { type: 'spring' as const, stiffness: 320, damping: 12 }
 
 // ===== Физика броска =====
@@ -40,11 +46,10 @@ const vyAt = (t: number) => VY0 - G * t
 const W = 380, H = 240
 const GY = 215          // земля
 const OX = 62           // точка броска
-const S = 1.25          // px на метр
+const S = 1.15          // px на метр
 const K = 1             // px на 1 м/с (стрелки скоростей)
 const px = (t: number) => OX + S * VX * t
 const py = (t: number) => GY - S * (VY0 * t - (G * t * t) / 2)
-const LAND_X = px(T_FLIGHT)
 const trailPath = (tMax: number) => {
     const n = Math.max(2, Math.round(tMax * 14))
     const pts: string[] = []
@@ -62,8 +67,9 @@ const Arrow = ({ x1, y1, x2, y2, color, w = 3, dash, head = 7, opacity = 1 }:
     const p = (d: number, s: number) => `${x2 - Math.cos(a) * head * d + Math.sin(a) * head * s},${y2 - Math.sin(a) * head * d - Math.cos(a) * head * s}`
     return (
         <g opacity={opacity}>
+            <line x1={x1} y1={y1} x2={ex} y2={ey} stroke={HALO} strokeOpacity={0.55} strokeWidth={w + 2} strokeLinecap="round" />
             <line x1={x1} y1={y1} x2={ex} y2={ey} stroke={color} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash ? `${w * 2} ${w * 1.6}` : undefined} />
-            <polygon points={`${x2},${y2} ${p(1, 0.55)} ${p(1, -0.55)}`} fill={color} />
+            <polygon points={`${x2},${y2} ${p(1, 0.55)} ${p(1, -0.55)}`} fill={color} stroke={HALO} strokeOpacity={0.55} strokeWidth={1} strokeLinejoin="round" />
         </g>
     )
 }
@@ -75,7 +81,7 @@ const arcD = (cx: number, cy: number, r: number, a1: number, a2: number) => {
 // «v» с индексом и стрелочкой над буквой (вектор). anchor — левый край буквы.
 const VecLabel = ({ x, y, size, color, sub, vector = true }: { x: number; y: number; size: number; color: string; sub: string; vector?: boolean }) => (
     <g>
-        <text x={x} y={y} fontSize={size} fontStyle="italic" fontWeight={800} fill={color} fontFamily={FONT}>
+        <text x={x} y={y} fontSize={size} fontStyle="italic" fontWeight={800} fill={color} fontFamily={FONT} {...TXT} strokeWidth={size * 0.16}>
             v<tspan fontSize={size * 0.6} dx={size * 0.06} dy={size * 0.3} fontStyle="normal">{sub}</tspan>
         </text>
         {vector && <Arrow x1={x + size * 0.02} y1={y - size * 0.86} x2={x + size * 0.6} y2={y - size * 0.86} color={color} w={size * 0.08} head={size * 0.2} />}
@@ -83,46 +89,28 @@ const VecLabel = ({ x, y, size, color, sub, vector = true }: { x: number; y: num
 )
 const SubText = ({ x, y, size, color, main, sub, rest = '', anchor = 'start' }:
     { x: number; y: number; size: number; color: string; main: string; sub: string; rest?: string; anchor?: 'start' | 'middle' | 'end' }) => (
-    <text x={x} y={y} fontSize={size} fontWeight={800} fill={color} fontFamily={FONT} textAnchor={anchor}>
+    <text x={x} y={y} fontSize={size} fontWeight={800} fill={color} fontFamily={FONT} textAnchor={anchor} {...TXT} strokeWidth={size * 0.16}>
         <tspan fontStyle="italic">{main}</tspan>
         <tspan fontSize={size * 0.62} dy={size * 0.28}>{sub}</tspan>
         {rest && <tspan dy={-size * 0.28}>{rest}</tspan>}
     </text>
 )
-// Граната-конфетти Команданте (игрушечная): оливковый корпус, кольцо, золотое GG.
-const Grenade = ({ x, y, r = 7, rot = 0 }: { x: number; y: number; r?: number; rot?: number }) => (
+// Колбаска котику (та же картинка, что в холодильнике ангара), крутится в полёте.
+const Sausage = ({ x, y, r = 7, rot = 0 }: { x: number; y: number; r?: number; rot?: number }) => (
     <g transform={`translate(${x},${y}) rotate(${rot})`}>
-        <rect x={-r * 0.35} y={-r * 1.45} width={r * 0.7} height={r * 0.5} rx={r * 0.1} fill="#8A8F72" stroke="#1E2410" strokeWidth={r * 0.14} />
-        <circle cx={r * 0.55} cy={-r * 1.35} r={r * 0.32} fill="none" stroke="#C9CDB8" strokeWidth={r * 0.14} />
-        <ellipse cx={0} cy={0} rx={r * 0.85} ry={r} fill="#5B6B2F" stroke="#1E2410" strokeWidth={r * 0.16} />
-        <line x1={-r * 0.85} y1={0} x2={r * 0.85} y2={0} stroke="#3E4A1E" strokeWidth={r * 0.12} />
-        <line x1={0} y1={-r} x2={0} y2={r} stroke="#3E4A1E" strokeWidth={r * 0.12} />
-        <text x={0} y={r * 0.38} textAnchor="middle" fontSize={r * 0.9} fontWeight={900} fill="#F2C35B" fontFamily={FONT}>GG</text>
+        <image href="/hangar/life/cat-sausage.webp" x={-r * 1.8} y={-r * 0.9} width={r * 3.6} height={r * 1.8} />
     </g>
 )
+// Пучки травы с тёмным контуром (пока кодом; картинка Leonardo — промпт в docs/hangar/leonardo-prompts-life.md).
 const Grass = () => (
-    <g stroke="#4E8A33" strokeWidth={2} strokeLinecap="round">
-        {Array.from({ length: 34 }, (_, i) => {
-            const x = 8 + i * 11.3 + ((i * 7) % 5)
-            const h = 5 + ((i * 13) % 6)
-            return <path key={i} d={`M${x},${GY} l-2,-${h} M${x},${GY} l2,-${h - 2}`} fill="none" />
+    <g fill="#8DAE5C" stroke={OUTLINE} strokeOpacity={0.7} strokeWidth={0.9} strokeLinejoin="round">
+        {Array.from({ length: 22 }, (_, i) => {
+            const x = 6 + i * 17.5 + ((i * 7) % 6)
+            const h = 5 + ((i * 13) % 4)
+            return <path key={i} d={`M${x - 4},${GY + 1} L${x - 3},${GY - h * 0.6} L${x - 1},${GY - 2} L${x},${GY - h} L${x + 1.5},${GY - 2} L${x + 3.5},${GY - h * 0.7} L${x + 4},${GY + 1} Z`} />
         })}
     </g>
 )
-const CONFETTI = ['#F2C35B', '#5CC99F', '#C385F7', '#53ADEF', '#BC418A', '#78C93C']
-const Burst = ({ x, y }: { x: number; y: number }) => (
-    <g>
-        {Array.from({ length: 14 }, (_, i) => {
-            const a = (-Math.PI * (i + 0.5)) / 14
-            return (
-                <motion.rect key={i} x={x - 2} y={y - 2} width={4} height={4} rx={1} fill={CONFETTI[i % CONFETTI.length]}
-                    initial={{ x: 0, y: 0, opacity: 1 }} animate={{ x: Math.cos(a) * (22 + (i % 3) * 9), y: Math.sin(a) * (26 + (i % 4) * 7), opacity: [1, 1, 0] }}
-                    transition={{ duration: 1.3, ease: 'easeOut' }} />
-            )
-        })}
-    </g>
-)
-
 // ===== Поле броска =====
 type Pt = { t: number; cur: boolean }
 type FieldProps = {
@@ -136,36 +124,49 @@ type FieldProps = {
     hiVy?: boolean
     crossVx?: boolean
     points?: Pt[]                   // «секунда за секундой»: точки с проекциями
-    landed?: boolean                // граната упала: конфетти + котик проснулся
+    landed?: boolean                // колбаска упала: конфетти + котик проснулся
     view?: string                   // свой viewBox (кадр части траектории)
     maxW?: number
 }
+const SKY_TOP = '#4F7E8C'
 const ZOOM_T = 'translate(92px,186px) scale(2.4) translate(-62px,-215px)'
 const NO_ZOOM_T = 'translate(0px,0px) scale(1) translate(0px,0px)'
 export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, hiVy, crossVx, points = [], landed, view, maxW = 520 }: FieldProps) => {
     const v0x = OX + K * VX, v0y = GY - K * VY0
     return (
-        <svg viewBox={view ?? `0 0 ${W} ${H}`} className="w-full h-auto rounded-2xl" style={{ maxWidth: maxW, maxHeight: '44vh', backgroundColor: '#13202A' }}>
+        <svg viewBox={view ?? `0 0 ${W} ${H}`} className="w-full h-auto rounded-2xl" style={{ maxWidth: maxW, maxHeight: '44vh', backgroundColor: SKY_TOP }}>
+            <defs>
+                <linearGradient id="proj-sky" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor={SKY_TOP} /><stop offset="0.65" stopColor="#7FA6A2" /><stop offset="1" stopColor="#A9C3AC" />
+                </linearGradient>
+            </defs>
             <g style={{ transform: zoom ? ZOOM_T : NO_ZOOM_T, transition: 'transform 1.4s cubic-bezier(0.65,0,0.35,1)' }}>
-                <rect x={-200} y={GY} width={W + 400} height={120} fill="#22351F" />
-                <line x1={-200} y1={GY} x2={W + 200} y2={GY} stroke="#4E8A33" strokeWidth={2.5} />
-                <g style={{ opacity: zoom ? 0 : 1, transition: 'opacity 1s' }}><Grass /></g>
-                <image href="/miguel/miguel-base.webp" x={6} y={GY - 60} width={60} height={60} style={{ opacity: zoom ? 0.15 : 1, transition: 'opacity 1s' }} />
-                {/* котик спит в траве у места падения */}
-                <image href={landed ? '/hangar/life/cat-meow.webp' : '/hangar/life/cat-sleep.webp'}
-                    x={landed ? 296 : 292} y={landed ? GY - 40 : GY - 27} width={landed ? 34 : 46} height={landed ? 40 : 31} />
-                {!landed && (
-                    <motion.text x={322} y={GY - 30} fontSize={10} fontWeight={900} fill="#8FA3AE" fontFamily={FONT}
-                        animate={{ y: [GY - 30, GY - 36, GY - 30], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2.4, repeat: Infinity }}>Zzz</motion.text>
-                )}
+                <rect x={-200} y={-200} width={W + 400} height={GY + 200} fill="url(#proj-sky)" />
+                <image href="/hangar/life/sun.webp" x={318} y={10} width={42} height={42} opacity={0.95} />
+                <image href="/hangar/life/cloud-puffy.webp" x={22} y={18} width={74} height={38} opacity={0.9} />
+                <image href="/hangar/life/cloud-round.webp" x={228} y={44} width={52} height={31} opacity={0.8} />
+                {/* земля: полоска травы и полоска почвы с тёмным контуром */}
+                <rect x={-200} y={GY} width={W + 400} height={120} fill="#8C6A4F" />
+                <rect x={-200} y={GY} width={W + 400} height={9} fill="#6F8E47" />
+                <line x1={-200} y1={GY + 9} x2={W + 200} y2={GY + 9} stroke={OUTLINE} strokeWidth={1.2} strokeOpacity={0.6} />
+                <line x1={-200} y1={GY} x2={W + 200} y2={GY} stroke={OUTLINE} strokeWidth={1.8} />
+                {/* Команданте смотрит вправо, туда, куда бросает */}
+                <image href="/miguel/miguel-base.webp" x={-70} y={GY - 72} width={70} height={70} transform="scale(-1,1)"
+                    style={{ opacity: zoom ? 0.15 : 1, transition: 'opacity 1s' }} />
+                {/* котик ждёт колбаску у места падения, потом ест */}
+                {landed
+                    ? <image href="/hangar/life/cat-eat.webp" x={326} y={GY - 37} width={52} height={39} />
+                    : <image href="/hangar/life/cat-sit.webp" x={336} y={GY - 49} width={40} height={49} />}
                 {landed && (
-                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.5 }}>
-                        <rect x={236} y={GY - 36} width={48} height={20} rx={8} fill="#F2F7FB" />
-                        <text x={260} y={GY - 22} textAnchor="middle" fontSize={11} fontWeight={900} fill="#151F24" fontFamily={FONT}>Мяу?!</text>
+                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.4 }}>
+                        <rect x={332} y={GY - 66} width={44} height={20} rx={8} fill="#F4EEDC" stroke={OUTLINE} strokeWidth={1.2} />
+                        <text x={354} y={GY - 52} textAnchor="middle" fontSize={11} fontWeight={900} fill={OUTLINE} fontFamily={FONT}>Ням!</text>
                     </motion.g>
                 )}
-                {ghost && <path d={trailPath(T_FLIGHT)} fill="none" stroke="#8FA3AE" strokeOpacity={0.35} strokeWidth={2} strokeDasharray="4 5" />}
-                {trail > 0 && <path d={trailPath(Math.min(trail, T_FLIGHT))} fill="none" stroke={INK} strokeOpacity={v0 ? 0.45 : 1} strokeWidth={zoom ? 1.4 : 2.5} strokeLinecap="round" />}
+                {/* трава поверх ног Команданте и лап котика: они стоят В траве */}
+                <g style={{ opacity: zoom ? 0 : 1, transition: 'opacity 1s' }}><Grass /></g>
+                {ghost && <path d={trailPath(T_FLIGHT)} fill="none" stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="4 5" />}
+                {trail > 0 && <path d={trailPath(Math.min(trail, T_FLIGHT))} fill="none" stroke={INK} strokeOpacity={v0 ? 0.5 : 1} strokeWidth={zoom ? 1.4 : 2.6} strokeLinecap="round" />}
 
                 {/* «секунда за секундой» */}
                 {points.map(({ t, cur }) => {
@@ -178,10 +179,10 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                             <circle cx={x} cy={y} r={3.2} fill={INK} opacity={cur ? 1 : 0.45} />
                             {cur && (
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={POP}>
-                                    <text x={x + K * VX / 2} y={y + 13} textAnchor="middle" fontSize={11} fontWeight={900} fill={VX_COL} fontFamily={FONT}>{VX}</text>
+                                    <text x={x + K * VX / 2} y={y + 13} textAnchor="middle" fontSize={11} fontWeight={900} fill={VX_COL} fontFamily={FONT} {...TXT}>{VX}</text>
                                     {Math.abs(vy) > 0.1
-                                        ? <text x={x - 5} y={y - (K * vy) / 2 + 4} textAnchor="end" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT}>{Math.abs(vy)}</text>
-                                        : <text x={x} y={y - 9} textAnchor="middle" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT}>0</text>}
+                                        ? <text x={x - 5} y={y - (K * vy) / 2 + 4} textAnchor="end" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT} {...TXT}>{Math.abs(vy)}</text>
+                                        : <text x={x} y={y - 9} textAnchor="middle" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT} {...TXT}>0</text>}
                                 </motion.g>
                             )}
                         </motion.g>
@@ -209,8 +210,8 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                 {g && (
                     <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
                         <Arrow x1={140} y1={150} x2={140} y2={180} color={G_COL} w={2.2} head={4.4} />
-                        <text x={145} y={163} fontSize={7} fontWeight={900} fill={G_COL} fontFamily={FONT} fontStyle="italic">g</text>
-                        <text x={145} y={171} fontSize={4.4} fontWeight={800} fill={G_COL} fontFamily={FONT}>= 10 м/с²</text>
+                        <text x={145} y={163} fontSize={7} fontWeight={900} fill={G_COL} fontFamily={FONT} fontStyle="italic" {...TXT} strokeWidth={1.2}>g</text>
+                        <text x={145} y={171} fontSize={4.4} fontWeight={800} fill={G_COL} fontFamily={FONT} {...TXT} strokeWidth={0.9}>= 10 м/с²</text>
                     </motion.g>
                 )}
                 {v0 && (
@@ -218,7 +219,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                         <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
                             <Arrow x1={OX} y1={GY} x2={v0x} y2={v0y} color={V0_COL} w={1.8} head={4.2} />
                             <path d={arcD(OX, GY, 9, -Math.PI / 3, 0)} fill="none" stroke={V0_COL} strokeWidth={0.9} />
-                            <text x={OX + 10} y={GY - 3.2} fontSize={4.4} fontWeight={800} fill={V0_COL} fontFamily={FONT}>60°</text>
+                            <text x={OX + 10} y={GY - 3.2} fontSize={4.4} fontWeight={800} fill={V0_COL} fontFamily={FONT} {...TXT} strokeWidth={0.9}>60°</text>
                         </motion.g>
                         <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.6 }}>
                             <VecLabel x={OX - 2} y={GY - 26} size={11} color={V0_COL} sub="0" />
@@ -226,8 +227,8 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                     </g>
                 )}
 
-                {grenadeT !== null && !comps && <Grenade x={px(grenadeT)} y={py(grenadeT) - 6} r={zoom ? 3 : 6.5} rot={grenadeT * 80} />}
-                {landed && <Burst x={LAND_X} y={GY - 4} />}
+                {grenadeT !== null && !comps && <Sausage x={px(grenadeT)} y={py(grenadeT) - 6} r={zoom ? 3 : 6} rot={grenadeT * 80} />}
+                
             </g>
         </svg>
     )
@@ -270,7 +271,7 @@ const ThrowGame = ({ onDone }: { onDone: () => void }) => {
             <Field trail={t ?? 0} grenadeT={landed ? null : t ?? 0} landed={landed} />
             {t === null && (
                 <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                    <button type="button" onClick={go} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>Бросить гранату</button>
+                    <button type="button" onClick={go} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>Бросить колбаску</button>
                 </motion.div>
             )}
         </div>
@@ -278,9 +279,12 @@ const ThrowGame = ({ onDone }: { onDone: () => void }) => {
 }
 
 // ===== Сцена 3: вектор v₀ и его проекции =====
+// step: 0 только v₀; 1 горизонтальная проекция из начала; 2 вертикальная из начала; 3 вертикальная едет вправо,
+// получается треугольник; 4 угол α; 5 подпись v₀·cos α; 6 подпись v₀·sin α.
 const VectorFig = ({ step }: { step: number }) => {
     const O = { x: 60, y: 182 }, L = 150
     const E = { x: O.x + L * Math.cos(Math.PI / 3), y: O.y - L * Math.sin(Math.PI / 3) }
+    const dx = E.x - O.x
     return (
         <svg viewBox="0 0 300 214" className="w-full h-auto" style={{ maxWidth: 420 }}>
             {step >= 1 && (
@@ -290,24 +294,30 @@ const VectorFig = ({ step }: { step: number }) => {
             )}
             {step >= 2 && (
                 <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <Arrow x1={E.x} y1={O.y} x2={E.x} y2={E.y} color={VY_COL} w={4} head={10} dash />
-                    <path d={`M${E.x - 11},${O.y} L${E.x - 11},${O.y - 11} L${E.x},${O.y - 11}`} fill="none" stroke="#8FA3AE" strokeWidth={2} />
+                    {/* та же стрелка, переносится параллельно вправо (CSS-переход) */}
+                    <g style={{ transform: `translateX(${step >= 3 ? dx : 0}px)`, transition: 'transform 1.1s cubic-bezier(0.65,0,0.35,1)' }}>
+                        <Arrow x1={O.x} y1={O.y} x2={O.x} y2={E.y} color={VY_COL} w={4} head={10} dash />
+                    </g>
                 </motion.g>
             )}
-            <Arrow x1={O.x} y1={O.y} x2={E.x} y2={E.y} color={V0_COL} w={5} head={13} />
-            <VecLabel x={O.x + 2} y={O.y - 82} size={26} color={V0_COL} sub="0" />
             {step >= 3 && (
+                <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+                    d={`M${E.x - 11},${O.y} L${E.x - 11},${O.y - 11} L${E.x},${O.y - 11}`} fill="none" stroke="#8FA3AE" strokeWidth={2} />
+            )}
+            <Arrow x1={O.x} y1={O.y} x2={E.x} y2={E.y} color={V0_COL} w={5} head={13} />
+            <VecLabel x={O.x + 12} y={O.y - 86} size={26} color={V0_COL} sub="0" />
+            {step >= 4 && (
                 <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
                     <path d={arcD(O.x, O.y, 30, -Math.PI / 3, 0)} fill="none" stroke={G_COL} strokeWidth={3} />
                     <text x={O.x + 36} y={O.y - 9} fontSize={20} fontWeight={900} fontStyle="italic" fill={G_COL} fontFamily={FONT}>α</text>
                 </motion.g>
             )}
-            {step >= 4 && (
+            {step >= 5 && (
                 <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
                     <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={19} color={VX_COL} main="v" sub="0" rest=" · cos α" anchor="middle" />
                 </motion.g>
             )}
-            {step >= 5 && (
+            {step >= 6 && (
                 <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
                     <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={19} color={VY_COL} main="v" sub="0" rest=" · sin α" />
                 </motion.g>
@@ -478,66 +488,93 @@ const FlightSteps = ({ times, stops = {}, view, onDone }:
 const UP_VIEW = '20 60 232 172'
 const DOWN_VIEW = '176 60 204 190'
 
+// ===== Фраза со стикерами (просьба пользователя: меньше белого текста, ключевые слова — цветными стикерами) =====
+type LinePart = string | [string, string]
+const Stk = ({ text, color }: { text: string; color: string }) => (
+    <motion.span initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-flex items-center rounded-lg border-2 px-1.5 py-0.5 mx-0.5 font-extrabold align-middle leading-none"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}>{text}</motion.span>
+)
+const StickerLine = ({ parts, onDone }: { parts: LinePart[]; onDone: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plain = parts.map((p) => (typeof p === 'string' ? p : p[0])).join('')
+    return (
+        <div className="w-full text-center font-black text-lg md:text-xl text-[#F2F7FB] leading-relaxed">
+            {!typed
+                ? <Typewriter text={plain} onDone={() => { setTyped(true); setTimeout(onDone, 350) }} />
+                : parts.map((p, i) => (typeof p === 'string' ? <span key={i}>{p}</span> : <Stk key={i} text={p[0]} color={p[1]} />))}
+        </div>
+    )
+}
+const ln = (...parts: LinePart[]) => ({ t: 'custom' as const, render: (done: () => void) => <StickerLine parts={parts} onDone={done} /> })
+const Y = G_COL
+const PAR_COL = '#F2F7FB'
+
 // ===== Сцены =====
 const SCENES: Scene[] = [
     {
         title: 'Бросок', next: 'Вижу: летит по параболе', parts: [
-            { t: 'say', text: 'Команданте Мигель бросает гранату-конфетти под углом к горизонту 🎉 Котик спит в траве — он в курсе, это учебная' },
+            ln('Котик проголодался 🐾 Бросаем ему ', ['колбаску', '#E07A5F']),
             { t: 'custom', render: (done) => <ThrowGame onDone={done} /> },
-            { t: 'say', text: 'Граната летела по ПАРАБОЛЕ. Как и любое тело, брошенное под углом' },
+            ln('Летит по ', ['параболе', PAR_COL], ' 😺'),
         ],
     },
     {
         title: 'Начальная скорость', next: 'Понял: это вектор v₀', parts: [
-            { t: 'say', text: 'А давай кое-что заметим 👀' },
+            ln('Приблизим начало 🔍'),
             { t: 'fig', node: <Field trail={T_FLIGHT} grenadeT={0} /> },
             { t: 'pause', ms: 700 },
             { t: 'fig', node: <Field trail={T_FLIGHT} grenadeT={0} zoom /> },
             { t: 'pause', ms: 1500 },
             { t: 'fig', node: <Field trail={T_FLIGHT} grenadeT={0} zoom v0 /> },
             { t: 'pause', ms: 900 },
-            { t: 'say', text: 'Приблизили самое начало броска. Стрелка — начальная скорость v₀. Угол 60°, и она касается параболы' },
+            ln('Это ', ['начальная скорость v₀', V0_COL]),
         ],
     },
     {
         title: 'Две проекции', next: 'Вижу две проекции', parts: [
-            { t: 'say', text: 'Уберём всё лишнее. Останется только вектор v₀' },
             { t: 'fig', node: <VectorFig step={0} /> },
-            { t: 'say', text: 'У него есть ГОРИЗОНТАЛЬНАЯ проекция vₓ 👉' },
+            ln('У ', ['v₀', V0_COL], ' есть две проекции'),
+            ln(['горизонтальная vₓ', VX_COL]),
             { t: 'fig', node: <VectorFig step={1} /> },
-            { t: 'say', text: 'И ВЕРТИКАЛЬНАЯ проекция vᵧ 👆' },
+            { t: 'pause', ms: 500 },
+            ln(['вертикальная vᵧ', VY_COL]),
             { t: 'fig', node: <VectorFig step={2} /> },
-            { t: 'say', text: 'А это угол α между v₀ и горизонтом' },
+            { t: 'pause', ms: 900 },
             { t: 'fig', node: <VectorFig step={3} /> },
+            { t: 'pause', ms: 1300 },
+            ln('Получился треугольник 📐'),
+            { t: 'fig', node: <VectorFig step={4} /> },
+            ln(['угол α', Y]),
         ],
     },
     {
         title: 'Чему равны проекции', next: 'Дальше', parts: [
-            { t: 'fig', node: <VectorFig step={3} /> },
+            { t: 'fig', node: <VectorFig step={4} /> },
             {
                 t: 'choice', label: 'Вопрос', rounds: [
                     { prompt: 'Чему равна горизонтальная проекция?', options: ['$v_0\\cos\\alpha$', '$v_0\\sin\\alpha$', '$v_0\\,\\mathrm{tg}\\,\\alpha$'],
                         correct: '$v_0\\cos\\alpha$', hint: 'Горизонтальный катет касается угла α, он прилежащий 🙃', ok: 'Прилежащий катет → косинус ✅' },
                 ],
             },
-            { t: 'fig', node: <VectorFig step={4} /> },
             { t: 'fig', node: <VectorFig step={5} /> },
+            { t: 'fig', node: <VectorFig step={6} /> },
             { t: 'remember', title: 'ЗАПОМНИ', lines: ['Горизонтальная, прилежащий катет: $v_x = v_0\\cos\\alpha$', 'Вертикальная, противолежащий: $v_y = v_0\\sin\\alpha$'] },
-            { t: 'say', text: 'Тебе это понятно?' },
+            ln('Понятно? 🤔'),
             { t: 'custom', render: (done) => <UnderstoodAsk onDone={done} /> },
         ],
     },
     {
         title: 'Гравитация', next: 'Понял: на vₓ g не влияет', parts: [
-            { t: 'say', text: 'Вернёмся к броску. В самом начале скорость разложилась на две проекции' },
+            ln('Снова бросок: ', ['vₓ', VX_COL], ' и ', ['vᵧ', VY_COL]),
             { t: 'fig', node: <Field ghost grenadeT={0} zoom comps /> },
-            { t: 'say', text: 'А ещё на гранату действует гравитация. Она тянет ВНИЗ ⬇️' },
+            ln(['g', Y], ' тянет ВНИЗ ⬇️'),
             { t: 'fig', node: <Field ghost grenadeT={0} zoom comps g /> },
             { t: 'pause', ms: 600 },
-            { t: 'say', text: 'Значит, g меняет только вертикальную проекцию vᵧ' },
+            ln(['g', Y], ' меняет только ', ['vᵧ', VY_COL]),
             { t: 'fig', node: <Field ghost grenadeT={0} zoom comps g hiVy /> },
             reply('Ага, понял: g меняет только vᵧ'),
-            { t: 'say', text: 'А vₓ от g НЕ зависит: g тянет вниз, а не вбок' },
+            ln(['g', Y], ' НЕ трогает ', ['vₓ', VX_COL]),
             { t: 'fig', node: <Field ghost grenadeT={0} zoom comps g hiVy crossVx /> },
         ],
     },
@@ -554,19 +591,19 @@ const SCENES: Scene[] = [
     },
     {
         title: 'В цифрах', next: 'Давай кое-что заметим', parts: [
-            { t: 'say', text: 'А теперь в цифрах. Команданте бросил гранату со скоростью 52 м/с под углом 60°' },
+            ln('В цифрах: ', ['52 м/с', V0_COL], ' под ', ['60°', Y]),
             { t: 'calc', tex: 'v_x = 52\\cdot\\cos 60^\\circ = 26 \\text{ м/с}' },
             { t: 'calc', tex: 'v_y = 52\\cdot\\sin 60^\\circ \\approx 45 \\text{ м/с}' },
-            { t: 'say', text: 'Запомнили: вбок 26, вверх 45. Пусть g = 10 м/с²' },
+            ln(['vₓ = 26', VX_COL], ' ', ['vᵧ = 45', VY_COL], ' ', ['g = 10', Y]),
         ],
     },
     {
         title: 'Секунда за секундой', next: 'Вижу: vₓ не меняется', parts: [
-            { t: 'say', text: 'Смотрим на гранату каждую секунду. Жми кнопку ⏱' },
+            ln('Жми ⏱ и следи за ', ['vₓ', VX_COL], ' и ', ['vᵧ', VY_COL]),
             {
                 t: 'custom', render: (done) => (
                     <FlightSteps times={[0, 1, 2, 3, 4]} view={UP_VIEW} onDone={done} stops={{
-                        2: { prompt: 'Почему $v_x$ всё время 26?', options: ['g тянет только вниз', 'граната тяжёлая', 'так повезло'], correct: 'g тянет только вниз',
+                        2: { prompt: 'Почему $v_x$ всё время 26?', options: ['g тянет только вниз', 'колбаска вкусная', 'так повезло'], correct: 'g тянет только вниз',
                             hint: 'Вспомни, куда направлена гравитация 🙃', ok: 'По оси x ускорения нет, поэтому $v_x$ не меняется ✅' },
                     }} />
                 ),
@@ -575,11 +612,11 @@ const SCENES: Scene[] = [
     },
     {
         title: 'Сколько ещё вверх', next: 'Дальше', parts: [
-            { t: 'say', text: 'Сейчас vᵧ = 5 м/с вверх. А каждую секунду она теряет 10' },
+            ln(['vᵧ = 5 ↑', VY_COL], ' теряет ', ['10 за секунду', Y]),
             {
                 t: 'choice', label: 'Подумай', rounds: [
-                    { prompt: 'Сколько ещё граната будет подниматься?', options: ['0,5 с', '1 с', '5 с', '2 с'], correct: '0,5 с', hint: 'Чтобы потерять 5 м/с, нужно полсекунды 🙃', ok: '5 м/с уйдут за 0,5 с ✅' },
-                    { prompt: 'Сколько всего граната летела вверх?', options: ['4,5 с', '4 с', '5 с', '9 с'], correct: '4,5 с', hint: '4 секунды мы уже видели, плюс ещё 0,5 🙃', ok: '4 + 0,5 = 4,5 с ✅' },
+                    { prompt: 'Сколько ещё колбаска будет подниматься?', options: ['0,5 с', '1 с', '5 с', '2 с'], correct: '0,5 с', hint: 'Чтобы потерять 5 м/с, нужно полсекунды 🙃', ok: '5 м/с уйдут за 0,5 с ✅' },
+                    { prompt: 'Сколько всего колбаска летела вверх?', options: ['4,5 с', '4 с', '5 с', '9 с'], correct: '4,5 с', hint: '4 секунды мы уже видели, плюс ещё 0,5 🙃', ok: '4 + 0,5 = 4,5 с ✅' },
                     { prompt: 'Как менялась $v_y$?', options: ['уменьшалась на 10 каждую секунду', 'не менялась', 'росла на 10 каждую секунду'], correct: 'уменьшалась на 10 каждую секунду',
                         hint: 'Посмотри в табличку: 45, 35, 25… 🙃', ok: 'Каждую секунду минус $g = 10$ ✅' },
                     { prompt: 'А как менялась $v_x$?', options: ['не менялась', 'уменьшалась', 'росла'], correct: 'не менялась', hint: 'В табличке везде 26 🙃', ok: 'Всегда 26 м/с 😎' },
@@ -590,11 +627,11 @@ const SCENES: Scene[] = [
     {
         title: 'Вершина', next: 'А что дальше?', parts: [
             { t: 'fig', node: <Field ghost trail={4.5} points={[{ t: 4.5, cur: true }]} view={UP_VIEW} /> },
-            { t: 'say', text: 'Через 4,5 с граната в самой верхней точке. Тут vᵧ = 0: на миг она «зависла» по вертикали' },
-            { t: 'say', text: 'А vₓ = 26 м/с никуда не делась: граната летит вбок' },
+            ln('Вершина: ', ['vᵧ = 0', VY_COL]),
+            ln('А ', ['vₓ = 26', VX_COL], ' летит дальше 😎'),
             {
                 t: 'choice', label: 'Подумай', rounds: [
-                    { prompt: 'Чему равна скорость гранаты в верхней точке?', options: ['26 м/с', '0', '52 м/с', '45 м/с'], correct: '26 м/с',
+                    { prompt: 'Чему равна скорость колбаски в верхней точке?', options: ['26 м/с', '0', '52 м/с', '45 м/с'], correct: '26 м/с',
                         hint: '$v_y = 0$, но $v_x$ осталась 🙃', ok: 'Остаётся только $v_x = 26$ м/с ✅' },
                 ],
             },
@@ -602,7 +639,7 @@ const SCENES: Scene[] = [
     },
     {
         title: 'Вниз', next: 'Мяу, понял', parts: [
-            { t: 'say', text: 'А теперь граната развернётся и полетит вниз, разгоняясь. Котик, держись 🐾' },
+            ln('Вниз! ', ['vᵧ растёт', VY_COL], ' Котик, лови 🐾'),
             {
                 t: 'custom', render: (done) => (
                     <FlightSteps times={[4.5, 5, 6, 7, 8, 9]} view={DOWN_VIEW} onDone={done} stops={{
@@ -615,10 +652,10 @@ const SCENES: Scene[] = [
     },
     {
         title: 'Приземление', next: 'Всё понятно', parts: [
-            { t: 'say', text: 'Приземлилась с vᵧ = 45 м/с вниз. Ровно с той же, с какой бросали вверх! И вниз летела тоже 4,5 с' },
+            ln('Упала с ', ['vᵧ = 45 ↓', VY_COL], ' как бросали ↑'), ln('Вверх ', ['4,5 с', Y], ' вниз ', ['4,5 с', Y]),
             {
                 t: 'choice', label: 'Подумай', rounds: [
-                    { prompt: 'Сколько граната была в полёте?', options: ['9 с', '4,5 с', '10 с'], correct: '9 с', hint: '4,5 с вверх и 4,5 с вниз 🙃', ok: '4,5 + 4,5 = 9 с ✅' },
+                    { prompt: 'Сколько колбаска была в полёте?', options: ['9 с', '4,5 с', '10 с'], correct: '9 с', hint: '4,5 с вверх и 4,5 с вниз 🙃', ok: '4,5 + 4,5 = 9 с ✅' },
                     { prompt: 'А $v_x$ при падении?', options: ['26 м/с', '0', '52 м/с'], correct: '26 м/с', hint: 'g на $v_x$ не влияет 🙃', ok: 'Всё те же 26 м/с 😎' },
                 ],
             },
@@ -626,11 +663,11 @@ const SCENES: Scene[] = [
     },
     {
         title: 'Уравнения', next: 'Формулы собраны', parts: [
-            { t: 'say', text: 'Соберём всё в формулы. По оси x скорость постоянная — значит, путь = скорость × время' },
+            ln('По x: ', ['скорость × время', VX_COL]),
             { t: 'build', prompt: 'Собери координату x', tpl: ['$x =$', { s: 0 }, '$\\cdot$', { s: 1 }],
                 chips: ['$v_0\\cos\\alpha$', '$v_0\\sin\\alpha$', '$t$', '$g$', '$t^2$', '$2$'], slots: ['$v_0\\cos\\alpha$', '$t$'], any: [[0, 1]],
                 hint: 'По оси x — горизонтальная проекция, умноженная на время 🙃' },
-            { t: 'say', text: 'По оси y ещё и гравитация: она отнимает gt²/2' },
+            ln('По y ещё ', ['g', Y], ' отнимает ', ['gt²/2', Y]),
             { t: 'build', prompt: 'Собери координату y', tpl: ['$y =$', { s: 0 }, '$\\cdot t \\ -$', { frac: [[{ s: 1 }], [{ s: 2 }]] }],
                 chips: ['$v_0\\sin\\alpha$', '$v_0\\cos\\alpha$', '$gt^2$', '$gt$', '$2$', '$10$'], slots: ['$v_0\\sin\\alpha$', '$gt^2$', '$2$'],
                 hint: 'Вверх — вертикальная проекция, а вычитаем $\\dfrac{gt^2}{2}$ 🙃' },
@@ -646,7 +683,7 @@ const SCENES: Scene[] = [
             ] },
             {
                 t: 'choice', label: 'Посчитай', rounds: [
-                    { prompt: 'Где граната по x через 2 с? $x = 26\\cdot 2$', options: ['52 м', '28 м', '26 м'], correct: '52 м', hint: 'Просто умножь 26 на 2 🙃', ok: '52 м вбок ✅' },
+                    { prompt: 'Где колбаска по x через 2 с? $x = 26\\cdot 2$', options: ['52 м', '28 м', '26 м'], correct: '52 м', hint: 'Просто умножь 26 на 2 🙃', ok: '52 м вбок ✅' },
                     { prompt: 'А на какой высоте через 1 с? $y = 45\\cdot 1 - \\dfrac{10\\cdot 1^2}{2}$', options: ['40 м', '45 м', '35 м'], correct: '40 м', hint: '45 − 5 🙃', ok: '40 м, как на картинке ✅' },
                 ],
             },
@@ -669,6 +706,6 @@ export const PROJECTILE_BASIC: SceneLesson = {
         T('Дальность', '$v_x = 15$ м/с, тело в полёте 6 с. Как далеко оно улетит?', ['90 м', '21 м', '15 м', '45 м'], '90 м', '$x = v_x\\cdot t$ 🙃'),
         T('Проекция', '$v_0 = 20$ м/с, $\\alpha = 30^\\circ$. Чему равна $v_x$?', ['$10\\sqrt3$ м/с', '10 м/с', '20 м/с', '$20\\sqrt3$ м/с'], '$10\\sqrt3$ м/с', '$v_x = v_0\\cos\\alpha$, $\\cos 30^\\circ = \\dfrac{\\sqrt3}{2}$ 🙃'),
         T('Вершина', 'Что равно нулю в верхней точке траектории?', ['$v_y$', '$v_x$', '$g$', 'всё сразу'], '$v_y$', 'Тело на миг перестаёт подниматься 🙃'),
-        T('Котик', 'Граната-конфетти летит 9 с, $v_x = 26$ м/с. На каком расстоянии от Команданте спит котик, если она упала рядом с ним?', ['234 м', '35 м', '117 м', '26 м'], '234 м', '$26\\cdot 9$ 🙃'),
+        T('Котик', 'Колбаска летит 9 с, $v_x = 26$ м/с, и падает прямо к котику. На каком расстоянии от Команданте сидит котик?', ['234 м', '35 м', '117 м', '26 м'], '234 м', '$26\\cdot 9$ 🙃'),
     ],
 }

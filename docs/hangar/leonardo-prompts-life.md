@@ -320,3 +320,28 @@ Avoid: text, letters, numbers, buttons inside sockets, tall plate, top bar, pers
 |---|---|---|
 | `cat-sourcream.jpg` | small glass jar of white sour cream with a blue foil lid, no letters, standing | Банка рядом с миской |
 | `cat-fish.jpg` | one small silver fish lying on its side, slightly bent, cute | Лежит в миске, откусывается как колбаска |
+
+## Трава для сцены броска (урок «Бросок под углом», ЕГЭ Физика)
+
+Сейчас трава нарисована кодом (`Grass` в lib/scene-lessons/projectile.tsx). Картинкой будет лучше: полоса травы на всю
+ширину сцены, поверх ног Команданте и лап котика. FLUX.1 Kontext, образец стиля — `docs/hangar/bg-empty.jpg`, сила средняя.
+**Фон пурпурный** (белый Leonardo оставляет каймой у светлых травинок), вырежу `docs/miguel/tools/make_sticker_v2.py`.
+
+**`grass-strip.jpg`** (формат 16:9), вставлять целиком:
+
+> Long horizontal strip of cartoon grass seen from the side, a row of short grass tufts of different heights with a few
+> tiny daisies and small pebbles, sitting on a thin strip of brown soil, the strip runs the full width of the image from
+> the left edge to the right edge, flat bottom edge, seamless so the left and right ends can be tiled together, in the
+> same art style as the reference image: cartoon illustration, thick uneven dark-brown outlines, muted dusty olive-green
+> and brown colours, flat cel shading with soft texture, slightly worn comic look, isolated on flat solid pure magenta
+> background #FF00FF, no text, no letters, no frame.
+> Avoid: sticker, die-cut, white border, frame, sky, clouds, trees, bushes, flowers bigger than the grass, characters,
+> animals, text, watermark, perspective, 3D render, photo, blurry, gradient background.
+
+**`grass-tuft.jpg`** (формат 1:1) — отдельный пучок, чтобы прикрыть ноги персонажей:
+
+> Single small clump of cartoon grass, about ten blades of different heights, slightly leaning, two tiny pebbles at the
+> base, seen from the side, in the same art style as the reference image: cartoon illustration, thick uneven dark-brown
+> outlines, muted dusty olive-green colours, flat cel shading, slightly worn comic look, centered, isolated on flat solid
+> pure magenta background #FF00FF, no text, no frame.
+> Avoid: sticker, die-cut, white border, frame, soil strip, sky, flowers, characters, text, watermark, 3D render, photo, blurry.
