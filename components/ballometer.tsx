@@ -269,7 +269,7 @@ function DateMap({ now, ready, showForecast, plan, goal, target, vuz, onDrag }: 
 // (public/vuz-logos/cut/: белый фон по краям убран). Варианты — /test-vuz-pin, выбран 5-й «Наклейка без круга».
 // Нет логотипа — короткое название.
 export const VUZ_PIN_VARIANTS = ['Бумажный кружок', 'Белая монета', 'Чернильный штамп', 'Квадрат в круге', 'Наклейка без круга'] as const
-const VUZ_PIN_H = 50
+const VUZ_PIN_H = 58
 const cutLogo = (logo: string) => logo.replace('/vuz-logos/', '/vuz-logos/cut/')
 export const VuzPin = ({ vuz, variant = 4 }: { vuz: NonNullable<BallometerProps['vuz']>; variant?: number }) => {
     const ring = { borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }
@@ -289,7 +289,8 @@ export const VuzPin = ({ vuz, variant = 4 }: { vuz: NonNullable<BallometerProps[
                     <span className="flex h-[24px] w-[24px] rotate-[-8deg] items-center justify-center overflow-hidden rounded-[5px] bg-white" style={{ boxShadow: '0 0 0 1.5px #3A2A1E' }}>{img('h-full w-full', undefined, false)}</span>
                 </span>
             )
-            case 4: return img('h-[38px] w-[38px]', { filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff) drop-shadow(0 2px 1px rgba(43,30,20,.5))' })
+            // белая обводка запечена в картинку (public/vuz-logos/sticker/, гладкая): CSS drop-shadow на 4 стороны давал зубцы
+            case 4: return vuz.logo ? <img src={vuz.logo.replace('/vuz-logos/', '/vuz-logos/sticker/')} alt={vuz.short} className="h-[46px] w-[46px] object-contain" style={{ filter: 'drop-shadow(0 2px 1.5px rgba(43,30,20,.45))' }} /> : name
             default: return <span className="flex h-[40px] w-[40px] items-center justify-center rounded-full border-[3px] bg-[#F4E8C8]" style={{ ...ring, boxShadow: `${ring.boxShadow}, inset 0 0 0 2px #E2CFA0` }}>{img('h-[27px] w-[27px]')}</span>
         }
     })()
