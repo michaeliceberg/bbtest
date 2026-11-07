@@ -5,7 +5,7 @@
 // Раз в день Команданте сообщает показание (BallometerHello).
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Hand, MoveHorizontal, X } from 'lucide-react'
@@ -265,20 +265,42 @@ function DateMap({ now, ready, showForecast, plan, goal, target, vuz, onDrag }: 
     )
 }
 
-// Вуз-цель над звездой ЕГЭ — как отметка на старой карте: кружок цвета бумаги в чернильной рамке,
-// логотип чуть состарен (sepia), ножка-пунктир к звезде. Нет логотипа — короткое название.
+// Вуз-цель над звездой ЕГЭ — отметка на карте, ножка-пунктир к звезде. Логотип берём вырезанным
+// (public/vuz-logos/cut/: белый фон по краям убран). Варианты оформления — /test-vuz-pin.
+// Нет логотипа — короткое название.
+export const VUZ_PIN_VARIANTS = ['Бумажный кружок', 'Белая монета', 'Чернильный штамп', 'Квадрат в круге', 'Наклейка без круга'] as const
 const VUZ_PIN_H = 50
-const VuzPin = ({ vuz }: { vuz: NonNullable<BallometerProps['vuz']> }) => (
-    <span className="flex flex-col items-center" style={{ height: VUZ_PIN_H }}>
-        <span className="flex h-[38px] w-[38px] items-center justify-center rounded-full border-[3px] bg-[#F4E8C8]" style={{ borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55), inset 0 0 0 2px #E2CFA0' }}>
-            {vuz.logo
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={vuz.logo} alt={vuz.short} className="h-[24px] w-[24px] object-contain" style={{ filter: 'sepia(.35) saturate(.85) contrast(1.05)' }} />
-                : <span className="text-[10px] font-black leading-none" style={{ color: INK }}>{vuz.short.slice(0, 6)}</span>}
+const cutLogo = (logo: string) => logo.replace('/vuz-logos/', '/vuz-logos/cut/')
+export const VuzPin = ({ vuz, variant = 0 }: { vuz: NonNullable<BallometerProps['vuz']>; variant?: number }) => {
+    const ring = { borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }
+    const name = <span className="text-[10px] font-black leading-none" style={{ color: INK }}>{vuz.short.slice(0, 6)}</span>
+    /* eslint-disable @next/next/no-img-element */
+    const img = (cls: string, style?: CSSProperties, cut = true) => vuz.logo ? <img src={cut ? cutLogo(vuz.logo) : vuz.logo} alt={vuz.short} className={`object-contain ${cls}`} style={style} /> : name
+    const head = (() => {
+        switch (variant) {
+            case 1: return <span className="flex h-[44px] w-[44px] items-center justify-center overflow-hidden rounded-full border-[3px] bg-white" style={ring}>{img('h-[34px] w-[34px]')}</span>
+            case 2: return (
+                <span className="flex h-[42px] w-[42px] -rotate-6 items-center justify-center rounded-full border-[2.5px] border-double" style={{ borderColor: '#4A2E1C', borderWidth: 4, opacity: 0.88 }}>
+                    {img('h-[26px] w-[26px]', { filter: 'grayscale(1) sepia(1) saturate(1.6) brightness(.62) contrast(1.5)', opacity: 0.85 })}
+                </span>
+            )
+            case 3: return (
+                <span className="flex h-[42px] w-[42px] items-center justify-center rounded-full border-[3px] bg-[#F4E8C8]" style={ring}>
+                    <span className="flex h-[24px] w-[24px] rotate-[-8deg] items-center justify-center overflow-hidden rounded-[5px] bg-white" style={{ boxShadow: '0 0 0 1.5px #3A2A1E' }}>{img('h-full w-full', undefined, false)}</span>
+                </span>
+            )
+            case 4: return img('h-[38px] w-[38px]', { filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff) drop-shadow(0 2px 1px rgba(43,30,20,.5))' })
+            default: return <span className="flex h-[40px] w-[40px] items-center justify-center rounded-full border-[3px] bg-[#F4E8C8]" style={{ ...ring, boxShadow: `${ring.boxShadow}, inset 0 0 0 2px #E2CFA0` }}>{img('h-[27px] w-[27px]')}</span>
+        }
+    })()
+    /* eslint-enable @next/next/no-img-element */
+    return (
+        <span className="flex flex-col items-center" style={{ height: VUZ_PIN_H }}>
+            {head}
+            <span className="w-0 flex-1 border-l-[3px] border-dotted" style={{ borderColor: INK }} />
         </span>
-        <span className="w-0 flex-1 border-l-[3px] border-dotted" style={{ borderColor: INK }} />
-    </span>
-)
+    )
+}
 
 const ExamStar = () => (
     <svg viewBox="0 0 24 24" className="h-6 w-6">
