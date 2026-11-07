@@ -266,12 +266,12 @@ function DateMap({ now, ready, showForecast, plan, goal, target, vuz, onDrag }: 
 }
 
 // Вуз-цель над звездой ЕГЭ — отметка на карте, ножка-пунктир к звезде. Логотип берём вырезанным
-// (public/vuz-logos/cut/: белый фон по краям убран). Варианты оформления — /test-vuz-pin.
+// (public/vuz-logos/cut/: белый фон по краям убран). Варианты — /test-vuz-pin, выбран 5-й «Наклейка без круга».
 // Нет логотипа — короткое название.
 export const VUZ_PIN_VARIANTS = ['Бумажный кружок', 'Белая монета', 'Чернильный штамп', 'Квадрат в круге', 'Наклейка без круга'] as const
 const VUZ_PIN_H = 50
 const cutLogo = (logo: string) => logo.replace('/vuz-logos/', '/vuz-logos/cut/')
-export const VuzPin = ({ vuz, variant = 0 }: { vuz: NonNullable<BallometerProps['vuz']>; variant?: number }) => {
+export const VuzPin = ({ vuz, variant = 4 }: { vuz: NonNullable<BallometerProps['vuz']>; variant?: number }) => {
     const ring = { borderColor: INK, boxShadow: '0 2px 0 rgba(43,30,20,.55)' }
     const name = <span className="text-[10px] font-black leading-none" style={{ color: INK }}>{vuz.short.slice(0, 6)}</span>
     /* eslint-disable @next/next/no-img-element */
