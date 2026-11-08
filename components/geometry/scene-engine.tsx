@@ -327,6 +327,9 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
     const [reached, setReached] = useState(0)
     const done = (i: number) => () => setReached((r) => (r === i ? i + 1 : r))
     useEffect(() => { if (reached >= parts.length) onSettled?.() }, [reached]) // eslint-disable-line react-hooks/exhaustive-deps
+    // последняя кнопка-подтверждение, которую уже нажали
+    let lastAck = -1
+    for (let i = 0; i < Math.min(reached, parts.length); i++) if (parts[i].t === 'ack') lastAck = i
     let fig: React.ReactNode = null
     for (let i = 0; i <= Math.min(reached, parts.length - 1); i++) { const p = parts[i]; if (p.t === 'fig') fig = p.node }
     return (
@@ -339,7 +342,7 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
             {parts.map((p, i) => {
                 if (i > reached) return null
                 const d = done(i)
-                switch (p.t) {
+                const node = (() => { switch (p.t) {
                     case 'fig': return i === reached ? <After key={i} ms={700} onDone={d} /> : null
                     case 'pause': return i === reached ? <After key={i} ms={p.ms} onDone={d} /> : null
                     case 'say': return <TypedLine key={i} text={p.text} big={p.big} onDone={d} />
@@ -363,7 +366,10 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                     case 'ege': return p.quiz
                         ? <Fragment key={i}><EgeQuiz num={p.num} text={p.text} quiz={p.quiz} focusMode={p.focusMode} onDone={d} /></Fragment>
                         : <Fragment key={i}><EgeTaskCard num={p.num} text={p.text.replace(/\{\{[^|}]+\|([^}]+)\}\}/g, '$1')} />{i === reached && <After ms={1400} onDone={d} />}</Fragment>
-                }
+                } })()
+                if (!node) return null
+                // Всё, что было до последней нажатой кнопки-подтверждения, бледнеет: ребёнок смотрит только на новое.
+                return <div key={i} className="w-full flex flex-col items-center gap-4 transition-opacity duration-500" style={{ opacity: i < lastAck ? 0.3 : 1 }}>{node}</div>
             })}
         </>
     )
