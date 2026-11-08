@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals' | 'storm' | 'krupitsy';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals' | 'storm' | 'krupitsy' | 'catdreams';
 
 export type AchievementDef = {
 	key: string;
@@ -27,6 +27,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'medals', title: 'Медали юнитов', color: '#F0A818' },
 	{ id: 'storm', title: 'Штурм', color: '#FF6A1F' },
 	{ id: 'krupitsy', title: 'Крупицы физтеха', color: '#F2C35B' },
+	{ id: 'catdreams', title: 'Сны котика', color: '#8C9BFF' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -118,6 +119,12 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'dict_10', group: 'krupitsy', emoji: '🗣️', title: 'Полиглот общаги', desc: 'Разгадал 10 разных слов' },
 	{ key: 'dict_25', group: 'krupitsy', emoji: '🪿', title: 'Гусь-лингвист', desc: 'Разгадал 25 разных слов — Команданте гогочет от гордости' },
 	{ key: 'dict_all', group: 'krupitsy', emoji: '📚', title: 'Ходячий словарь «За науку»', desc: 'Разгадал все слова словаря физтеха' },
+	// Загадки из снов котика (lib/catDreams.ts, таблица cat_dream_answers): считаются разные решённые загадки.
+	{ key: 'dream_first', group: 'catdreams', emoji: '💤', title: 'Котику снится…', desc: 'Разгадал первую загадку из сна котика' },
+	{ key: 'dream_night5', group: 'catdreams', emoji: '🌙', title: 'Ночная смена', desc: 'Разгадал 5 загадок за одну ночь' },
+	{ key: 'dream_10', group: 'catdreams', emoji: '🐾', title: 'Толкователь снов', desc: 'Разгадал 10 разных загадок котика' },
+	{ key: 'dream_20', group: 'catdreams', emoji: '🔮', title: 'Кошачий оракул', desc: 'Разгадал 20 разных загадок котика' },
+	{ key: 'dream_all', group: 'catdreams', emoji: '👑', title: 'Хранитель снов', desc: 'Разгадал все загадки котика — теперь ему снишься ты' },
 	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
 	{ key: 'fridge_sg', group: 'start', emoji: '⚖️', iconSrc: '/achievement-portraits/saul.webp', title: 'Сол Гудман был здесь!', desc: 'Нашёл надпись, нацарапанную в холодильнике котика' },
 	{ key: 'schrodinger', group: 'start', emoji: '📦', iconSrc: '/achievement-portraits/schrodinger.webp', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, спит ли котик' },
@@ -204,6 +211,11 @@ export const REWARDS: Record<string, AchievementReward> = {
 	dict_10: { kind: 'gems', amount: 5 },
 	dict_25: { kind: 'gems', amount: 10 },
 	dict_all: { kind: 'pizza', amount: 1 },
+	dream_first: { kind: 'coins', amount: 30 },
+	dream_night5: { kind: 'gems', amount: 3 },
+	dream_10: { kind: 'gems', amount: 5 },
+	dream_20: { kind: 'gems', amount: 10 },
+	dream_all: { kind: 'pizza', amount: 1 },
 	cat_home: { kind: 'coins', amount: 50 },
 	fridge_sg: { kind: 'pizza', amount: 1 },
 	schrodinger: { kind: 'coins', amount: 50 },

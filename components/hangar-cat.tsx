@@ -19,6 +19,9 @@ import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { CatFridgeModal } from '@/components/cat-fridge-modal'
+import { CatDreamModal } from '@/components/cat-dream-modal'
+import { getCatDreamState, type CatDreamState } from '@/actions/cat-dreams'
+import { CAT_DREAMS, CAT_DREAM_BY_ID, CAT_DREAMS_PER_NIGHT, type CatDream } from '@/lib/catDreams'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { CAT_FOOD, liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
@@ -144,41 +147,34 @@ const PHRASES = {
 }
 const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)]
 
-// Ночью котик спит и ему снятся задачки — классические народные головоломки (свой пересказ, тексты «Кванта» не копируем).
-const DREAMS: { q: string; a: string }[] = [
-    { q: 'Кирпич весит 1 кг и ещё полкирпича. Сколько весит кирпич?', a: '2 кг' },
-    { q: 'Три кошки за три минуты ловят три мышки. Сколько кошек поймают 100 мышек за 100 минут?', a: 'Те же 3 кошки' },
-    { q: 'Бревно пилят на 10 частей, каждый распил — минута. Сколько минут уйдёт?', a: '9 минут — распилов на один меньше, чем частей' },
-    { q: 'Улитка ползёт на столб высотой 10 м: днём поднимается на 3 м, ночью сползает на 2 м. На какой день она будет наверху?', a: 'На 8-й день' },
-    { q: 'Сколько раз за сутки совпадают часовая и минутная стрелки?', a: '22 раза' },
-    { q: 'Половина половины числа равна половине. Что это за число?', a: '2' },
-    { q: 'Как разделить 5 рыбок между 5 котиками, чтобы каждому досталось по рыбке и одна осталась в миске?', a: 'Последнему котику отдать рыбку вместе с миской' },
-    { q: 'Лист бумаги сложили пополам три раза и проткнули иголкой. Сколько дырок на развёрнутом листе?', a: '8' },
-    { q: 'Что больше: 2 в десятой степени или 10 в кубе?', a: '2¹⁰ = 1024 — чуть больше, чем 10³ = 1000' },
-    { q: 'В комнате 4 угла, в каждом сидит кошка, напротив каждой кошки — 3 кошки. Сколько всего кошек?', a: '4' },
-    { q: 'Сумма двух чисел 10, а разность 4. Что это за числа?', a: '7 и 3' },
-    { q: 'Утка весит 2 кг, стоя на одной лапе. Сколько она весит, стоя на двух?', a: 'Те же 2 кг' },
-]
-
-/** Сон котика: облако-мысль с задачкой над спящим котиком. Висит, пока не нажмут крестик; «Ответ» — открыть ответ. */
-function Dream({ x, y, dream, onNext, onClose }: { x: number; y: number; dream: { q: string; a: string }; onNext: () => void; onClose: () => void }) {
-    const [shown, setShown] = useState(false)
-    useEffect(() => setShown(false), [dream])
+/** Сон котика: облако-мысль с загадкой над спящим котиком. Висит, пока не нажмут крестик;
+ *  «Отгадать» — окно с цифровой клавиатурой (components/cat-dream-modal.tsx). Загадки — lib/catDreams.ts. */
+function Dream({ x, y, dream, solved, left, canNext, onSolve, onNext, onClose }: {
+    x: number; y: number; dream: CatDream | null; solved: boolean; left: number | null; canNext: boolean
+    onSolve: () => void; onNext: () => void; onClose: () => void
+}) {
     return (
         <div className="absolute w-[62%] -translate-x-1/2 -translate-y-full" style={{ left: pct(Math.min(Math.max(x, 330), 694)), top: pct(y), zIndex: 1185 }}>
-            <motion.div key={dream.q} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}
+            <motion.div key={dream?.id ?? 'none'} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}
                 className="relative rounded-[22px] border-2 border-[#6E7BC4] bg-[#1B2140]/95 px-3 py-2.5 text-left shadow-[0_0_24px_rgba(140,160,255,0.35)]"
                 style={{ transformOrigin: '20% 100%' }}>
                 <div className="flex items-center gap-2">
-                    <span className="flex-1 text-[10px] font-black uppercase tracking-wide text-[#AEB8FF] sm:text-[11px]">💤 Котику снится задачка</span>
+                    <span className="flex-1 text-[10px] font-black uppercase tracking-wide text-[#AEB8FF] sm:text-[11px]">Котику снится загадка</span>
+                    {left !== null && <span className="text-[10px] font-black text-[#AEB8FF] sm:text-[11px]">{left}/{CAT_DREAMS_PER_NIGHT}</span>}
                     <button type="button" aria-label="Закрыть сон" onClick={onClose} className="-mr-1 -mt-0.5 rounded-md px-1 text-base font-black leading-none text-[#AEB8FF] hover:text-white">✕</button>
                 </div>
-                <p className="mt-1 text-sm font-bold leading-snug text-[#EEF0FF] sm:text-[15px]">{dream.q}</p>
-                {shown && <p className="mt-1.5 text-sm font-black leading-snug text-[#9EE8B0]">Ответ: {dream.a}</p>}
-                <div className="mt-2 flex gap-2">
-                    {!shown && <button type="button" onClick={() => setShown(true)} className="rounded-lg border-b-4 border-[#3E4A8C] bg-[#5865C9] px-2.5 py-1 text-xs font-black text-white active:border-b-0">Ответ</button>}
-                    <button type="button" onClick={onNext} className="rounded-lg border-b-4 border-[#262E55] bg-[#323B6E] px-2.5 py-1 text-xs font-black text-[#C9D0FF] active:border-b-0">Другой сон</button>
-                </div>
+                {dream ? (
+                    <>
+                        <p className="mt-1 text-sm font-bold leading-snug text-[#EEF0FF] sm:text-[15px]">{dream.q}</p>
+                        {solved && <p className="mt-1.5 text-sm font-black leading-snug text-[#9EE8B0]">Разгадано: {dream.a}</p>}
+                        <div className="mt-2 flex gap-2">
+                            {!solved && <button type="button" onClick={onSolve} className="rounded-lg border-b-4 border-[#3E4A8C] bg-[#5865C9] px-2.5 py-1 text-xs font-black text-white active:border-b-0">Отгадать</button>}
+                            {canNext && <button type="button" onClick={onNext} className="rounded-lg border-b-4 border-[#262E55] bg-[#323B6E] px-2.5 py-1 text-xs font-black text-[#C9D0FF] active:border-b-0">Другой сон</button>}
+                        </div>
+                    </>
+                ) : (
+                    <p className="mt-1 text-sm font-bold leading-snug text-[#EEF0FF] sm:text-[15px]">Котик крепко спит. Новые загадки приснятся завтра ночью</p>
+                )}
             </motion.div>
         </div>
     )
@@ -456,13 +452,31 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const busyRef = useRef(false) // котик занят едой — новую прогулку не начинать
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
-    // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
-    const [dreamIdx, setDreamIdx] = useState<number | null>(null)
-    const nextDream = () => setDreamIdx((i) => {
-        let n = Math.floor(Math.random() * DREAMS.length)
-        if (n === i) n = (n + 1) % DREAMS.length
-        return n
-    })
+    // ночью: тап по спящему котику — ему снится загадка (не исчезает сама). За ночь — не больше 5 разных загадок.
+    const [dreamOn, setDreamOn] = useState(false)
+    const [dreamId, setDreamId] = useState<number | null>(null)
+    const [dreamSt, setDreamSt] = useState<CatDreamState | null>(null)
+    const [dreamModal, setDreamModal] = useState(false)
+    const dreamPool = (st: CatDreamState | null) => {
+        const solved = new Set(st?.solved ?? [])
+        const tonight = new Set(st?.tonight ?? [])
+        const limit = st ? st.left <= 0 : false
+        let ids = CAT_DREAMS.map((d) => d.id).filter((id) => !solved.has(id) && (!limit || tonight.has(id)))
+        if (!ids.length && !limit) ids = CAT_DREAMS.map((d) => d.id) // всё разгадано — снится что угодно
+        return ids
+    }
+    const pickDream = (st: CatDreamState | null, cur: number | null) => {
+        const ids = dreamPool(st).filter((id) => id !== cur)
+        return ids.length ? ids[Math.floor(Math.random() * ids.length)] : dreamPool(st).includes(cur ?? -1) ? cur : null
+    }
+    const openDream = async () => {
+        setDreamOn(true)
+        let st = dreamSt
+        if (!st && !onHome) { st = await getCatDreamState().catch(() => null); setDreamSt(st) }
+        setDreamId(pickDream(st, null))
+    }
+    const nextDream = () => setDreamId((i) => pickDream(dreamSt, i))
+    const setDreamIdx = (v: null) => { setDreamOn(false); setDreamId(v) }
     useEffect(() => { if (!night) setDreamIdx(null) }, [night])
     const [meowShown, setMeowShown] = useState(true)
     const reactKey = useRef(0)
@@ -873,7 +887,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: catZ }}
-                onClick={() => { if (night) { playJustClick(); nextDream(); return } petCat() }}>
+                onClick={() => { if (night) { playJustClick(); if (dreamOn) nextDream(); else openDream(); return } petCat() }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
             )}
@@ -893,9 +907,17 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {/* облачко и сердечки — над котиком там, где он сейчас (на коробке или в точке прогулки) */}
             {!bare && !stroll?.walking && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={talkAt.x} y={talkAt.y + 1} /><Bubble x={talkAt.x + 30} y={talkAt.y}>{say}</Bubble></>}
             {!bare && !stroll?.walking && react === 'meow' && <Bubble key={reactKey.current} x={talkAt.x + 34} y={talkAt.y}>{say}</Bubble>}
-            {!bare && night && dreamIdx !== null && (
+            {!bare && night && dreamOn && (
                 <>
-                    <Dream x={BED.x + 40} y={BED.y - 100} dream={DREAMS[dreamIdx]} onNext={nextDream} onClose={() => setDreamIdx(null)} />
+                    <Dream x={BED.x + 40} y={BED.y - 100} dream={dreamId !== null ? CAT_DREAM_BY_ID.get(dreamId) ?? null : null}
+                        solved={dreamId !== null && !!dreamSt?.solved.includes(dreamId)} left={dreamSt ? dreamSt.left : null}
+                        canNext={dreamPool(dreamSt).filter((id) => id !== dreamId).length > 0}
+                        onSolve={() => { playJustClick(); setDreamModal(true) }} onNext={nextDream} onClose={() => setDreamIdx(null)} />
+                    {dreamModal && dreamId !== null && (
+                        <CatDreamModal dream={CAT_DREAM_BY_ID.get(dreamId)!} offline={!!onHome} onClose={() => setDreamModal(false)} onState={setDreamSt}
+                            onSolved={(st) => setDreamSt(st ?? { solved: [...(dreamSt?.solved ?? []), dreamId], tonight: [...new Set([...(dreamSt?.tonight ?? []), dreamId])], left: Math.max(0, (dreamSt?.left ?? CAT_DREAMS_PER_NIGHT) - (dreamSt?.tonight.includes(dreamId) ? 0 : 1)) })}
+                            onLimit={() => { setDreamModal(false); setDreamSt((st) => st ? { ...st, left: 0 } : st); setDreamId(null) }} />
+                    )}
                     <DreamDots x={BED.x} y={BED.y - 50} />
                 </>
             )}

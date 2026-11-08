@@ -5,6 +5,7 @@
 // Каталог — lib/achievementsCatalog.ts.
 
 import 'server-only';
+import { CAT_DREAMS } from '@/lib/catDreams';
 import db from '@/db/drizzle';
 import { sql } from 'drizzle-orm';
 import { ACHIEVEMENT_BY_KEY, ACHIEVEMENTS, toDTO, type AchievementDTO } from '@/lib/achievementsCatalog';
@@ -198,6 +199,19 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (D.row3) keys.push('dict_row3');
 	if (num(D.words) >= 10) keys.push('dict_10');
 	if (num(D.words) >= 25) keys.push('dict_25');
+
+	// Сны котика: разные решённые загадки и максимум решённых за одну ночь
+	const cd = await rows(sql`
+		SELECT count(DISTINCT dream_id) FILTER (WHERE correct) AS solved,
+			coalesce((SELECT max(c) FROM (SELECT count(DISTINCT dream_id) AS c FROM cat_dream_answers
+				WHERE user_id = ${userId} AND correct GROUP BY night_key) t), 0) AS night_max
+		FROM cat_dream_answers WHERE user_id = ${userId}`);
+	const CD = cd[0] ?? {};
+	if (num(CD.solved) >= 1) keys.push('dream_first');
+	if (num(CD.night_max) >= 5) keys.push('dream_night5');
+	if (num(CD.solved) >= 10) keys.push('dream_10');
+	if (num(CD.solved) >= 20) keys.push('dream_20');
+	if (num(CD.solved) >= CAT_DREAMS.length) keys.push('dream_all');
 	if (num(D.words) >= ZN_DICT.length) keys.push('dict_all');
 
 	// Медали юнитов — та же логика, что на карте и в меню (GetTUnitCompletionPercent): урок засчитан, если пройден
