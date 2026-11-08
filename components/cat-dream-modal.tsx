@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { answerCatDream, type CatDreamState } from '@/actions/cat-dreams'
-import { sameDreamAnswer, type CatDream } from '@/lib/catDreams'
+import { isDreamRight, type CatDream } from '@/lib/catDreams'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playJustClick, playRightClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
@@ -33,15 +33,16 @@ export function CatDreamModal({ dream, offline, onClose, onSolved, onLimit, onSt
     const [msg, setMsg] = useState<string | null>(null)
     const [done, setDone] = useState<'right' | 'gave-up' | null>(null)
     const [shake, setShake] = useState(0)
+    const [tried, setTried] = useState<string[]>([]) // загадка с вариантами: уже нажатые неверные
 
-    const submit = async () => {
-        if (busy || done || !value.trim()) return
+    const submit = async (val = value) => {
+        if (busy || done || !val.trim()) return
         setBusy(true)
         let correct: boolean
         let state: CatDreamState | null = null
-        if (offline) correct = sameDreamAnswer(value, dream.a)
+        if (offline) correct = isDreamRight(dream, val)
         else {
-            const r = await answerCatDream(dream.id, value).catch(() => ({ ok: false as const }))
+            const r = await answerCatDream(dream.id, val).catch(() => ({ ok: false as const }))
             if (!r.ok) {
                 setBusy(false)
                 if ('limit' in r && r.limit) onLimit()
@@ -65,6 +66,7 @@ export function CatDreamModal({ dream, offline, onClose, onSolved, onLimit, onSt
             setShake((k) => k + 1)
             setMsg(WRONG[(dream.id + wrong) % WRONG.length])
             setValue('')
+            if (dream.options) setTried((t) => [...t, val])
         }
     }
 
@@ -80,15 +82,34 @@ export function CatDreamModal({ dream, offline, onClose, onSolved, onLimit, onSt
                 </div>
                 <p className="mt-2 text-base font-bold leading-snug text-[#EEF0FF]">{dream.q}</p>
 
-                <motion.div key={shake} animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : {}} transition={{ duration: 0.35 }}
+                {!dream.options && <motion.div key={shake} animate={shake ? { x: [0, -10, 10, -6, 6, 0] } : {}} transition={{ duration: 0.35 }}
                     className={`mt-3 flex h-12 items-center justify-center rounded-xl border-2 text-2xl font-black ${
                         done === 'right' ? 'border-[#78C93C] bg-[#78C93C]/15 text-[#B5F08A]' : done === 'gave-up' ? 'border-[#3A464E] text-[#9EE8B0]' : 'border-[#3A464E] bg-[#11162E] text-[#F2F7FB]'}`}>
                     {done ? dream.a : value || <span className="text-[#5A6A72]">?</span>}
-                </motion.div>
+                </motion.div>}
                 {msg && <p className={`mt-2 text-center text-sm font-black ${done === 'right' ? 'text-[#9EE8B0]' : 'text-[#FF9A94]'}`}>{msg}</p>}
-                {done && <p className="mt-1 text-center text-sm font-bold text-[#C9D0FF]">{dream.why}</p>}
+                {done && <p className="mt-1 text-center text-sm font-bold text-[#C9D0FF]">{done === 'gave-up' && dream.options ? `${dream.a}. ` : ''}{dream.why}</p>}
 
-                {!done ? (
+                {dream.options ? (
+                    <motion.div key={shake} animate={shake ? { x: [0, -8, 8, -5, 5, 0] } : {}} transition={{ duration: 0.35 }}
+                        className="drop-in-options mt-3 flex flex-col gap-2">
+                        {dream.options.map((o) => {
+                            const right = done && o === dream.a
+                            const bad = tried.includes(o)
+                            return (
+                                <button key={o} type="button" disabled={busy || !!done || bad} onClick={() => { playJustClick(); submit(o) }}
+                                    className={`min-h-12 rounded-xl border-2 border-b-4 px-3 py-2 text-left text-sm font-bold active:border-b-0 ${
+                                        right ? 'border-[#78C93C] bg-[#78C93C]/15 text-[#B5F08A]' : bad ? 'border-[#DC605B] bg-[#DC605B]/15 text-[#FF9A94]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] disabled:opacity-60'}`}>
+                                    {o}
+                                </button>
+                            )
+                        })}
+                    </motion.div>
+                ) : null}
+                {done ? null : dream.options ? (
+                    wrong >= 2 ? <button type="button" onClick={() => { setDone('gave-up'); setMsg('Ответ такой:') }}
+                        className="mx-auto mt-3 block text-sm font-bold text-[#AEB8FF] underline underline-offset-4">Сдаюсь, покажи ответ</button> : null
+                ) : (
                     <div className="mt-3 flex flex-col items-center gap-2.5">
                         <KeyboardInput value={value} onChange={(v) => { setValue(v); setMsg(null) }} showDisplay={false} allowNegative={false} disabled={busy} />
                         <button type="button" onClick={() => { playJustClick(); submit() }} disabled={busy || !value.trim()}
@@ -100,7 +121,8 @@ export function CatDreamModal({ dream, offline, onClose, onSolved, onLimit, onSt
                                 className="text-sm font-bold text-[#AEB8FF] underline underline-offset-4">Сдаюсь, покажи ответ</button>
                         )}
                     </div>
-                ) : (
+                )}
+                {done && (
                     <button type="button" onClick={onClose}
                         className="mt-3 h-12 w-full rounded-xl border-b-4 border-[#60A12F] bg-[#78C93C] text-base font-black text-[#0B1114] active:border-b-0">
                         {done === 'right' ? 'Котик доволен' : 'Понятно'}
