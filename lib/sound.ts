@@ -149,7 +149,7 @@ export function playSoundTracked(src: string, onEnded?: () => void, volume = 1):
 
 // Общие звуки ответа — один источник правды для тренажёра, задачника и
 // пошаговых разборов (*WALK).
-export const WRONG_ANSWER_SOUND = '/snd-wrong-answer-click.mp3'
+export const WRONG_ANSWER_SOUND = '/snd-wrong-bonk.m4a'
 // Тихий клик: промежуточные нажатия (выбрал вариант до «ответить», кнопка в формуле из кнопок)
 export const JUST_CLICK_SOUND = '/snd-just-click.mp3'
 // Верный ответ в пошаговых разборах (в обычном тренажёре — /correct.wav)
