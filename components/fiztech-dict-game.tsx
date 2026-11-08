@@ -53,17 +53,19 @@ export function FiztechDictLayer() {
             <motion.div className="w-full max-w-sm rounded-2xl border-2 border-[#2C3A41] bg-[#151F23] p-4 shadow-2xl"
                 initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}>
                 <p className="text-center text-xs font-black uppercase tracking-wide text-[#7E8F99]">Словарь физтеха</p>
-                <div className="mt-2 flex items-center gap-3">
-                    <motion.img src={q.sticker} alt=""
-                        className="h-24 w-24 shrink-0 select-none" draggable={false}
-                        initial={{ scale: 0.6, rotate: -8, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 340, damping: 13 }} />
-                    <div className="min-w-0">
+                {/* слово по центру карточки, Дуэйн справа; слева пустая колонка той же ширины — чтобы центр был настоящим */}
+                <div className="mt-2 grid grid-cols-[5rem_minmax(0,1fr)_5rem] items-center gap-1">
+                    <div />
+                    <div className="min-w-0 text-center">
                         <p className="text-base font-bold text-[#9AA7B0]">Что значит</p>
                         <p className="text-3xl font-black leading-tight text-[#F2F7FB] break-words">
                             {q.entry.word}<span className="text-[#F2C35B]">?</span>
                         </p>
                     </div>
+                    <motion.img src={q.sticker} alt=""
+                        className="h-20 w-20 select-none" draggable={false}
+                        initial={{ scale: 0.6, rotate: 8, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 340, damping: 13 }} />
                 </div>
                 <div className="drop-in-options mt-4 grid grid-cols-1 gap-2">
                     {q.options.map((o) => {
