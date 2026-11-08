@@ -1,6 +1,7 @@
 # Промпты Leonardo: мыши, норка и сундук с богатством (2026-11-09)
 
-Задумка: котика давно не кормили — из норки выбегают мыши, бегут к сундуку с богатством, вытаскивают монету /
+Задумка: котик сыт — мыши выглядывают, котик прыгает и ловит мышку (держит за хвост, мышка смущена и убегает в норку без
+добычи, никто не страдает). Котика давно не кормили — из норки выбегают мыши, бегут к сундуку с богатством, вытаскивают монету /
 гем / кусочек пиццы и уносят в норку, добыча у них над головой. Бег, перенос добычи и открытие сундука — кодом,
 от картинок нужны только кадры.
 
@@ -24,3 +25,6 @@ Avoid: `text, letters, watermark, signature, background scenery, multiple object
 | `loot-chest-closed.png` | old wooden treasure chest with iron bands and a big padlock, slightly worn, small gold coins and a pink gem peeking out from under the lid, seen from the front at a slight angle from above | Сундук с богатством ученика |
 | `loot-chest-open.png` | the same old wooden treasure chest with the lid open, full of gold coins, pink gems and a few pizza slices on top, warm glow from inside, seen from the front at a slight angle from above | Тот же ракурс, что у закрытого: Image Guidance закрытым сундуком, сила 0.5 |
 | `loot-chest-robbed.png` | the same old wooden treasure chest with the lid open and broken padlock hanging, only a few coins left inside, tiny mouse footprints on the lid, seen from the front at a slight angle from above | После набега |
+| `cat-pounce.png` | the same orange cartoon cat from the reference mid-jump pouncing forward, side view, facing right, front paws stretched out, ears back, playful hunting face | Образец — `public/hangar/life/cat-jump.webp` (Image Guidance 0.5), чтобы котик был тот же |
+| `cat-caught-mouse.png` | the same orange cartoon cat sitting proudly, side view, facing right, gently holding a small grey mouse by the tail in its paw, the mouse hangs upside down looking embarrassed but unharmed | Котик поймал. Образец — `public/hangar/life/cat-sit.webp` |
+| `mouse-scared.png` | small cartoon grey mouse running away in panic, side view, facing left, ears flat, sweat drops flying, empty paws, tail straight back | Отпущенная мышка улепётывает в норку без добычи |
