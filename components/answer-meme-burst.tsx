@@ -112,7 +112,7 @@ const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {
                         transition={{ duration: 1.4, times: [0, 0.15, 0.35, 0.55, 0.75, 1] }}
                     />
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={b.src} alt="" className="relative w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" draggable={false} />
+                    <img src={b.src} alt="" className="relative w-full h-full object-contain" draggable={false} />
                 </motion.div>
             </motion.div>
         </div>

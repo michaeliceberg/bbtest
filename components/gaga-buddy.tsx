@@ -190,7 +190,7 @@ const BubbleView = ({ s }: { s: Shown }) => {
                         src={s.src}
                         alt={s.joke ? '' : 'Команданте Мигель'}
                         draggable={false}
-                        className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
+                        className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain"
                         initial={{ rotate: -14, scale: 0.7 }}
                         animate={{ rotate: 0, scale: 1 }}
                         transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
