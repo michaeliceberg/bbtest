@@ -6,7 +6,7 @@
 //   3. «И — умножаем, ИЛИ — складываем» — независимые события, «хотя бы один» = 1 − «ни одного».
 // Мини-игры: CoinFlipGame (кидаем монету много раз — частота тянется к 0,5), PickGame (нажми подходящие исходы).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Note, type Part, type Scene } from '@/components/geometry/scene-engine'
 import { ZnClipping } from '@/components/za-nauku-archive'
@@ -32,46 +32,77 @@ const Coins = ({ s }: { s: string }) => (
     <span className="inline-flex gap-1">{[...s].map((c, i) => <Coin key={i} side={c as 'О' | 'Р'} size={26} />)}</span>
 )
 
-// ===== Кидаем монету много раз =====
+// ===== Кидаем монету: 1 или сразу 10 =====
+// Каждая монета подлетает и крутится (орёл-решка-орёл…), потом падает на свою сторону. Время у каждой своё —
+// монеты приземляются вразнобой. Анимация — только transform (класс .coin-flip в globals.css).
+const SpinCoin = ({ result, spinId, size }: { result: 'О' | 'Р'; spinId: number; size: number }) => {
+    const [face, setFace] = useState<'О' | 'Р'>(result)
+    const [spinning, setSpinning] = useState(false)
+    const [dur] = useState(() => 0.8 + Math.random() * 0.7)
+    useEffect(() => {
+        if (!spinId) return
+        setSpinning(true)
+        let f: 'О' | 'Р' = 'О'
+        const iv = setInterval(() => { f = f === 'О' ? 'Р' : 'О'; setFace(f) }, 110)
+        const t = setTimeout(() => { clearInterval(iv); setFace(result); setSpinning(false) }, dur * 1000)
+        return () => { clearInterval(iv); clearTimeout(t) }
+    }, [spinId]) // eslint-disable-line react-hooks/exhaustive-deps
+    return (
+        <motion.div key={spinId} animate={spinId ? { y: [0, -size * 0.9, 0] } : { y: 0 }} transition={{ duration: dur, ease: [0.3, 0, 0.6, 1] }}>
+            <motion.div animate={!spinning && spinId ? { scale: [1, 1.18, 1] } : { scale: 1 }} transition={{ duration: 0.25 }}>
+                <span className={cn('inline-flex', spinning && 'coin-flip')}><Coin side={face} size={size} /></span>
+            </motion.div>
+        </motion.div>
+    )
+}
+
+const GOAL_THROWS = 100
 const CoinFlipGame = ({ onDone }: { onDone: () => void }) => {
     const [o, setO] = useState(0)
     const [r, setR] = useState(0)
-    const [last, setLast] = useState<'О' | 'Р' | null>(null)
-    const [flip, setFlip] = useState(0)
+    const [results, setResults] = useState<('О' | 'Р')[]>(['О'])
+    const [spinId, setSpinId] = useState(0)
+    const [busy, setBusy] = useState(false)
     const total = o + r
     const throwN = (n: number) => {
+        if (busy) return
         playJustClick()
-        let a = 0
-        for (let i = 0; i < n; i++) if (Math.random() < 0.5) a++
-        setO(o + a); setR(r + n - a); setLast(Math.random() < 0.5 ? 'О' : 'Р'); setFlip(flip + 1)
-        if (total + n >= 100) setTimeout(onDone, 900)
+        const res = Array.from({ length: n }, () => (Math.random() < 0.5 ? 'О' : 'Р') as 'О' | 'Р')
+        setResults(res); setSpinId((x) => x + 1); setBusy(true)
+        // счётчики обновляем, когда монеты приземлились
+        setTimeout(() => {
+            const a = res.filter((x) => x === 'О').length
+            setO((v) => v + a); setR((v) => v + n - a); setBusy(false)
+            if (total + n >= GOAL_THROWS) setTimeout(onDone, 700)
+        }, 1600)
     }
     const freq = total ? (o / total).toFixed(2).replace('.', ',') : '—'
+    const size = results.length > 1 ? 46 : 84
     return (
         <div className="w-full flex flex-col items-center gap-3">
-            <motion.div key={flip} initial={{ rotateY: 0, y: -30 }} animate={{ rotateY: 720, y: 0 }} transition={{ duration: 0.6 }}>
-                <Coin side={last ?? 'О'} size={64} />
-            </motion.div>
+            <div className={cn('grid gap-2 pt-10', results.length > 1 ? 'grid-cols-5' : 'grid-cols-1')}>
+                {results.map((res, i) => <SpinCoin key={`${results.length}-${i}`} result={res} spinId={spinId} size={size} />)}
+            </div>
             <div className="flex gap-4 text-lg font-black text-[#F2F7FB]">
                 <span className="flex items-center gap-1"><Coin side="О" size={22} /> {o}</span>
                 <span className="flex items-center gap-1"><Coin side="Р" size={22} /> {r}</span>
-                <span className="text-[#8FA3AE]">бросков: {total}</span>
             </div>
             <div className="w-full max-w-[320px]">
-                <div className="mb-1 text-center text-sm font-bold text-[#9AA7B0]">Доля орлов: <span className="text-xl font-black" style={{ color: GOLD }}>{freq}</span></div>
+                <div className="mb-1 text-center text-sm font-bold text-[#9AA7B0]">Доля орлов <span className="text-xl font-black" style={{ color: GOLD }}>{freq}</span></div>
                 <div className="relative h-4 w-full rounded-full bg-[#26333B] overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ background: GOLD }} animate={{ width: total ? `${(o / total) * 100}%` : '0%' }} />
                     <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/70" />
                 </div>
             </div>
-            {total < 100 && (
-                <div className="flex gap-2">
-                    <button type="button" onClick={() => throwN(1)} className="rounded-xl border-2 border-b-4 active:border-b-0 border-[#3A464E] bg-[#161F23] px-4 py-2 font-black text-[#F2F7FB]">Бросить 1</button>
-                    <button type="button" onClick={() => throwN(10)} className="rounded-xl border-2 border-b-4 active:border-b-0 border-[#C07C2B] bg-[#F09B38] px-4 py-2 font-black text-[#151F24]">Бросить 10 🚀</button>
-                </div>
+            {total < GOAL_THROWS && (
+                <>
+                    <div className="flex w-full max-w-[320px] gap-2">
+                        <button type="button" disabled={busy} onClick={() => throwN(1)} className="flex-1 rounded-xl border-2 border-b-4 active:border-b-0 border-[#3A464E] bg-[#161F23] px-3 py-3 font-black text-[#F2F7FB] disabled:opacity-50">Бросить 1</button>
+                        <button type="button" disabled={busy} onClick={() => throwN(10)} className="flex-1 rounded-xl border-2 border-b-4 active:border-b-0 border-[#C07C2B] bg-[#F09B38] px-3 py-3 font-black text-[#151F24] disabled:opacity-50">Бросить 10</button>
+                    </div>
+                    <div className="text-xs font-bold text-[#5C6B73]">бросков {total} / {GOAL_THROWS}</div>
+                </>
             )}
-            {total < 100 && <div className="text-xs font-bold text-[#5C6B73]">Набери 100 бросков</div>}
-            {total >= 100 && <Note ok>Видишь? Доля орлов около 0,5. Это и есть вероятность 🪙</Note>}
         </div>
     )
 }
@@ -143,70 +174,76 @@ const ZnFig: Part = { t: 'fig', node: <ZnClipping text={ZN_PROB.text} rubric="ta
 // ================= Урок 1 =================
 const LESSON1_SCENES: Scene[] = [
     {
-        title: 'Монетка', next: 'Вероятность поймал', parts: [
-            { t: 'say', text: '¡Hola, амиго! 🪙 Команданте подбрасывает монету. Орёл или решка?' },
-            { t: 'say', text: 'Угадать нельзя. Но можно посчитать ШАНС. Кидай сам 👇' },
-            { t: 'custom', label: 'Кидаем монету', render: (done) => <CoinFlipGame onDone={done} /> },
-            { t: 'say', text: 'Из 2 вариантов нам подходит 1. Шанс 1 из 2 = 0,5' },
+        title: 'Монетка', next: 'Понял: шанс 0,5', parts: [
+            { t: 'say', text: '¡Hola, амиго! 🪙' },
+            { t: 'say', text: 'Команданте подбрасывает монетку.' },
+            { t: 'say', text: 'Орёл или решка?', big: true },
+            { t: 'say', text: 'Угадать нельзя.' },
+            { t: 'ack', label: 'Угадать нельзя 🤷' },
+            { t: 'say', text: 'Но можно посчитать ШАНС.' },
+            { t: 'ack', label: 'Кидаю сам!' },
+            { t: 'custom', render: (done) => <CoinFlipGame onDone={done} /> },
+            { t: 'say', text: 'Орлов — почти ровно половина.' },
+            { t: 'calc', tex: 'P = \\dfrac{1}{2} = 0{,}5' },
         ],
     },
     {
-        title: 'Конфеты Миши', next: 'Дальше по формуле', parts: [
-            { t: 'say', text: 'Задача из ЕГЭ 🍬 У Миши в кармане 4 конфеты: «Грильяж», «Белочка», «Коровка» и «Ласточка». Он случайно выронил одну' },
-            { t: 'say', text: 'Какова вероятность, что потерялся «Грильяж»?' },
-            pick('Нажми', 'Нажми конфету, которая нам подходит', CANDIES.map((c) => ({ key: c, node: <span>🍬 {c}</span>, good: c === 'Грильяж' })), 2,
-                'Подходит 1 конфета из 4', 'Нам нужен именно «Грильяж» 🙃'),
+        title: 'Конфеты Миши', next: 'Дальше', parts: [
+            { t: 'ege', num: 4, text: 'У Миши в кармане 4 конфеты: «Грильяж», «Белочка», «Коровка» и «Ласточка».\nМиша случайно выронил одну.\nНайдите вероятность, что выпал «Грильяж».' },
+            pick('', 'Какая подходит?', CANDIES.map((c) => ({ key: c, node: <span>🍬 {c}</span>, good: c === 'Грильяж' })), 2,
+                'Подходит 1 из 4', 'Нам нужен «Грильяж» 🙃'),
             {
-                t: 'build', prompt: 'Собери вероятность 👇', tpl: ['P =', { frac: [[{ s: 0 }], [{ s: 1 }]] }],
+                t: 'build', prompt: 'Собери вероятность', tpl: ['P =', { frac: [[{ s: 0 }], [{ s: 1 }]] }],
                 chips: ['1', '4', '3', '2'], slots: ['1', '4'], hint: 'Сверху — сколько подходит, снизу — сколько всего 🙃',
             },
             { t: 'calc', tex: 'P = \\dfrac{1}{4} = 0{,}25' },
         ],
     },
     {
-        title: 'Формула', next: 'Формула в кармане', parts: [
-            { t: 'remember', title: 'ЗАПОМНИ!', lines: [
-                '$P = \\dfrac{\\text{подходящие}}{\\text{все}}$',
-                'Вероятность всегда от 0 до 1',
-                '0 — никогда (Команданте проспит построение 😴)',
-                '1 — точно (ЕГЭ будет в июне 📅)',
-            ] },
+        title: 'Формула', next: 'Понял: подходящие / все', parts: [
+            { t: 'remember', title: 'ЗАПОМНИ!', lines: ['$P = \\dfrac{\\text{подходящие}}{\\text{все}}$'] },
+            { t: 'ack', label: 'Подходящие / все ✍️' },
+            { t: 'say', text: 'Вероятность всегда от 0 до 1.' },
+            { t: 'ack', label: 'От 0 до 1' },
+            { t: 'say', text: '0 — никогда.\nКоманданте проспит построение 😴' },
+            { t: 'say', text: '1 — точно.\nЕГЭ будет в июне 📅' },
         ],
     },
     {
         title: 'Как в ЕГЭ', next: 'Изи', parts: [
-            { t: 'say', text: 'На экзамен вынесено 60 вопросов. Андрей не выучил 3 из них. Найдите вероятность, что ему попадётся выученный вопрос' },
+            { t: 'ege', num: 4, text: 'На экзамен вынесено 60 вопросов. Андрей не выучил 3 из них.\nНайдите вероятность, что ему попадётся выученный вопрос.' },
             {
-                t: 'choice', label: 'По шагам', rounds: [
-                    { prompt: 'Сколько ВСЕГО исходов?', options: ['60', '3', '57'], correct: '60', hint: 'Может попасться любой из всех вопросов 🙃', ok: 'Всего 60' },
-                    { prompt: 'Сколько ПОДХОДИТ?', options: ['3', '57', '60'], correct: '57', hint: 'Подходят выученные: 60 − 3 🙃', ok: 'Выученных 57' },
-                    { prompt: '$P = \\dfrac{57}{60} = \\ ?$', options: ['$0{,}95$', '$0{,}05$', '$0{,}57$'], correct: '$0{,}95$', hint: '57 разделить на 60 🙃', ok: '0,95. ¡Vamos, Андрей!' },
+                t: 'choice', rounds: [
+                    { prompt: 'Всего вопросов?', options: ['60', '3', '57'], correct: '60', hint: 'Может попасться любой из всех 🙃', ok: 'Всего 60' },
+                    { prompt: 'Сколько подходит?', options: ['3', '57', '60'], correct: '57', hint: 'Подходят выученные: 60 − 3 🙃', ok: 'Выученных 57' },
+                    { prompt: '$P = \\dfrac{57}{60} = \\ ?$', options: ['$0{,}95$', '$0{,}05$', '$0{,}57$'], correct: '$0{,}95$', hint: '57 разделить на 60 🙃', ok: '¡Vamos, Андрей!' },
                 ],
             },
         ],
     },
     {
-        title: 'Подвох «НЕ»', next: 'Подвох раскрыт', parts: [
-            { t: 'say', text: 'Из 1400 садовых насосов 7 подтекают. Найдите вероятность, что случайный насос НЕ подтекает' },
-            { t: 'say', text: 'Ловушка: спрашивают про НЕ подтекающие! Их 1400 − 7 = 1393' },
+        title: 'Подвох «НЕ»', next: 'Понял: НЕ = 1 − P', parts: [
+            { t: 'ege', num: 4, text: 'Из 1400 садовых насосов 7 подтекают.\nНайдите вероятность, что случайный насос НЕ подтекает.' },
+            { t: 'say', text: 'Ловушка: спрашивают про НЕ подтекающие!' },
+            { t: 'ack', label: 'Вижу ловушку 👀' },
             {
                 t: 'choice', rounds: [
-                    { prompt: '$P = \\ ?$', options: ['$0{,}005$', '$0{,}995$', '$0{,}7$'], correct: '$0{,}995$', hint: '1393 разделить на 1400 🙃', ok: '$\\dfrac{1393}{1400} = 0{,}995$' },
+                    { prompt: 'Сколько НЕ подтекает?', options: ['1393', '7', '1400'], correct: '1393', hint: '1400 − 7 🙃', ok: '1400 − 7 = 1393' },
+                    { prompt: '$P = \\dfrac{1393}{1400} = \\ ?$', options: ['$0{,}005$', '$0{,}995$', '$0{,}7$'], correct: '$0{,}995$', hint: '1393 разделить на 1400 🙃', ok: '0,995' },
                 ],
             },
-            { t: 'remember', title: 'ЛАЙФХАК', lines: ['Вероятность «НЕ» $= 1 - P$', 'Подтекает: $\\dfrac{7}{1400} = 0{,}005$', 'Не подтекает: $1 - 0{,}005 = 0{,}995$'] },
+            { t: 'remember', title: 'ЛАЙФХАК', lines: ['$P(\\text{НЕ}) = 1 - P$', '$1 - \\dfrac{7}{1400} = 0{,}995$'] },
         ],
     },
     {
         title: 'Жребий', next: 'Жребий покорён', parts: [
-            { t: 'say', text: 'В чемпионате 20 гимнасток: 8 из России, остальные из Кубы 🇨🇺 Порядок выступлений — жребий' },
-            { t: 'say', text: 'Какова вероятность, что ПЕРВОЙ выступит гимнастка из России?' },
+            { t: 'ege', num: 4, text: 'В чемпионате 20 гимнасток: 8 из России, остальные из Кубы. Порядок выступлений — жребий.\nНайдите вероятность, что первой выступит гимнастка из России.' },
             {
                 t: 'choice', rounds: [
                     { prompt: '$P = \\ ?$', options: ['$0{,}4$', '$0{,}6$', '$0{,}05$'], correct: '$0{,}4$', hint: 'Первой может быть любая из 20, подходят 8 🙃', ok: '$\\dfrac{8}{20} = 0{,}4$. Куба, не грусти 🌴' },
                 ],
             },
-            { t: 'say', text: 'А теперь хитрее: 30 туристов везут вертолётом по 6 человек за рейс. Турист П. полетит первым рейсом?' },
+            { t: 'ege', num: 4, text: '30 туристов везут вертолётом по 6 человек за рейс.\nНайдите вероятность, что турист П. полетит первым рейсом.' },
             {
                 t: 'choice', rounds: [
                     { prompt: '$P = \\ ?$', options: ['$\\dfrac{1}{30}$', '$0{,}2$', '$0{,}6$'], correct: '$0{,}2$', hint: 'В первом рейсе 6 мест из 30 🙃', ok: '$\\dfrac{6}{30} = 0{,}2$ 🚁' },
@@ -216,9 +253,9 @@ const LESSON1_SCENES: Scene[] = [
     },
     {
         title: 'Физтехи шутят', next: '¡Vamos!', parts: [
-            { t: 'say', text: 'Физтехи шутили про вероятность ещё в 1979-м. Сможешь решить? 😏' },
+            { t: 'say', text: 'Задача физтехов, 1979 год 😏' },
             ZnFig,
-            { t: 'say', text: 'Подходящих исходов 0, всего 1. Вероятность 0. Команданте не одобряет такие изделия 😤' },
+            { t: 'say', text: 'Подходящих 0, всего 1.\nВероятность 0 😤' },
         ],
     },
 ]
@@ -227,22 +264,23 @@ const LESSON1_SCENES: Scene[] = [
 const LESSON2_SCENES: Scene[] = [
     {
         title: 'Две монеты', next: 'Близнецы, понял', parts: [
-            { t: 'say', text: 'Монету бросают ДВАЖДЫ. Найдите вероятность, что орёл выпадет ровно один раз' },
-            { t: 'say', text: 'Сначала выпишем ВСЕ исходы. Их 4' },
+            { t: 'ege', num: 4, text: 'Монету бросают дважды.\nНайдите вероятность, что орёл выпадет ровно один раз.' },
+            { t: 'say', text: 'Выпишем ВСЕ исходы. Их 4.' },
             { t: 'fig', node: <div className="flex flex-wrap justify-center gap-3">{outcomes(2).map((s) => <Coins key={s} s={s} />)}</div> },
-            pick('Нажми', 'Где орёл ровно один раз?', coinItems(2, (s) => count(s, 'О') === 1), 4,
+            pick('', 'Где ровно один орёл?', coinItems(2, (s) => count(s, 'О') === 1), 4,
                 'ОР и РО — два подходящих', 'Нужен ровно ОДИН орёл 🙃'),
-            { t: 'say', text: 'Подвох: ОР и РО — РАЗНЫЕ исходы! Как близнецы Команданте: похожи, но два разных гуся 🦢🦢' },
+            { t: 'say', text: 'ОР и РО — РАЗНЫЕ исходы!' },
+            { t: 'ack', label: 'ОР ≠ РО, понял' },
             { t: 'calc', tex: 'P = \\dfrac{2}{4} = 0{,}5' },
         ],
     },
     {
         title: 'Три монеты', next: 'Три монеты — изи', parts: [
-            { t: 'say', text: 'Теперь ТРИ броска. Исходов уже 2 · 2 · 2 = 8' },
-            pick('Нажми', 'Где орёл ровно ДВА раза?', coinItems(3, (s) => count(s, 'О') === 2), 4,
+            { t: 'say', text: 'Три броска — 8 исходов.' },
+            pick('', 'Где ровно ДВА орла?', coinItems(3, (s) => count(s, 'О') === 2), 4,
                 'Подходят 3 исхода из 8', 'Посчитай орлов: нужно ровно 2 🙃'),
             { t: 'calc', tex: 'P = \\dfrac{3}{8} = 0{,}375' },
-            pick('Нажми', 'А где ХОТЯ БЫ ДВЕ решки?', coinItems(3, (s) => count(s, 'Р') >= 2), 4,
+            pick('', 'Где ХОТЯ БЫ ДВЕ решки?', coinItems(3, (s) => count(s, 'Р') >= 2), 4,
                 '2 решки или 3 решки — 4 исхода', '«Хотя бы две» — это две ИЛИ три 🙃'),
             { t: 'calc', tex: 'P = \\dfrac{4}{8} = 0{,}5' },
         ],
@@ -250,26 +288,27 @@ const LESSON2_SCENES: Scene[] = [
     {
         title: 'Сколько исходов', next: 'Таблица в голове', parts: [
             { t: 'remember', title: 'ЗАПОМНИ!', lines: ['1 монета → 2 исхода', '2 монеты → 4', '3 монеты → 8', 'Каждая монета удваивает: $2^n$'] },
-            { t: 'say', text: 'А у кубика 6 граней 🎲 Два кубика → 6 · 6 = 36 исходов' },
+            { t: 'ack', label: 'Каждая монета ×2' },
+            { t: 'say', text: 'У кубика 6 граней 🎲\nДва кубика → 36 исходов.' },
         ],
     },
     {
         title: 'Два кубика', next: 'Кубики покорены', parts: [
-            { t: 'say', text: 'Бросают два кубика. Найдите вероятность, что в сумме выпадет 8. Ответ округлите до сотых' },
-            pick('Таблица 6×6', 'Нажми все клетки, где сумма = 8', diceItems((a, b) => a + b === 8), 6,
+            { t: 'ege', num: 4, text: 'Бросают два игральных кубика.\nНайдите вероятность, что в сумме выпадет 8. Ответ округлите до сотых.' },
+            pick('', 'Где сумма 8?', diceItems((a, b) => a + b === 8), 6,
                 '2+6, 3+5, 4+4, 5+3, 6+2 — пять клеток', 'Сложи два числа в клетке 🙃'),
             {
                 t: 'choice', rounds: [
                     { prompt: '$P = \\dfrac{5}{36} \\approx \\ ?$', options: ['$0{,}14$', '$0{,}05$', '$0{,}36$'], correct: '$0{,}14$', hint: '5 : 36 = 0,138… округляем 🙃', ok: '$0{,}138… \\approx 0{,}14$ 🎲' },
                 ],
             },
-            { t: 'say', text: 'Округляем как в ЕГЭ: третья цифра 8 — значит вторую увеличиваем' },
+            
         ],
     },
     {
         title: 'Кубик-разминка', next: '¡Caramba, легко!', parts: [
             {
-                t: 'choice', label: 'Один кубик', rounds: [
+                t: 'choice', rounds: [
                     { prompt: 'Выпадет чётное число', options: ['$0{,}5$', '$\\dfrac16$', '$\\dfrac13$'], correct: '$0{,}5$', hint: 'Чётные: 2, 4, 6 — три из шести 🙃', ok: '$\\dfrac36 = 0{,}5$' },
                     { prompt: 'Выпадет больше 4', options: ['$\\dfrac13$', '$\\dfrac12$', '$\\dfrac23$'], correct: '$\\dfrac13$', hint: 'Больше 4: только 5 и 6 🙃', ok: '$\\dfrac26 = \\dfrac13$' },
                 ],
@@ -282,9 +321,10 @@ const LESSON2_SCENES: Scene[] = [
 const LESSON3_SCENES: Scene[] = [
     {
         title: 'Телефонный номер', next: 'И — умножаем', parts: [
-            { t: 'say', text: 'Какова вероятность, что случайный телефонный номер оканчивается ДВУМЯ чётными цифрами? 📱' },
-            { t: 'say', text: 'Последняя цифра чётная: 5 из 10 = 0,5. Предпоследняя тоже 0,5' },
-            { t: 'say', text: 'Нужна чётная последняя И чётная предпоследняя. «И» — значит УМНОЖАЕМ' },
+            { t: 'ege', num: 5, text: 'Найдите вероятность, что случайный телефонный номер оканчивается двумя чётными цифрами.' },
+            { t: 'say', text: 'Каждая цифра чётная с шансом 0,5.' },
+            { t: 'say', text: 'Нужна чётная И чётная.\n«И» — УМНОЖАЕМ.' },
+            { t: 'ack', label: '«И» — умножаем ✖️' },
             { t: 'calc', tex: '0{,}5 \\cdot 0{,}5 = 0{,}25' },
         ],
     },
@@ -295,14 +335,14 @@ const LESSON3_SCENES: Scene[] = [
                 '«ИЛИ» (одно из двух, вместе не бывают) → СКЛАДЫВАЕМ ➕',
                 'Умножение работает, если события не влияют друг на друга',
             ] },
-            { t: 'say', text: 'Мнемоника Команданте: «И» — как два замка на сейфе. Открыть оба сложнее, шанс МЕНЬШЕ 🔒🔒' },
+            { t: 'say', text: '«И» — два замка на сейфе 🔒🔒\nОткрыть оба сложнее: шанс МЕНЬШЕ.' },
         ],
     },
     {
         title: 'Стрелок', next: 'Меткость 100%', parts: [
-            { t: 'say', text: 'Стрелок попадает в мишень с вероятностью 0,8 🎯 Он стреляет 3 раза' },
+            { t: 'ege', num: 5, text: 'Стрелок попадает в мишень с вероятностью 0,8. Он стреляет 3 раза.' },
             {
-                t: 'choice', label: 'Посчитай', rounds: [
+                t: 'choice', rounds: [
                     { prompt: 'Попал все 3 раза', options: ['$0{,}512$', '$2{,}4$', '$0{,}8$'], correct: '$0{,}512$', hint: 'Попал И попал И попал: $0{,}8 \\cdot 0{,}8 \\cdot 0{,}8$ 🙃', ok: '$0{,}8^3 = 0{,}512$' },
                     { prompt: 'Первые 2 раза попал, третий промахнулся', options: ['$0{,}128$', '$0{,}64$', '$0{,}512$'], correct: '$0{,}128$', hint: 'Промах = $1 - 0{,}8 = 0{,}2$. Умножай все три 🙃', ok: '$0{,}8 \\cdot 0{,}8 \\cdot 0{,}2 = 0{,}128$' },
                 ],
@@ -311,7 +351,7 @@ const LESSON3_SCENES: Scene[] = [
     },
     {
         title: 'Хотя бы один', next: 'Хотя бы один — мой', parts: [
-            { t: 'say', text: 'В магазине два продавца. Каждый занят с клиентом с вероятностью 0,3, независимо от другого 🛒' },
+            { t: 'ege', num: 5, text: 'В магазине два продавца. Каждый занят с клиентом с вероятностью 0,3 независимо от другого.' },
             {
                 t: 'choice', rounds: [
                     { prompt: 'Оба продавца заняты', options: ['$0{,}09$', '$0{,}6$', '$0{,}3$'], correct: '$0{,}09$', hint: 'Занят И занят — умножаем 🙃', ok: '$0{,}3 \\cdot 0{,}3 = 0{,}09$' },
@@ -323,7 +363,7 @@ const LESSON3_SCENES: Scene[] = [
     },
     {
         title: 'ИЛИ — складываем', next: 'Складываю', parts: [
-            { t: 'say', text: 'В сборнике билетов 25% задач по тригонометрии и 40% по логарифмам. Задача про две темы сразу не бывает' },
+            { t: 'ege', num: 5, text: 'В сборнике 25% задач по тригонометрии и 40% по логарифмам. Задач сразу на обе темы нет.\nНайдите вероятность, что попадётся тригонометрия или логарифмы.' },
             {
                 t: 'choice', rounds: [
                     { prompt: 'Попадётся тригонометрия ИЛИ логарифмы', options: ['$0{,}65$', '$0{,}1$', '$0{,}15$'], correct: '$0{,}65$', hint: 'Вместе не бывают — складываем 🙃', ok: '$0{,}25 + 0{,}4 = 0{,}65$' },
@@ -333,7 +373,7 @@ const LESSON3_SCENES: Scene[] = [
     },
     {
         title: 'Шахматы', next: '¡Hasta la victoria!', parts: [
-            { t: 'say', text: 'Шахматист А. белыми выигрывает с вероятностью 0,52, чёрными — 0,3 ♟️ Две партии, во второй меняют цвет. Выиграет обе?' },
+            { t: 'ege', num: 5, text: 'Шахматист А. белыми выигрывает с вероятностью 0,52, чёрными — 0,3. Он играет две партии, во второй меняет цвет.\nНайдите вероятность, что А. выиграет обе.' },
             {
                 t: 'choice', rounds: [
                     { prompt: '$P = \\ ?$', options: ['$0{,}156$', '$0{,}82$', '$0{,}41$'], correct: '$0{,}156$', hint: 'Выиграл первую И вторую — умножаем 🙃', ok: '$0{,}52 \\cdot 0{,}3 = 0{,}156$ 👑' },

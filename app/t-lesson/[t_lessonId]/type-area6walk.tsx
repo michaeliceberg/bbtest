@@ -291,13 +291,6 @@ const CalcLine = ({ tex }: { tex: string }) => (
         <Latex>{`$${tex}$`}</Latex>
     </motion.div>
 )
-const GameLabel = ({ children }: { children: React.ReactNode }) => (
-    <div className="w-full flex items-center gap-2" aria-hidden>
-        <div className="flex-1 h-px bg-[#3A464E]" />
-        <span className="text-[11px] font-black uppercase tracking-wide text-[#F2C35B]">🎮 {children}</span>
-        <div className="flex-1 h-px bg-[#3A464E]" />
-    </div>
-)
 const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode }) => (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
         className={cn('rounded-xl px-4 py-2 font-bold w-full text-center', ok ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]')}>
@@ -514,9 +507,9 @@ const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: () => vo
                             {i === reached && <After ms={1500} onDone={d} />}
                         </Fragment>
                     )
-                    case 'tap': return i === reached ? <Fragment key={i}><GameLabel>Нажми на рисунке</GameLabel><TapGame rounds={p.rounds} setOverride={setOverride} onDone={d} /></Fragment> : null
-                    case 'choice': return i <= reached ? <Fragment key={i}><GameLabel>Посчитай</GameLabel><ChoiceGame rounds={p.rounds} setOverride={setOverride} onDone={d} /></Fragment> : null
-                    case 'build': return <Fragment key={i}><GameLabel>Собери формулу</GameLabel><BuildGame {...p} onDone={d} /></Fragment>
+                    case 'tap': return i === reached ? <Fragment key={i}><TapGame rounds={p.rounds} setOverride={setOverride} onDone={d} /></Fragment> : null
+                    case 'choice': return i <= reached ? <Fragment key={i}><ChoiceGame rounds={p.rounds} setOverride={setOverride} onDone={d} /></Fragment> : null
+                    case 'build': return <Fragment key={i}><BuildGame {...p} onDone={d} /></Fragment>
                 }
             })}
         </>

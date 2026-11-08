@@ -1365,3 +1365,8 @@ body {
 @keyframes bm-ripple { 0% { transform: scale(.3); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
 .bm-ripple { animation: bm-ripple .45s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) { .bm-flag-nudge, .bm-knob-ring { animation: none; } }
+
+/* Монетка в полёте: сплющивается по ширине — будто вращается ребром (урок «Вероятность», CoinFlipGame). Только transform. */
+@keyframes coin-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.08); } }
+.coin-flip { animation: coin-flip 0.22s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .coin-flip { animation: none; } }

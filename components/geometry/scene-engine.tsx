@@ -7,12 +7,16 @@
 //   choice — «посчитай / выбери» (раунды, «пробуй, пока не угадаешь»),
 //   build — «собери формулу» из кнопок (слоты, дроби, корень; группы слотов, где порядок не важен),
 //   system — «собери систему» из кнопок (строки неравенств, кнопки можно жать много раз),
-//   custom — своя мини-игра урока: render(done) рисует её, done() открывает следующий шаг.
+//   custom — своя мини-игра урока: render(done) рисует её, done() открывает следующий шаг,
+//   ack — кнопка-подтверждение тезиса («Понял, π = 180°»): дальше только после нажатия,
+//   ege — карточка «Задача ЕГЭ» на штабной карте (шаблон для ВСЕХ задач из ЕГЭ в разборах).
+// Правила оформления step-by-step — CLAUDE.md, раздел «Правила создания пошаговых разборов».
 // Ошибки в мини-играх в зачёт урока не идут. Тот же подход, что в type-area6walk.tsx (там свой движок с рисунками-элементами).
 
 import { Fragment, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { RememberPlate } from '@/components/geometry/WalkthroughLog'
+import { RememberPlate, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
+import { EgeTaskCard } from '@/components/geometry/ege-task-card'
 import { Typewriter, splitThoughts } from '@/components/geometry/Typewriter'
 import { MathText, usePlainMath } from '@/components/geometry/plain-math'
 import { playJustClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -41,6 +45,8 @@ export type Part =
     // any — группы слотов, где порядок не важен (как множители (a − 1)(b − 1)).
     | { t: 'system'; prompt: string; rows: SysRow[]; chips: string[]; slots: string[]; sameRows?: number[]; any?: number[][]; hint: string }
     | { t: 'custom'; label?: string; render: (done: () => void) => React.ReactNode }
+    | { t: 'ack'; label: string }
+    | { t: 'ege'; num?: number; text: string }
 export type Scene = { title: string; next: string; parts: Part[] }
 
 const L = ({ children }: { children: string }) => <MathText>{children}</MathText>
@@ -80,13 +86,22 @@ export const CalcLine = ({ tex }: { tex: string }) => (
         <L>{`$${tex}$`}</L>
     </motion.div>
 )
-export const GameLabel = ({ children }: { children: React.ReactNode }) => usePlainMath() ? null : (
-    <div className="w-full flex items-center gap-2" aria-hidden>
-        <div className="flex-1 h-px bg-[#3A464E]" />
-        <span className="text-[11px] font-black uppercase tracking-wide text-[#F2C35B]">🎮 {children}</span>
-        <div className="flex-1 h-px bg-[#3A464E]" />
-    </div>
-)
+// Разделитель «🎮 Нажми / Посчитай» над мини-игрой убран по просьбе пользователя (2026-11-08): кнопки внизу и так видны,
+// лишняя строка только отвлекает. Компонент оставлен пустым, чтобы не трогать вызовы.
+export const GameLabel = (_: { children: React.ReactNode }) => null
+
+// Кнопка-подтверждение тезиса: ученик нажимает «Понял…», и только тогда открывается следующий шаг.
+const AckButton = ({ label, onDone }: { label: string; onDone: () => void }) => {
+    const [gone, setGone] = useState(false)
+    if (gone) return null
+    return (
+        <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+            <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}
+                onClick={() => { setGone(true); onDone() }}>{label}</button>
+        </motion.div>
+    )
+}
+
 export const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode }) => (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
         className={cn('rounded-xl px-4 py-2 font-bold w-full text-center', ok ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]')}>
@@ -324,10 +339,12 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                             {i === reached && <After ms={1500} onDone={d} />}
                         </Fragment>
                     )
-                    case 'choice': return <Fragment key={i}><GameLabel>{p.label ?? 'Посчитай'}</GameLabel><ChoiceGame rounds={p.rounds} onDone={d} /></Fragment>
-                    case 'build': return <Fragment key={i}><GameLabel>Собери формулу</GameLabel><BuildGame {...p} onDone={d} /></Fragment>
-                    case 'system': return <Fragment key={i}><GameLabel>Собери систему</GameLabel><SystemGame {...p} onDone={d} /></Fragment>
-                    case 'custom': return <Fragment key={i}>{p.label && <GameLabel>{p.label}</GameLabel>}{p.render(d)}</Fragment>
+                    case 'choice': return <Fragment key={i}><ChoiceGame rounds={p.rounds} onDone={d} /></Fragment>
+                    case 'build': return <Fragment key={i}><BuildGame {...p} onDone={d} /></Fragment>
+                    case 'system': return <Fragment key={i}><SystemGame {...p} onDone={d} /></Fragment>
+                    case 'custom': return <Fragment key={i}>{p.render(d)}</Fragment>
+                    case 'ack': return i === reached ? <AckButton key={i} label={p.label} onDone={d} /> : null
+                    case 'ege': return <Fragment key={i}><EgeTaskCard num={p.num} text={p.text} />{i === reached && <After ms={1400} onDone={d} />}</Fragment>
                 }
             })}
         </>
