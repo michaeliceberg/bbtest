@@ -8,14 +8,14 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { BookOpen } from 'lucide-react'
 import { makeDictQuestion, znSource } from '@/lib/zaNauku'
 import { playJustClick, playRightClick } from '@/lib/sound'
 import { recordDictAnswer } from '@/actions/fiztech-dict'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 
 // Фразы в духе физтеха: жаргон «За науку» + кубинские словечки Команданте + гусь.
-const TITLES = ['Крупица', 'Перемена по-физтеховски', 'Словарь общаги', 'Лингво-зачёт', '¡Mira, амиго!']
+// Стикеры Дуэйна Джонсона (вырезаны из мемов, public/stickers/rock) — на каждый вопрос случайный.
+const ROCK_STICKERS = ['/stickers/rock/rock-suspicious.webp', '/stickers/rock/rock-eyebrow.webp']
 const RIGHT = ['¡Bingo, амиго! Чистый физтех 😎', 'Га-га! Зачёт без пересдачи 🪿', '¡Perfecto! Автограф в зачётку ✍️', 'Шаришь, компаньеро! Свой в общаге', '¡Vamos! Это триумф (не тройка по урматам) 🏆']
 const WRONG = ['¡Caramba! Почти. На физтехе так:', 'Мимо, компаньеро. Слушай, как надо:', 'Пересдача! Но шутка того стоит:', 'Га-га… Чайхана. Физтехи говорят так:']
 const BACK = ['¡Vamos, к уроку!', 'Га-га, обратно в строй', 'Погнали дальше, амиго', 'Сдал — иди дальше']
@@ -27,13 +27,13 @@ export const showDictGame = (delayMs = 900) => {
     setTimeout(() => window.dispatchEvent(new Event(EVENT)), delayMs)
 }
 
-type Q = ReturnType<typeof makeDictQuestion> & { title: string; right: string; wrong: string; back: string }
+type Q = ReturnType<typeof makeDictQuestion> & { sticker: string; right: string; wrong: string; back: string }
 
 export function FiztechDictLayer() {
     const [q, setQ] = useState<Q | null>(null)
     const [picked, setPicked] = useState<string | null>(null)
     useEffect(() => {
-        const on = () => { setPicked(null); setQ({ ...makeDictQuestion(), title: rnd(TITLES), right: rnd(RIGHT), wrong: rnd(WRONG), back: rnd(BACK) }) }
+        const on = () => { setPicked(null); setQ({ ...makeDictQuestion(), sticker: rnd(ROCK_STICKERS), right: rnd(RIGHT), wrong: rnd(WRONG), back: rnd(BACK) }) }
         window.addEventListener(EVENT, on)
         return () => window.removeEventListener(EVENT, on)
     }, [])
@@ -50,16 +50,21 @@ export function FiztechDictLayer() {
     }
     return createPortal(
         <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/65 p-4">
-            <motion.div className="w-full max-w-sm rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4 shadow-2xl"
+            <motion.div className="w-full max-w-sm rounded-2xl border-2 border-[#2C3A41] bg-[#151F23] p-4 shadow-2xl"
                 initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}>
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-[#F2C35B]">
-                    <BookOpen className="h-4 w-4" />{q.title} · словарь физтеха
+                <p className="text-center text-xs font-black uppercase tracking-wide text-[#7E8F99]">Словарь физтеха</p>
+                <div className="mt-2 flex items-center gap-3">
+                    <motion.img src={q.sticker} alt=""
+                        className="h-24 w-24 shrink-0 select-none" draggable={false}
+                        initial={{ scale: 0.6, rotate: -8, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 340, damping: 13 }} />
+                    <div className="min-w-0">
+                        <p className="text-base font-bold text-[#9AA7B0]">Что значит</p>
+                        <p className="text-3xl font-black leading-tight text-[#F2F7FB] break-words">
+                            {q.entry.word}<span className="text-[#F2C35B]">?</span>
+                        </p>
+                    </div>
                 </div>
-                <p className="mt-3 text-center text-sm font-bold text-[#9AA7B0]">Что значит на физтехе</p>
-                <p className="mt-1 text-center text-3xl font-black text-[#F2F7FB]">
-                    {q.entry.word}{q.entry.mark && <span className="ml-1.5 align-middle text-sm font-bold text-[#7E8F99]">({q.entry.mark})</span>}
-                    <span className="text-[#F2C35B]">?</span>
-                </p>
                 <div className="drop-in-options mt-4 grid grid-cols-1 gap-2">
                     {q.options.map((o) => {
                         const isRight = picked && o === right
