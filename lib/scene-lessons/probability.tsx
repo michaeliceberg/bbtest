@@ -56,6 +56,12 @@ const SpinCoin = ({ result, spinId, size }: { result: 'О' | 'Р'; spinId: numbe
     )
 }
 
+// Число, которое меняется после действия ученика, при смене подпрыгивает — видно, что тут поменялось.
+const Bump = ({ v, className, style }: { v: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
+    <motion.span key={String(v)} className={cn('inline-block', className)} style={style}
+        initial={{ scale: 1.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 11 }}>{v}</motion.span>
+)
+
 const GOAL_THROWS = 100
 const CoinFlipGame = ({ onDone }: { onDone: () => void }) => {
     const [o, setO] = useState(0)
@@ -80,15 +86,17 @@ const CoinFlipGame = ({ onDone }: { onDone: () => void }) => {
     const size = results.length > 1 ? 46 : 84
     return (
         <div className="w-full flex flex-col items-center gap-3">
+            <div className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]">Подбрось монету {GOAL_THROWS} раз</div>
+            <div className="text-lg font-black text-[#9AA7B0]">Бросков <Bump v={total} className="text-2xl" style={{ color: '#F2F7FB' }} /> из {GOAL_THROWS}</div>
             <div className={cn('grid gap-2 pt-10', results.length > 1 ? 'grid-cols-5' : 'grid-cols-1')}>
                 {results.map((res, i) => <SpinCoin key={`${results.length}-${i}`} result={res} spinId={spinId} size={size} />)}
             </div>
             <div className="flex gap-4 text-lg font-black text-[#F2F7FB]">
-                <span className="flex items-center gap-1"><Coin side="О" size={22} /> {o}</span>
-                <span className="flex items-center gap-1"><Coin side="Р" size={22} /> {r}</span>
+                <span className="flex items-center gap-1"><Coin side="О" size={22} /> <Bump v={o} /></span>
+                <span className="flex items-center gap-1"><Coin side="Р" size={22} /> <Bump v={r} /></span>
             </div>
             <div className="w-full max-w-[320px]">
-                <div className="mb-1 text-center text-sm font-bold text-[#9AA7B0]">Доля орлов <span className="text-xl font-black" style={{ color: GOLD }}>{freq}</span></div>
+                <div className="mb-1 text-center text-sm font-bold text-[#9AA7B0]">Доля орлов <Bump v={freq} className="text-xl font-black" style={{ color: GOLD }} /></div>
                 <div className="relative h-4 w-full rounded-full bg-[#26333B] overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ background: GOLD }} animate={{ width: total ? `${(o / total) * 100}%` : '0%' }} />
                     <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/70" />
@@ -100,7 +108,6 @@ const CoinFlipGame = ({ onDone }: { onDone: () => void }) => {
                         <button type="button" disabled={busy} onClick={() => throwN(1)} className="flex-1 rounded-xl border-2 border-b-4 active:border-b-0 border-[#3A464E] bg-[#161F23] px-3 py-3 font-black text-[#F2F7FB] disabled:opacity-50">Бросить 1</button>
                         <button type="button" disabled={busy} onClick={() => throwN(10)} className="flex-1 rounded-xl border-2 border-b-4 active:border-b-0 border-[#C07C2B] bg-[#F09B38] px-3 py-3 font-black text-[#151F24] disabled:opacity-50">Бросить 10</button>
                     </div>
-                    <div className="text-xs font-bold text-[#5C6B73]">бросков {total} / {GOAL_THROWS}</div>
                 </>
             )}
         </div>
@@ -164,7 +171,14 @@ const diceItems = (good: (a: number, b: number) => boolean): PickItem[] =>
         return { key: `${a}${b}`, node: <span className="text-[13px] leading-none">{a}<span className="text-[#5C6B73]">+</span>{b}</span>, good: good(a, b) }
     })
 
-const CANDIES = ['Грильяж', 'Белочка', 'Коровка', 'Ласточка']
+// Задача ЕГЭ про пирожки: куски условия размечены {{ключ|…}}, каждый вопрос подсвечивает свой кусок.
+export const PIES_TEXT = 'На тарелке {{all|16 пирожков}}: 7 с мясом, 5 с капустой и {{cherry|4 с вишней}}.\nЮля наугад берёт один пирожок.\nНайдите вероятность, что он окажется с вишней.'
+export const PIES_QUIZ = [
+    { prompt: 'Сколько всего пирожков?', options: ['16', '4', '7'], correct: '16', hint: 'Юля может взять любой из всех', ok: 'Всего 16', focus: 'all' },
+    { prompt: 'Сколько с вишней?', options: ['4', '5', '16'], correct: '4', hint: 'Смотри, где написано про вишню', ok: 'С вишней 4', focus: 'cherry' },
+]
+// Вид подсветки условия: 'marker' — текстовыделитель, 'dim' — остальное бледнеет. Оба — на /test-ege-focus.
+export const PIES_FOCUS_MODE: 'marker' | 'dim' = 'marker'
 
 // Единственная шутка «За науку» про вероятность — к месту в конце первого урока
 const ZN_PROB = { text: 'При испытании одного изделия произошёл один отказ. Какова вероятность безотказной работы изделия?', source: '«За науку», № 9 (679), 30 марта 1979 г.' }
@@ -179,30 +193,28 @@ const LESSON1_SCENES: Scene[] = [
             { t: 'say', text: 'Команданте подбрасывает монетку.' },
             { t: 'say', text: 'Орёл или решка?', big: true },
             { t: 'say', text: 'Угадать нельзя.' },
-            { t: 'ack', label: 'Угадать нельзя 🤷' },
             { t: 'say', text: 'Но можно посчитать ШАНС.' },
-            { t: 'ack', label: 'Кидаю сам!' },
+            { t: 'ack', label: 'Давай попробуем' },
             { t: 'custom', render: (done) => <CoinFlipGame onDone={done} /> },
             { t: 'say', text: 'Орлов — почти ровно половина.' },
             { t: 'calc', tex: 'P = \\dfrac{1}{2} = 0{,}5' },
         ],
     },
     {
-        title: 'Конфеты Миши', next: 'Дальше', parts: [
-            { t: 'ege', num: 4, text: 'У Миши в кармане 4 конфеты: «Грильяж», «Белочка», «Коровка» и «Ласточка».\nМиша случайно выронил одну.\nНайдите вероятность, что выпал «Грильяж».' },
-            pick('', 'Какая подходит?', CANDIES.map((c) => ({ key: c, node: <span>🍬 {c}</span>, good: c === 'Грильяж' })), 2,
-                'Подходит 1 из 4', 'Нам нужен «Грильяж» 🙃'),
+        title: 'Пирожки', next: 'Понял: 4 из 16', parts: [
+            { t: 'ege', num: 4, text: PIES_TEXT, quiz: PIES_QUIZ, focusMode: PIES_FOCUS_MODE },
+            { t: 'say', text: 'Сверху — сколько подходит.\nСнизу — сколько всего.' },
             {
                 t: 'build', prompt: 'Собери вероятность', tpl: ['P =', { frac: [[{ s: 0 }], [{ s: 1 }]] }],
-                chips: ['1', '4', '3', '2'], slots: ['1', '4'], hint: 'Сверху — сколько подходит, снизу — сколько всего 🙃',
+                chips: ['4', '16', '7', '5'], slots: ['4', '16'], hint: 'Сверху — пирожки с вишней, снизу — все пирожки',
             },
-            { t: 'calc', tex: 'P = \\dfrac{1}{4} = 0{,}25' },
+            { t: 'calc', tex: 'P = \\dfrac{4}{16} = 0{,}25' },
         ],
     },
     {
         title: 'Формула', next: 'Понял: подходящие / все', parts: [
             { t: 'remember', title: 'ЗАПОМНИ!', lines: ['$P = \\dfrac{\\text{подходящие}}{\\text{все}}$'] },
-            { t: 'ack', label: 'Подходящие / все ✍️' },
+            { t: 'ack', label: 'Подходящие / все' },
             { t: 'say', text: 'Вероятность всегда от 0 до 1.' },
             { t: 'ack', label: 'От 0 до 1' },
             { t: 'say', text: '0 — никогда.\nКоманданте проспит построение 😴' },
@@ -225,7 +237,7 @@ const LESSON1_SCENES: Scene[] = [
         title: 'Подвох «НЕ»', next: 'Понял: НЕ = 1 − P', parts: [
             { t: 'ege', num: 4, text: 'Из 1400 садовых насосов 7 подтекают.\nНайдите вероятность, что случайный насос НЕ подтекает.' },
             { t: 'say', text: 'Ловушка: спрашивают про НЕ подтекающие!' },
-            { t: 'ack', label: 'Вижу ловушку 👀' },
+            { t: 'ack', label: 'Вижу ловушку' },
             {
                 t: 'choice', rounds: [
                     { prompt: 'Сколько НЕ подтекает?', options: ['1393', '7', '1400'], correct: '1393', hint: '1400 − 7 🙃', ok: '1400 − 7 = 1393' },
@@ -324,7 +336,7 @@ const LESSON3_SCENES: Scene[] = [
             { t: 'ege', num: 5, text: 'Найдите вероятность, что случайный телефонный номер оканчивается двумя чётными цифрами.' },
             { t: 'say', text: 'Каждая цифра чётная с шансом 0,5.' },
             { t: 'say', text: 'Нужна чётная И чётная.\n«И» — УМНОЖАЕМ.' },
-            { t: 'ack', label: '«И» — умножаем ✖️' },
+            { t: 'ack', label: '«И» — умножаем' },
             { t: 'calc', tex: '0{,}5 \\cdot 0{,}5 = 0{,}25' },
         ],
     },

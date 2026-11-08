@@ -16,7 +16,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RememberPlate, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
-import { EgeTaskCard } from '@/components/geometry/ege-task-card'
+import { EgeTaskCard, type EgeFocusMode } from '@/components/geometry/ege-task-card'
 import { Typewriter, splitThoughts } from '@/components/geometry/Typewriter'
 import { MathText, usePlainMath } from '@/components/geometry/plain-math'
 import { playJustClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -46,7 +46,8 @@ export type Part =
     | { t: 'system'; prompt: string; rows: SysRow[]; chips: string[]; slots: string[]; sameRows?: number[]; any?: number[][]; hint: string }
     | { t: 'custom'; label?: string; render: (done: () => void) => React.ReactNode }
     | { t: 'ack'; label: string }
-    | { t: 'ege'; num?: number; text: string }
+    // quiz — вопросы прямо под условием; focus у вопроса — какой кусок {{ключ|…}} условия подсветить сейчас
+    | { t: 'ege'; num?: number; text: string; quiz?: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode }
 export type Scene = { title: string; next: string; parts: Part[] }
 
 const L = ({ children }: { children: string }) => <MathText>{children}</MathText>
@@ -110,9 +111,10 @@ export const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode 
 )
 
 // --- «Выбери / посчитай» ---
-export const ChoiceGame = ({ rounds, onDone }: { rounds: ChoiceRound[]; onDone: () => void }) => {
+export const ChoiceGame = ({ rounds, onDone, onRound }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void }) => {
     const plain = usePlainMath()
     const [r, setR] = useState(0)
+    useEffect(() => { onRound?.(r) }, [r]) // eslint-disable-line react-hooks/exhaustive-deps
     const [wrong, setWrong] = useState<string[]>([])
     const [done, setDone] = useState(false)
     const round = rounds[r]
@@ -307,6 +309,20 @@ export const SystemGame = ({ prompt, rows, chips, slots, sameRows = [], any = []
     )
 }
 
+// Условие ЕГЭ + вопросы под ним: каждый вопрос подсвечивает в условии свой кусок.
+const EgeQuiz = ({ num, text, quiz, focusMode, onDone }: { num?: number; text: string; quiz: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode; onDone: () => void }) => {
+    const [r, setR] = useState(0)
+    const [started, setStarted] = useState(false)
+    const [finished, setFinished] = useState(false)
+    useEffect(() => { const t = setTimeout(() => setStarted(true), 1400); return () => clearTimeout(t) }, [])
+    return (
+        <>
+            <EgeTaskCard num={num} text={text} focus={started && !finished ? quiz[r]?.focus : null} focusMode={focusMode} />
+            {started && <ChoiceGame rounds={quiz} onRound={setR} onDone={() => { setFinished(true); onDone() }} />}
+        </>
+    )
+}
+
 export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: () => void }) => {
     const [reached, setReached] = useState(0)
     const done = (i: number) => () => setReached((r) => (r === i ? i + 1 : r))
@@ -344,7 +360,9 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                     case 'system': return <Fragment key={i}><SystemGame {...p} onDone={d} /></Fragment>
                     case 'custom': return <Fragment key={i}>{p.render(d)}</Fragment>
                     case 'ack': return i === reached ? <AckButton key={i} label={p.label} onDone={d} /> : null
-                    case 'ege': return <Fragment key={i}><EgeTaskCard num={p.num} text={p.text} />{i === reached && <After ms={1400} onDone={d} />}</Fragment>
+                    case 'ege': return p.quiz
+                        ? <Fragment key={i}><EgeQuiz num={p.num} text={p.text} quiz={p.quiz} focusMode={p.focusMode} onDone={d} /></Fragment>
+                        : <Fragment key={i}><EgeTaskCard num={p.num} text={p.text.replace(/\{\{[^|}]+\|([^}]+)\}\}/g, '$1')} />{i === reached && <After ms={1400} onDone={d} />}</Fragment>
                 }
             })}
         </>
