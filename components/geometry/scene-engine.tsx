@@ -47,7 +47,7 @@ export type Part =
     | { t: 'custom'; label?: string; render: (done: () => void) => React.ReactNode }
     | { t: 'ack'; label: string }
     // quiz — вопросы прямо под условием; focus у вопроса — какой кусок {{ключ|…}} условия подсветить сейчас
-    | { t: 'ege'; num?: number; text: string; quiz?: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode }
+    | { t: 'ege'; num?: number; text: string; quiz?: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode; start?: string }
 export type Scene = { title: string; next: string; parts: Part[] }
 
 const L = ({ children }: { children: string }) => <MathText>{children}</MathText>
@@ -111,10 +111,18 @@ export const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode 
 )
 
 // --- «Выбери / посчитай» ---
-export const ChoiceGame = ({ rounds, onDone, onRound }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void }) => {
+// optionsDelay — варианты появляются не сразу с вопросом, а позже (между ними, например, подсветка в условии).
+export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void; optionsDelay?: number }) => {
     const plain = usePlainMath()
     const [r, setR] = useState(0)
-    useEffect(() => { onRound?.(r) }, [r]) // eslint-disable-line react-hooks/exhaustive-deps
+    const [showOpts, setShowOpts] = useState(optionsDelay === 0)
+    useEffect(() => {
+        onRound?.(r)
+        if (!optionsDelay) return
+        setShowOpts(false)
+        const t = setTimeout(() => setShowOpts(true), optionsDelay)
+        return () => clearTimeout(t)
+    }, [r]) // eslint-disable-line react-hooks/exhaustive-deps
     const [wrong, setWrong] = useState<string[]>([])
     const [done, setDone] = useState(false)
     const round = rounds[r]
@@ -136,7 +144,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound }: { rounds: ChoiceRound[];
                 <L>{round.prompt}</L>
                 {rounds.length > 1 && !plain && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
             </motion.div>
-            <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
+            {showOpts && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
                 {round.options.map((o) => {
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (
@@ -149,7 +157,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound }: { rounds: ChoiceRound[];
                         </button>
                     )
                 })}
-            </div>
+            </div>}
             {!done && wrong.length > 0 && <Note ok={false}><L>{round.hint}</L></Note>}
             {done && round.ok && <Note ok><L>{round.ok}</L></Note>}
         </div>
@@ -309,16 +317,28 @@ export const SystemGame = ({ prompt, rows, chips, slots, sameRows = [], any = []
     )
 }
 
-// Условие ЕГЭ + вопросы под ним: каждый вопрос подсвечивает в условии свой кусок.
-const EgeQuiz = ({ num, text, quiz, focusMode, onDone }: { num?: number; text: string; quiz: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode; onDone: () => void }) => {
+// Условие ЕГЭ + вопросы под ним — строго по очереди: условие печатается → кнопка «Найти …» → вопрос →
+// пауза → в условии подсвечивается нужный кусок → падают варианты.
+const FOCUS_DELAY = 900
+const OPTIONS_DELAY = 1900
+const EgeQuiz = ({ num, text, quiz, focusMode, start, onDone }: { num?: number; text: string; quiz: (ChoiceRound & { focus?: string })[]; focusMode?: EgeFocusMode; start?: string; onDone: () => void }) => {
+    const [phase, setPhase] = useState<'typing' | 'button' | 'quiz' | 'done'>('typing')
     const [r, setR] = useState(0)
-    const [started, setStarted] = useState(false)
-    const [finished, setFinished] = useState(false)
-    useEffect(() => { const t = setTimeout(() => setStarted(true), 1400); return () => clearTimeout(t) }, [])
+    const [focusOn, setFocusOn] = useState(false)
+    useEffect(() => {
+        if (phase !== 'quiz') return
+        setFocusOn(false)
+        const t = setTimeout(() => setFocusOn(true), FOCUS_DELAY)
+        return () => clearTimeout(t)
+    }, [r, phase])
     return (
         <>
-            <EgeTaskCard num={num} text={text} focus={started && !finished ? quiz[r]?.focus : null} focusMode={focusMode} />
-            {started && <ChoiceGame rounds={quiz} onRound={setR} onDone={() => { setFinished(true); onDone() }} />}
+            <EgeTaskCard num={num} text={text} typed focus={phase === 'quiz' && focusOn ? quiz[r]?.focus : null} focusMode={focusMode}
+                onTyped={() => setPhase(start ? 'button' : 'quiz')} />
+            {phase === 'button' && start && <AckButton label={start} onDone={() => setPhase('quiz')} />}
+            {(phase === 'quiz' || phase === 'done') && (
+                <ChoiceGame rounds={quiz} onRound={setR} optionsDelay={OPTIONS_DELAY} onDone={() => { setPhase('done'); onDone() }} />
+            )}
         </>
     )
 }
@@ -364,7 +384,7 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                     case 'custom': return <Fragment key={i}>{p.render(d)}</Fragment>
                     case 'ack': return i === reached ? <AckButton key={i} label={p.label} onDone={d} /> : null
                     case 'ege': return p.quiz
-                        ? <Fragment key={i}><EgeQuiz num={p.num} text={p.text} quiz={p.quiz} focusMode={p.focusMode} onDone={d} /></Fragment>
+                        ? <Fragment key={i}><EgeQuiz num={p.num} text={p.text} quiz={p.quiz} focusMode={p.focusMode} start={p.start} onDone={d} /></Fragment>
                         : <Fragment key={i}><EgeTaskCard num={p.num} text={p.text.replace(/\{\{[^|}]+\|([^}]+)\}\}/g, '$1')} />{i === reached && <After ms={1400} onDone={d} />}</Fragment>
                 } })()
                 if (!node) return null

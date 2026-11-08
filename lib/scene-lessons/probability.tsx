@@ -188,9 +188,23 @@ const ZnFig: Part = { t: 'fig', node: <ZnClipping text={ZN_PROB.text} rubric="ta
 // ================= Урок 1 =================
 const LESSON1_SCENES: Scene[] = [
     {
+        title: 'Пирожки', next: 'Понял: 4 из 16', parts: [
+            { t: 'say', text: '¡Hola, амиго!' },
+            { t: 'ege', num: 4, text: PIES_TEXT, quiz: PIES_QUIZ, focusMode: PIES_FOCUS_MODE, start: 'Найти вероятность вишни' },
+            { t: 'say', text: 'Вероятность вишни — это' },
+            { t: 'calc', tex: 'P = \\dfrac{\\text{вишня}}{\\text{все}}' },
+            {
+                t: 'build', prompt: 'Собери вероятность', tpl: ['P =', { frac: [[{ s: 0 }], [{ s: 1 }]] }],
+                chips: ['4', '16', '7', '5'], slots: ['4', '16'], hint: 'Сверху — пирожки с вишней, снизу — все пирожки',
+            },
+            { t: 'calc', tex: 'P = \\dfrac{4}{16} = 0{,}25' },
+        ],
+    },
+    {
         title: 'Монетка', next: 'Понял: шанс 0,5', parts: [
-            { t: 'say', text: '¡Hola, амиго! 🪙' },
-            { t: 'say', text: 'Команданте подбрасывает монетку.' },
+            // eslint-disable-next-line @next/next/no-img-element
+            { t: 'fig', node: <img src="/miguel/miguel-coin.webp" alt="" className="h-44 w-44 select-none" draggable={false} /> },
+            { t: 'say', text: 'А теперь Команданте подбрасывает монетку.' },
             { t: 'say', text: 'Орёл или решка?', big: true },
             { t: 'say', text: 'Угадать нельзя.' },
             { t: 'say', text: 'Но можно посчитать ШАНС.' },
@@ -198,17 +212,6 @@ const LESSON1_SCENES: Scene[] = [
             { t: 'custom', render: (done) => <CoinFlipGame onDone={done} /> },
             { t: 'say', text: 'Орлов — почти ровно половина.' },
             { t: 'calc', tex: 'P = \\dfrac{1}{2} = 0{,}5' },
-        ],
-    },
-    {
-        title: 'Пирожки', next: 'Понял: 4 из 16', parts: [
-            { t: 'ege', num: 4, text: PIES_TEXT, quiz: PIES_QUIZ, focusMode: PIES_FOCUS_MODE },
-            { t: 'say', text: 'Сверху — сколько подходит.\nСнизу — сколько всего.' },
-            {
-                t: 'build', prompt: 'Собери вероятность', tpl: ['P =', { frac: [[{ s: 0 }], [{ s: 1 }]] }],
-                chips: ['4', '16', '7', '5'], slots: ['4', '16'], hint: 'Сверху — пирожки с вишней, снизу — все пирожки',
-            },
-            { t: 'calc', tex: 'P = \\dfrac{4}{16} = 0{,}25' },
         ],
     },
     {

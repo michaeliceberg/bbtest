@@ -12,7 +12,9 @@
 import { motion } from 'framer-motion'
 import { Crosshair } from 'lucide-react'
 import { stencilFont } from '@/lib/fonts'
+import { useState } from 'react'
 import { MathText } from '@/components/geometry/plain-math'
+import { Typewriter } from '@/components/geometry/Typewriter'
 
 const MAP_EDGE = 34   // нерастянутый край карты на экране
 const MAP_SLICE = 110 // тот же край в пикселях public/meter/map.webp
@@ -36,8 +38,10 @@ const parseSegs = (text: string): Seg[] => {
     return out
 }
 
-export function EgeTaskCard({ num, text, focus, focusMode = 'marker' }: { num?: number; text: string; focus?: string | null; focusMode?: EgeFocusMode }) {
+// typed — условие печатается по буквам (onTyped — когда допечаталось), потом рисуется с разметкой для подсветки.
+export function EgeTaskCard({ num, text, focus, focusMode = 'marker', typed, onTyped }: { num?: number; text: string; focus?: string | null; focusMode?: EgeFocusMode; typed?: boolean; onTyped?: () => void }) {
     const segs = parseSegs(text)
+    const [typing, setTyping] = useState(!!typed)
     return (
         <motion.div className="relative w-full mt-6"
             initial={{ opacity: 0, y: 18, rotate: -1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }}
@@ -59,7 +63,10 @@ export function EgeTaskCard({ num, text, focus, focusMode = 'marker' }: { num?: 
                     )}
                 </div>
                 <div className="relative text-left text-base md:text-lg font-bold leading-snug whitespace-pre-line" style={{ color: INK }}>
-                    {segs.map((s, i) => {
+                    {typing ? (
+                        <Typewriter text={segs.map((x) => x.text).join('').replace(/\$/g, '')} startDelay={700}
+                            onDone={() => { setTyping(false); onTyped?.() }} />
+                    ) : segs.map((s, i) => {
                         const on = !!focus && s.key === focus
                         const dim = focusMode === 'dim' && !!focus && !on
                         return (
