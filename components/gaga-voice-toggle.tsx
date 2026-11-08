@@ -1,6 +1,6 @@
 'use client'
 
-// Аккаунт: «Голос Га-Га» вкл/выкл (хранится на устройстве, localStorage). Стикер с облачком показывается всегда.
+// Аккаунт: «Голос Команданте» вкл/выкл (хранится на устройстве, localStorage). Стикер с облачком показывается всегда.
 
 import { useEffect, useState } from 'react'
 import { Volume2, VolumeX } from 'lucide-react'
@@ -20,7 +20,7 @@ export const GagaVoiceToggle = () => {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/miguel/miguel-salute.webp" alt="" className="h-12 w-12 shrink-0 object-contain" />
             <div className="flex-1 min-w-0">
-                <div className="font-black text-[#F2F7FB]">Голос Га-Га</div>
+                <div className="font-black text-[#F2F7FB]">Голос Команданте</div>
                 <div className="text-xs font-bold text-[#8FA3AE]">Наставник подбадривает в уроках</div>
             </div>
             <button type="button" onClick={toggle} disabled={on === null}
