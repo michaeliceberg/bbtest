@@ -20,7 +20,9 @@ import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, hangarTarpPic, TARP_OF_ITEM, type LayoutOverrides } from '@/lib/hangarModel'
 import { ItemBadge } from '@/components/learn-section-header'
 import { HangarFan, FAN } from '@/components/hangar-fan'
-import { HangarMice, type MiceScene } from '@/components/hangar-mice'
+import { HangarMice, type MiceScene, type MiceEventView } from '@/components/hangar-mice'
+import { resolveMiceEvent } from '@/actions/cat-mice'
+import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
 import { unveilHangarItem, fixHangarItem, claimHangarGold } from '@/actions/hangar'
@@ -154,7 +156,7 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, catSboxDone = false, mice, cornerRight, cornerTop, phoneReserve = 116 }: {
+export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, catSboxDone = false, mice, miceEvent = null, catFedAt = null, cornerRight, cornerTop, phoneReserve = 116 }: {
     /** плашка в правом верхнем углу ангара (серия на /learn) */
     cornerRight?: React.ReactNode
     cornerTop?: React.ReactNode // сверху по центру поверх картинки (полоска «Сета» на /learn); тогда ключ и cornerRight — столбиком слева под ней
@@ -164,6 +166,10 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     catDemo?: 'barrel' | 'sbox'
     /** Ачивка «Кот Шрёдингера» уже есть — коробки в ангаре больше нет. */
     catSboxDone?: boolean
+    /** Событие дня с мышами (lib/catMice.ts): кража или котик поймал мышку. */
+    miceEvent?: MiceEventView | null
+    /** Когда котика кормили последний раз — шкала сытости над ним. */
+    catFedAt?: string | null
     /** Мыши: норка в правой стене и сундук с богатством (пока только /test-mice). */
     mice?: { scene: { kind: MiceScene; key: number } | null; auto: boolean }
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
@@ -183,6 +189,14 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     onCatHome?: () => void
 }) {
     const router = useRouter()
+    // событие с мышами: пока не досмотрено — при краже котик спит и холодильник закрыт, при поимке котик сидит с мышкой
+    const [miceDone, setMiceDone] = useState(false)
+    const raidOn = !bare && !mice && miceEvent?.kind === 'raid' && !miceEvent.resolved && !miceDone
+    const catchOn = !bare && !mice && miceEvent?.kind === 'catch' && !miceEvent.resolved && !miceDone
+    const finishMiceEvent = (ev: MiceEventView) => {
+        setMiceDone(true)
+        resolveMiceEvent(ev.id).then((list) => { useAchievementUnlockStore.getState().push(list); router.refresh() }).catch(() => {})
+    }
     const [pending, start] = useTransition()
     // Снятый только что брезент: предмет открыт сразу, пока сервер обновляет страницу; flying — брезент ещё улетает
     const [unveiledNow, setUnveiledNow] = useState<number[]>([])
@@ -488,7 +502,8 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
                 {/* мышка: норка в правой стене, выглядывает время от времени; на /test-mice — ещё сундук и сцены кражи и ловли */}
-                {mice ? <HangarMice scene={mice.scene} auto={mice.auto} layout={layout} offline /> : <HangarMice auto={!bare} chest={false} bare={bare} />}
+                {mice ? <HangarMice scene={mice.scene} auto={mice.auto} layout={layout} offline />
+                    : <HangarMice auto={!bare} bare={bare} layout={layout} event={!mice ? miceEvent : null} onEventDone={finishMiceEvent} />}
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky time={time} />
                 {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}
@@ -522,7 +537,8 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
                     onClick={() => { if (!bare) toggleTray() }}
                     style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} sboxDone={catSboxDone} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} sboxDone={catSboxDone} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome}
+                    asleep={raidOn} away={catchOn} fedAt={catFedAt} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'

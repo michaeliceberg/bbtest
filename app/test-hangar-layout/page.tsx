@@ -4,7 +4,7 @@
 // по глубине (ниже на полу — ближе), для исключений — поправка «Ближе/Дальше». «Сохранить» пишет расстановку в базу (таблица hangar_layout, только админ),
 // и ангар в «Моём пути» сразу рисуется по ней. Модель — lib/hangarModel.ts.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { zFor, editorObjects, placeStyle, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
+import { zFor, editorObjects, placeStyle, TARP_OF_ITEM, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
 import { getHangarLayout, saveHangarLayout } from '@/actions/hangar-layout'
 import { HangarFan } from '@/components/hangar-fan'
 
@@ -14,6 +14,8 @@ export default function Page() {
     const [state, setState] = useState<HangarState>('b')
     const [objs, setObjs] = useState<Record<HangarState, EditorObj[]> | null>(null)
     const [sel, setSel] = useState<string | null>(null)
+    // на «Сломано» поверх предметов — брезент, как в ангаре (он на 12% крупнее предмета и может закрыть соседей, например норку)
+    const [tarps, setTarps] = useState(true)
     const [saveMsg, setSaveMsg] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [dirty, setDirty] = useState(false)
@@ -91,6 +93,12 @@ export default function Page() {
                             {k === 'b' ? 'Сломано' : 'Починено'}
                         </button>
                     ))}
+                    {state === 'b' && (
+                        <button onClick={() => setTarps((v) => !v)} className="rounded-lg px-3 py-1.5 text-sm font-bold"
+                            style={{ background: tarps ? '#53ADEF' : '#26333B', color: tarps ? '#0F171B' : '#C9D4DA' }}>
+                            Брезент: {tarps ? 'да' : 'нет'}
+                        </button>
+                    )}
                     <button onClick={save} disabled={saving} className="ml-auto rounded-lg bg-[#78C93C] px-3 py-1.5 text-sm font-black text-[#0F171B] disabled:opacity-60">
                         {saveMsg ?? (saving ? 'Сохраняю…' : dirty ? 'Сохранить •' : 'Сохранить')}
                     </button>
@@ -110,6 +118,12 @@ export default function Page() {
                             style={{ ...placeStyle(o), outline: sel === o.key ? '2px dashed #F2C35B' : undefined }}
                             onPointerDown={(e) => { e.preventDefault(); (e.currentTarget.parentElement as HTMLElement).setPointerCapture(e.pointerId); const p = toCanvas(e); drag.current = { key: o.key, dx: p.x - o.x, dy: p.y - o.y }; setSel(o.key) }}
                             onWheel={(e) => { setSel(o.key); scale(o.key, e.deltaY < 0 ? 1.05 : 1 / 1.05) }} />
+                    ))}
+                    {/* брезент поверх сломанных предметов — как в ангаре (components/hangar-scene.tsx Tarp: scale 1.12), нажатия проходят к предмету */}
+                    {state === 'b' && tarps && sorted.filter((o) => TARP_OF_ITEM[Number(o.key)]).map((o) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={`tarp-${o.key}`} src={`/hangar/tarp-${TARP_OF_ITEM[Number(o.key)]}.webp`} alt="" draggable={false}
+                            className="pointer-events-none absolute select-none" style={{ ...placeStyle(o), zIndex: (placeStyle(o).zIndex as number) + 1, scale: '1.12', opacity: 0.85, objectFit: 'fill' }} />
                     ))}
                     {/* вентилятор (задание №11) висит под потолком — для ориентира, не двигается */}
                     <div className="pointer-events-none absolute inset-0" style={{ zIndex: 900 }}>

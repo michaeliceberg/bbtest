@@ -1370,3 +1370,14 @@ body {
 @keyframes coin-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.08); } }
 .coin-flip { animation: coin-flip 0.22s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .coin-flip { animation: none; } }
+
+/* Мыши грабят сундук (components/hangar-mice.tsx): красная сирена по краям ангара мигает */
+@keyframes hangar-siren { 0%, 100% { opacity: 0.15 } 50% { opacity: 1 } }
+.animate-hangar-siren { animation: hangar-siren 0.9s ease-in-out infinite; }
+/* Котик гордо держит пойманную мышку — чуть покачивается */
+@keyframes cat-proud { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(-3deg) } }
+.animate-cat-proud { animation: cat-proud 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+/* Пункт «Задачник / Ангар», когда мыши грабят: дрожит */
+@keyframes nav-alarm-shake { 0%, 100% { transform: translateX(0) } 20% { transform: translateX(-2px) rotate(-1deg) } 40% { transform: translateX(2px) rotate(1deg) } 60% { transform: translateX(-2px) } 80% { transform: translateX(1px) } }
+.animate-nav-alarm { animation: nav-alarm-shake 0.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-hangar-siren, .animate-cat-proud, .animate-nav-alarm { animation: none; } }

@@ -17,9 +17,10 @@ type Props = {
 	learnSubject?: 'math' | 'physics'
 	isAdmin?: boolean
 	isPro?: boolean
+	catAlert?: 'raid' | 'hungry' | null
 }
 
-export const MobileSidebar = ({ courses, activeCourseId, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro }: Props) => {
+export const MobileSidebar = ({ courses, activeCourseId, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro, catAlert }: Props) => {
 	const [open, setOpen] = useState(false)
 	const pathname = usePathname()
 	const claimCount = useAchievementClaimStore((st) => st.count)
@@ -38,6 +39,8 @@ export const MobileSidebar = ({ courses, activeCourseId, userName, userImageSrc,
 		<Sheet open={open} onOpenChange={setOpen}>
 			<SheetTrigger className='relative'>
 				<Menu className='text-white' />
+				{/* мыши грабят сундук — мигающая красная точка на кнопке меню */}
+				{catAlert === 'raid' && <span className='absolute -left-1 -top-1 h-3 w-3 animate-ping rounded-full bg-[#E5534B]' />}
 				{claimCount > 0 && <span className='absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full bg-[#FFC53D] shadow-[0_0_8px_rgba(255,197,61,0.8)]' />}
 			</SheetTrigger>
 			{/* выше ангара (его плашки до z 1250), чтобы сет и «Вторая часть» не лезли поверх меню */}
@@ -51,6 +54,7 @@ export const MobileSidebar = ({ courses, activeCourseId, userName, userImageSrc,
 					learnSubject={learnSubject}
 					isAdmin={isAdmin}
 					isPro={isPro}
+					catAlert={catAlert}
 					onAfterCourseChange={() => setOpen(false)}
 				/>
 			</SheetContent>

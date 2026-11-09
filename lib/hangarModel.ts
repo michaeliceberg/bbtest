@@ -82,6 +82,10 @@ export const MICE_DECOR: Decor[] = [
     { key: 'mouse-hole', label: 'Норка мыши',
         a: { src: '/hangar/life/mouse-hole.webp', x: 949, y: 722, w: 96, h: 65 },
         b: { src: '/hangar/life/mouse-hole.webp', x: 949, y: 722, w: 96, h: 65 } },
+    // где сытый котик сидит с пойманной мышкой (пока ученик не нажмёт); в редакторе — картинкой котика
+    { key: 'cat-catch', label: 'Котик с пойманной мышкой',
+        a: { src: '/hangar/life/cat-caught-mouse.webp', x: 650, y: 772, w: 104, h: 110 },
+        b: { src: '/hangar/life/cat-caught-mouse.webp', x: 650, y: 772, w: 104, h: 110 } },
     { key: 'loot-chest', label: 'Сундук с богатством',
         a: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 },
         b: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 } },

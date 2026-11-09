@@ -1,4 +1,5 @@
 import { hasAchievement } from '@/lib/achievements'
+import { getCatStatus } from '@/lib/catMice'
 import { getUnitButtonColor } from '@/src/constants/lessonButtonColors'
 import { getEgeRulerData } from '@/lib/egeRuler'
 import { EgeRuler } from '@/components/ege-ruler'
@@ -377,9 +378,9 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   const levelCase = await getPendingLevelCase(userId)
   const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
   // Ангар («Мой путь») — только у ЕГЭ Математики: плитка справа от карточки уровня.
-  const [hangarItems, hangarLayout, catSboxDone] = activeCourse.title.includes('ЕГЭ Математика')
-    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m, trainerKeys)), getHangarLayout(), hasAchievement(userId, 'schrodinger')])
-    : [null, null, false]
+  const [hangarItems, hangarLayout, catSboxDone, catStatus] = activeCourse.title.includes('ЕГЭ Математика')
+    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m, trainerKeys)), getHangarLayout(), hasAchievement(userId, 'schrodinger'), getCatStatus(userId)])
+    : [null, null, false, null]
   const onHangarScreen = !!hangarItems && !(taskNum && hangarItems.some((h) => h.num === taskNum))
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
@@ -492,7 +493,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const item = taskNum ? hangarItems.find((h) => h.num === taskNum) : null
               if (!item) return (
                 <>
-                  <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catSboxDone={catSboxDone} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, sourcream: userProgress.catSourcream, fish: userProgress.catFish, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
+                  <HangarInline openNum={Number(searchParams?.unveil) || null} items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catSboxDone={catSboxDone} miceEvent={catStatus?.event ?? null} catFedAt={catStatus?.fedAt ?? null} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, sourcream: userProgress.catSourcream, fish: userProgress.catFish, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
                     cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
                     cornerRight={<div className='flex flex-col items-start gap-1.5'><StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />{ballometer && <BallometerChip d={ballometer} className='h-8 bg-[#151F23]/90 shadow-lg' />}</div>} />
                   {ballometer && <BallometerHello d={ballometer} />}

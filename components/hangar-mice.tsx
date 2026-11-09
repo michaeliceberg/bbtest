@@ -16,7 +16,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { reportAchievement } from '@/lib/achievementsClient'
-import { playJustClick } from '@/lib/sound'
+import { playJustClick, playSound, CAT_MEW_SOUNDS } from '@/lib/sound'
+import { Siren } from 'lucide-react'
+import type { MiceLoot } from '@/lib/catMice'
 import { MICE_DECOR, placeAnyState, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 
 export type MiceScene = 'peek' | 'raid' | 'catch'
@@ -68,6 +70,8 @@ const CAUGHT_PHRASES = [
     'Мой IQ — целое число сыров',
 ]
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]
+// котик отпускает пойманную мышку
+const CATCH_PHRASES = ['Мяу! Ещё раз — и сыра не будет!', 'Мяу! Беги, пока я добрый', 'Мяу! Сундук под охраной', 'Мяу! Иди учи физику', 'Мяу! Это мой ангар']
 
 type Pose = 'run' | 'stand' | 'carry' | 'peek'
 type MouseState = { x: number; y: number; pose: Pose; flip: boolean; dur: number; show: boolean }
@@ -77,7 +81,21 @@ function boxAt(x: number, y: number, w: number, r: number) {
     return { left: pct(x - w / 2), top: pct(y - w * r), width: pct(w), height: pct(w * r) }
 }
 
-/** Монета над головой мышки (рисуется кодом: одна картинка мышки на любую добычу). */
+/** Добыча над головой мышки (одна картинка мышки на любую добычу): кусочек пиццы, гем или монета. */
+function Loot({ kind }: { kind: MiceLoot }) {
+    if (kind === 'pizza') return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/pizzaSVG/pizza_8_1.svg" alt="" draggable={false} className="h-full w-full select-none" />
+    )
+    if (kind === 'gems') return (
+        <svg viewBox="0 0 20 20" className="h-full w-full">
+            <path d="M5 4 H15 L19 9 L10 19 L1 9 Z" fill="#F07BC3" stroke="#5A1F3F" strokeWidth="1.4" strokeLinejoin="round" />
+            <path d="M1 9 H19 M7 4 L10 19 L13 4" fill="none" stroke="#B23F82" strokeWidth="0.9" />
+        </svg>
+    )
+    return <Coin />
+}
+
 function Coin() {
     return (
         <svg viewBox="0 0 20 20" className="h-full w-full">
@@ -87,7 +105,9 @@ function Coin() {
     )
 }
 
-export function HangarMice({ scene, auto = false, chest: showChest = true, offline = false, bare = false, layout, onDone }: {
+export type MiceEventView = { id: number; kind: 'raid' | 'catch'; lootKind: MiceLoot; resolved: boolean }
+
+export function HangarMice({ scene, auto = false, chest: showChest = true, offline = false, bare = false, layout, onDone, event = null, onEventStart, onEventDone }: {
     /** Запустить сцену (меняется вместе с runKey снаружи). */
     scene?: { kind: MiceScene; key: number } | null
     /** Мышка сама часто выглядывает из норки. */
@@ -101,19 +121,30 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     bare?: boolean
     /** Расстановка из редактора (место норки и сундука). */
     layout?: LayoutOverrides | null
+    /** Событие дня (lib/catMice.ts): кража играет сама при заходе; поимка — котик сидит с мышкой, пока не нажмут. */
+    event?: MiceEventView | null
+    /** Кража началась (котик спит, холодильник закрыт). */
+    onEventStart?: () => void
+    /** Событие досмотрено: сервер его помечает и выдаёт ачивку. */
+    onEventDone?: (ev: MiceEventView) => void
 }) {
-    const holeP = placeAnyState(layout, 'a', MICE_DECOR[0])
+    const holeP = placeAnyState(layout, 'b', MICE_DECOR[0])
     const HOLE = { x: holeP.x - holeP.w / 2 + holeP.w * (0.5 + HOLE_MOUTH.dx), y: holeP.y - holeP.h * HOLE_MOUTH.dy }
     const holeK = holeP.w / 96 // окошко выглядывания растёт вместе с норкой
     const skew = holeP.x > 512 ? WALL_SKEW : -WALL_SKEW
-    const chestP = placeAnyState(layout, 'a', MICE_DECOR[1])
+    const catchP = placeAnyState(layout, 'b', MICE_DECOR[1])
+    const chestP = placeAnyState(layout, 'b', MICE_DECOR[2])
     const CHEST = { x: chestP.x, y: chestP.y - chestP.h * (1 - CHEST_BODY_BOTTOM), w: chestP.w }
     const [mouse, setMouse] = useState<MouseState>({ ...HOLE, pose: 'peek', flip: false, dur: 0, show: false })
     const [peekUp, setPeekUp] = useState(false)
     const [look, setLook] = useState(false)
     const [step, setStep] = useState(0)
-    const [chest, setChest] = useState<'closed' | 'open' | 'robbed'>('closed')
-    const [loot, setLoot] = useState(false)
+    // сундук ограблен сегодня — так и стоит до конца дня
+    const [chest, setChest] = useState<'closed' | 'open' | 'robbed'>(event?.kind === 'raid' && event.resolved ? 'robbed' : 'closed')
+    const [loot, setLoot] = useState<MiceLoot | false>(false)
+    const [siren, setSiren] = useState(false)
+    // поимка: котик сидит с мышкой (holding) → нажали: мяу, отпустил (released) → мышка в норке, котик ушёл домой (null)
+    const [catchSt, setCatchSt] = useState<'holding' | 'released' | null>(event?.kind === 'catch' && !event.resolved && !bare ? 'holding' : null)
     const [cat, setCat] = useState<CatState>(null)
     const [say, setSay] = useState<{ x: number; y: number; text: string } | null>(null)
     const busy = useRef(false)
@@ -149,7 +180,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     }
     const finish = (t: number) => later(t, () => { busy.current = false; onDoneRef.current?.() })
 
-    const play = (kind: MiceScene) => {
+    const play = (kind: MiceScene, lootKind: MiceLoot = null) => {
         clearAll()
         busy.current = true
         setCat(null); setSay(null); setLoot(false); setPeekUp(false); setLook(false)
@@ -162,7 +193,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             later(t, () => setMouse({ ...HOLE, pose: 'run', flip: true, dur: 0, show: true }))
             t = runTo(t + 50, HOLE, atChest)
             later(t, () => { setMouse((m) => ({ ...m, pose: 'stand', dur: 0 })); setChest('open'); setSay({ x: atChest.x, y: atChest.y - 70, text: 'Ого, богатство!' }) })
-            later(t + 1300, () => { setSay(null); setLoot(true); setMouse((m) => ({ ...m, pose: 'carry', flip: false })) })
+            later(t + 1300, () => { setSay(null); setLoot(lootKind ?? 'coins'); setMouse((m) => ({ ...m, pose: 'carry', flip: false })) })
             t = runTo(t + 1700, atChest, HOLE, 'carry', 95)
             later(t, () => { setMouse((m) => ({ ...m, show: false })); setLoot(false); setChest('robbed') })
             finish(t + 300)
@@ -188,7 +219,39 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
         finish(t2 + 300)
     }
 
-    useEffect(() => { if (scene) play(scene.kind) }, [scene?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (scene) play(scene.kind, scene.kind === 'raid' ? 'coins' : null) }, [scene?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // кража дня: играет сама вскоре после захода в ангар, с сиреной; после — событие досмотрено
+    const eventStarted = useRef(false)
+    useEffect(() => {
+        if (bare || !event || event.resolved || event.kind !== 'raid' || eventStarted.current) return
+        // флаг — только когда таймер сработал: в dev React дважды запускает эффект и первый таймер отменяет
+        const t = setTimeout(() => {
+            if (eventStarted.current) return
+            eventStarted.current = true
+            onEventStart?.()
+            setSiren(true)
+            const prev = onDoneRef.current
+            onDoneRef.current = () => { setSiren(false); onDoneRef.current = prev; onEventDone?.(event) }
+            play('raid', event.lootKind)
+        }, 1500)
+        return () => clearTimeout(t)
+    }, [event?.id, bare]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // нажали на котика с мышкой: мяукнул, отпустил — мышка удирает в норку, котик идёт домой
+    const releaseMouse = () => {
+        if (catchSt !== 'holding' || !event) return
+        playSound(pick(CAT_MEW_SOUNDS))
+        clearAll()
+        busy.current = true
+        setCatchSt('released')
+        setSay({ x: catchP.x, y: catchP.y - catchP.h - 4, text: pick(CATCH_PHRASES) })
+        const from = { x: catchP.x + catchP.w * 0.4, y: catchP.y }
+        later(1200, () => { setSay(null); setMouse({ ...from, pose: 'run', flip: from.x > HOLE.x, dur: 0, show: true }) })
+        const t = runTo(1250, from, HOLE, 'run', 200)
+        later(t, () => setMouse((m) => ({ ...m, show: false })))
+        later(t + 400, () => { setCatchSt(null); busy.current = false; onEventDone?.(event) })
+    }
 
     // сама выглядывает раз в 4–8 с
     useEffect(() => {
@@ -263,10 +326,36 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
                     {loot && (
                         <motion.div className="absolute" style={{ left: '38%', top: '-28%', width: '34%', aspectRatio: '1' }}
                             initial={{ scale: 0, y: 10 }} animate={{ scale: 1, y: [0, -3, 0] }} transition={{ y: { duration: 0.3, repeat: Infinity }, scale: { type: 'spring', stiffness: 400, damping: 12 } }}>
-                            <Coin />
+                            <Loot kind={loot} />
                         </motion.div>
                     )}
                 </motion.div>
+            )}
+            {/* сытый котик поймал мышку: сидит с ней, пока не нажмут; потом — просто сидит, пока мышка удирает */}
+            {catchSt && (
+                <button type="button" aria-label="Котик поймал мышку" disabled={catchSt !== 'holding'} onClick={releaseMouse}
+                    className="absolute cursor-pointer disabled:cursor-default" style={placeStyle(catchP)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={catchSt === 'holding' ? IMG.caught.src : '/hangar/life/cat-sit.webp'} alt="" draggable={false}
+                        className={`absolute inset-0 h-full w-full select-none object-contain object-bottom ${catchSt === 'holding' ? 'animate-cat-proud' : ''}`} />
+                </button>
+            )}
+            {catchSt === 'holding' && !say && (
+                <div className="pointer-events-none absolute" style={{ left: pct(catchP.x), top: pct(catchP.y - catchP.h - 4), zIndex: 1160, transform: 'translate(-50%, -100%)' }}>
+                    <div className="w-max max-w-[30cqw] animate-bounce rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2 py-1 text-center font-black leading-tight text-[#5A3A22] shadow-md" style={{ fontSize: '2.1cqw' }}>
+                        Смотри, кого поймал! Нажми на меня
+                    </div>
+                </div>
+            )}
+            {/* сирена: мыши грабят сундук */}
+            {siren && (
+                <>
+                    <div className="pointer-events-none absolute inset-0 animate-hangar-siren" style={{ zIndex: 1150, background: 'radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(230,40,40,0.55))' }} />
+                    <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center gap-[1cqw] rounded-full border-2 border-[#7A1010] bg-[#E53935] px-[2cqw] py-[0.8cqw] font-black uppercase text-white shadow-lg"
+                        style={{ top: '9%', zIndex: 1170, fontSize: '2.6cqw' }}>
+                        <Siren className="h-[3.4cqw] w-[3.4cqw] animate-pulse" /> Мыши грабят сундук!
+                    </div>
+                </>
             )}
             {/* котик: прыжок и «поймал» */}
             {cat && (

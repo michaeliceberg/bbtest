@@ -1,3 +1,4 @@
+import { getCatStatus, catAlertOf } from '@/lib/catMice'
 // app/(main)/layout.tsx
 
 import { pickActiveCourseId } from '@/lib/trainer-topic'
@@ -109,6 +110,11 @@ const MainLayout = async ({ children }: Props) => {
 
     const achievementsToClaim = await countUnclaimedAchievements(userId).catch(() => 0)
 
+    // Котик в ангаре (только ЕГЭ Математика — там задачник открывается ангаром): мыши грабят / котик голодный
+    const catAlert = activeCourseTitle?.includes('ЕГЭ Математика') && !learnLocked
+        ? await getCatStatus(userId).then(catAlertOf).catch(() => null)
+        : null
+
     return (
         <>
             <MobileHeader
@@ -120,6 +126,7 @@ const MainLayout = async ({ children }: Props) => {
                 learnLocked={learnLocked}
                 learnSubject={learnSubject}
                 isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought}
+                catAlert={catAlert}
             />
             <Sidebar
                 className='hidden lg:flex'
@@ -132,6 +139,7 @@ const MainLayout = async ({ children }: Props) => {
                 learnLocked={learnLocked}
                 learnSubject={learnSubject}
                 isAmbassador={userProgressRow?.isAmbassador}
+                catAlert={catAlert}
                 isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>

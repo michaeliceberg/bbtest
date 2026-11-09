@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket, Sparkles } from 'lucide-react'
+import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket, Sparkles, Cat, Siren } from 'lucide-react'
 import { ProSidebarButton } from '@/components/pro-sidebar-button'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
@@ -35,6 +35,8 @@ interface SidebarProps {
   theme?: UiTheme
   courses?: SidebarCourse[]
   activeCourseId?: number | null
+  /** Котик в ангаре (lib/catMice.ts): мыши грабят сундук — пункт «Задачник / Ангар» красный и дрожит; голодный — плачущий котик. */
+  catAlert?: 'raid' | 'hungry' | null
   hasHomework?: boolean
   className?: string
   // Профиль из userProgress — источник правды, в отличие от сессии
@@ -56,7 +58,7 @@ interface SidebarProps {
   isPro?: boolean // купленная подписка: кнопка PRO спокойная
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false, isPro = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false, isPro = false, catAlert = null }: SidebarProps) => {
   const claimCount = useAchievementClaimStore((st) => st.count)
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
@@ -119,6 +121,17 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
   ]
   
   const navIconEl = (item: (typeof navItems)[number], active: boolean) => {
+    // мыши грабят — мышка вместо ракеты; котик голодный — котик со слезой
+    if (item.href === '/learn' && catAlert === 'raid') return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/hangar/life/mouse-peek.webp" alt="" className="mr-3 h-6 w-auto" />
+    )
+    if (item.href === '/learn' && catAlert === 'hungry') return (
+      <span className="relative mr-3 inline-flex" title="Котик голодный — покорми его в ангаре">
+        <Cat className="h-5 w-5 text-[#F2C35B]" />
+        <span className="absolute -bottom-0.5 left-[3px] h-[6px] w-[4px] animate-bounce rounded-full bg-[#53ADEF]" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
+      </span>
+    )
     const Icon = item.icon
     return <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(active)} />
   }
@@ -236,9 +249,13 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
           )
           return (
             <TransitionLink key={item.href} href={item.href}>
-              <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
+              <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'}
+                className={cn(navButtonClass(isActive), item.href === '/learn' && catAlert === 'raid' && 'animate-nav-alarm')}
+                style={item.href === '/learn' && catAlert === 'raid' ? { ...navButtonStyle(isActive), background: '#6B1717', borderColor: '#E5534B' } : navButtonStyle(isActive)}
+                title={item.href === '/learn' && catAlert === 'raid' ? 'Мыши грабят сундук в ангаре!' : undefined}>
                 {navIconEl(item, isActive)}
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
+                {item.href === '/learn' && catAlert === 'raid' && <Siren className="ml-auto h-5 w-5 animate-pulse text-[#FF6B6B]" />}
                 {item.href === '/achievements' && claimCount > 0 && (
                   <span className="ml-auto flex h-[22px] min-w-[22px] animate-pulse items-center justify-center rounded-full bg-[#FFC53D] px-1.5 text-xs font-black text-[#4A3206] shadow-[0_0_12px_rgba(255,197,61,0.7)]" title="Есть награды за ачивки">{claimCount}</span>
                 )}

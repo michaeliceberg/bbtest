@@ -85,6 +85,8 @@ export const userProgress = pgTable('user_progress', {
 	catFish: integer('cat_fish').notNull().default(0),
 	// кормление котика (actions/cat.ts feedCat): день последнего кормления по Москве, серия дней подряд и лучшая серия
 	catFedDate: date('cat_fed_date'),
+	// Когда кормили последний раз (сытость над котиком убывает за сутки; lib/catMice.ts)
+	catFedAt: timestamp('cat_fed_at', { withTimezone: true }),
 	catFeedStreak: integer('cat_feed_streak').notNull().default(0),
 	catFeedBest: integer('cat_feed_best').notNull().default(0),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),

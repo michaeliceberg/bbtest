@@ -21,9 +21,10 @@ type Props = {
 	learnSubject?: 'math' | 'physics'
 	isAdmin?: boolean
 	isPro?: boolean
+	catAlert?: 'raid' | 'hungry' | null
 }
 
-export const MobileHeader = ({ courseTitle, courses, activeCourseId, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro }: Props) => {
+export const MobileHeader = ({ courseTitle, courses, activeCourseId, userName, userImageSrc, learnLocked, learnSubject, isAdmin, isPro, catAlert }: Props) => {
 	// По прямой просьбе пользователя (2026-09-23) — единственный заголовок
 	// на телефоне (страничные Header'ы /learn и /trainer скрыты на
 	// мобильном, см. их файлы) получает префикс раздела, чтобы не быть
@@ -68,6 +69,7 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, userName, u
 					learnSubject={learnSubject}
 				isAdmin={isAdmin}
 					isPro={isPro}
+				catAlert={catAlert}
 			/>
 			{unitButton && (
 				<motion.button
