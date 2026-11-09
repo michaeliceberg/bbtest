@@ -28,3 +28,23 @@ Avoid: `text, letters, watermark, signature, background scenery, multiple object
 | `cat-pounce.png` | the same orange cartoon cat from the reference mid-jump pouncing forward, side view, facing right, front paws stretched out, ears back, playful hunting face | Образец — `public/hangar/life/cat-jump.webp` (Image Guidance 0.5), чтобы котик был тот же |
 | `cat-caught-mouse.png` | the same orange cartoon cat sitting proudly, side view, facing right, gently holding a small grey mouse by the tail in its paw, the mouse hangs upside down looking embarrassed but unharmed | Котик поймал. Образец — `public/hangar/life/cat-sit.webp` |
 | `mouse-scared.png` | small cartoon grey mouse running away in panic, side view, facing left, ears flat, sweat drops flying, empty paws, tail straight back | Отпущенная мышка улепётывает в норку без добычи |
+
+## Кадры бега мыши: правка готовой мыши (2026-11-09)
+
+Делать НЕ с нуля, а из готового кадра 1 (`mouse-run-1.png`): Create → FLUX.1 Kontext → Add Image = кадр 1, промпт —
+команда правки «поменяй только лапы». Иначе Kontext рисует другую мышь или возвращает ту же позу. Если поза почти не
+поменялась — сила образца 0.3–0.4. Цикл: кадр 1 (лапы врозь) → 2 (в прыжке) → 3 (собрались), по 120–150 мс.
+
+Кадр 2 — в прыжке (`mouse-run-2.png`, готов):
+> The pose must be clearly different from the reference. Change only the legs and tail of this mouse, keep everything else exactly the same (same mouse, same head, same face, same ears, same size, same facing right, same colours and outlines): the mouse is flying through the air in a big jump, all four legs fully off the ground and folded tightly against the belly, paws not visible below the body, body long and stretched like a torpedo, tail raised high in an S-curve
+>
+> keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
+>
+> Avoid: same pose as reference, legs stretched forward or backward, legs touching the ground, different mouse, changed face, changed ears, facing left, extra legs, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
+
+Кадр 3 — лапы собраны (`mouse-run-3.png`):
+> The pose must be clearly different from the reference. Change only the legs and tail of this mouse, keep everything else exactly the same (same mouse, same head, same face, same ears, same size, same facing right, same colours and outlines): the mouse is landing and gathering for the next jump, body bunched up short and round like a ball, back arched upward, front paws pulled back under the chest and touching the ground, back paws brought far forward under the belly so all four paws are close together in the middle, tail low and wavy behind, close to the ground
+>
+> keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
+>
+> Avoid: same pose as reference, legs stretched forward or backward, long stretched body, tail raised high, different mouse, changed face, changed ears, facing left, extra legs, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
