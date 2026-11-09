@@ -92,7 +92,7 @@ export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = fal
         // На телефоне — во всю ширину экрана и вплотную к шапке (страница задачника даёт px-6 и сверху ~32px)
         <div id="learn-hangar" className="-mx-6 -mt-8 lg:mx-0 lg:mt-0">
             {/* 50 шапка + 106 пульт под ангаром */}
-            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} catSboxDone={catSboxDone} miceEvent={miceEvent} catFedAt={catFedAt} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={156} />
+            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} catSboxDone={catSboxDone} miceEvent={miceEvent} catFedAt={catFedAt} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={156} wideLeft />
         </div>
     )
 }

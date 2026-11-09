@@ -156,12 +156,14 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, catSboxDone = false, mice, miceEvent = null, catFedAt = null, cornerRight, cornerTop, phoneReserve = 116 }: {
+export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, catSboxDone = false, mice, miceEvent = null, catFedAt = null, cornerRight, cornerTop, phoneReserve = 116, wideLeft = false }: {
     /** плашка в правом верхнем углу ангара (серия на /learn) */
     cornerRight?: React.ReactNode
     cornerTop?: React.ReactNode // сверху по центру поверх картинки (полоска «Сета» на /learn); тогда ключ и cornerRight — столбиком слева под ней
     /** телефон: сколько px высоты экрана оставить под шапку и пульт (ангар = экран минус это) */
     phoneReserve?: number
+    /** Компьютер: ангар растягивается влево — на пустое место между сайдбаром и колонкой задачника */
+    wideLeft?: boolean
     catFood?: CatFoodStock
     catDemo?: 'barrel' | 'sbox'
     /** Ачивка «Кот Шрёдингера» уже есть — коробки в ангаре больше нет. */
@@ -213,17 +215,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
     const [panelJoke, setPanelJoke] = useState('') // случайная фраза предмета, выбирается при открытии плашки
-    // середина ангара по горизонтали в пикселях экрана — по ней центрируется плашка на компьютере
-    const [panelX, setPanelX] = useState<number | null>(null)
-    // на компьютере плашка — в body: страница задачника обёрнута анимацией (transform), и fixed внутри неё
-    // считался бы от колонки, а не от экрана (плашка уезжала вправо)
-    const [isLg, setIsLg] = useState(false)
-    useEffect(() => {
-        const mq = window.matchMedia('(min-width: 1024px)')
-        const on = () => setIsLg(mq.matches)
-        on(); mq.addEventListener('change', on)
-        return () => mq.removeEventListener('change', on)
-    }, [])
+    const panelRef = useRef<HTMLDivElement | null>(null)
     const [archiveOpen, setArchiveOpen] = useState(false)
     const [robotJoke, setRobotJoke] = useState<{ joke: ZnJoke; key: number } | null>(null)
     useEffect(() => {
@@ -325,6 +317,15 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     }
     const openItem = openNum !== null ? byNum.get(openNum) ?? null : null
     const panelItem = panelNum !== null && panelNum === openNum ? byNum.get(panelNum) ?? null : null
+    // компьютер: плашка под ангаром — докручиваем страницу, чтобы она была видна целиком (ангар почти в высоту экрана)
+    const panelShownNum = panelItem?.num ?? null
+    useEffect(() => {
+        if (panelShownNum === null) return
+        const el = panelRef.current
+        if (!el || el.classList.contains('absolute')) return
+        const t = window.setTimeout(() => el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60)
+        return () => window.clearTimeout(t)
+    }, [panelShownNum])
     // Точка, к которой приближается картинка при выборе задания (в пикселях картинки 1024×1024).
     const focusOf = (num: number): { x: number; y: number } => {
         if (num >= 14) return { x: R.x, y: R.y - R.h / 2 }
@@ -353,7 +354,13 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
         if (!el) return
         const measure = () => {
             // ширину берём у внешнего блока (рамка на компьютере сужается под квадрат) минус рамка 2+2 px
-            const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
+            // компьютер (wideLeft): колонка страницы max-w 1056 по центру справа от сайдбара 280px — слева остаётся пустая
+            // полоса; ангар занимает и её (оставляем 20px до сайдбара). Корень сдвигаем влево отрицательным отступом.
+            const ex = wideLeft && window.innerWidth >= 1024 && el.parentElement?.parentElement?.parentElement ? Math.max(0, Math.round(el.parentElement.parentElement.parentElement.getBoundingClientRect().left - 280 - 20)) : 0
+            setExtra(ex)
+            const root = el.parentElement?.parentElement
+            // wideLeft: меряем блок вокруг корня (он не меняется) + ex — ResizeObserver на корне после смены отступа не срабатывал
+            const w = (wideLeft && root?.parentElement ? root.parentElement.clientWidth + ex : root?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
             // телефон: ангар во всю высоту экрана, снизу остаётся место только под кнопки (влево · к ракете · вправо)
             const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - phoneReserve, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
@@ -363,12 +370,15 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
             })
         }
         measure()
+        // страница задачника въезжает анимацией (сдвиг по x) — левый край колонки меряем ещё раз, когда она встала
+        const late = window.setTimeout(measure, 900)
         const ro = new ResizeObserver(measure)
         ro.observe(el.parentElement?.parentElement ?? el)
         window.addEventListener('resize', measure)
-        return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-    }, [bare, phoneReserve])
+        return () => { window.clearTimeout(late); ro.disconnect(); window.removeEventListener('resize', measure) }
+    }, [bare, phoneReserve, wideLeft])
     const scrollMode = !!frame && frame.s > frame.w
+    const [extra, setExtra] = useState(0)
     // тени-фильтры у ~40 предметов — только на компьютере; телефону это слишком тяжело (подвисания на iPhone)
     const floorShadow = scrollMode ? undefined : FLOOR_SHADOW
     // можно ли ещё листать влево/вправо (стрелки под ангаром гаснут у края)
@@ -424,11 +434,6 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
         if (it?.state === 'fixed' && !goldWaiting(it)) return
         setZoomFrom(frameRef.current?.scrollLeft ?? 0)
         setOpenNum(num)
-        const fr = frameRef.current?.getBoundingClientRect()
-        if (fr) setPanelX(Math.round(fr.left + fr.width / 2))
-        // большой ангар на компьютере выше экрана: ставим его серединой в кадр (предмет после зума — в центре квадрата)
-        const el = frameRef.current
-        if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     }
     // раздел задачника под брезентом нажали в списке — открываем его предмет здесь (шаг «Тренажёры»)
     const openTaskRef = useRef(openTask)
@@ -460,11 +465,11 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
         ...(on ? { filter: HIGHLIGHT } : {}), transition: 'filter .25s',
         ...(on && time !== 'day' && !keepZ ? { zIndex: LIT_Z } : {}),
     })
-    const inBody = (el: ReactNode) => (isLg && !scrollMode ? createPortal(el, document.body) : el)
+    const inBody = (el: ReactNode) => el // плашка задания — в потоке, сразу под ангаром (и на компьютере)
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
-        <div className={`relative ${bare || scrollMode ? '' : 'mt-6 lg:mt-0'}`}>
+        <div className={`relative ${bare || scrollMode ? '' : 'mt-6 lg:mt-0'}`} style={extra && !bare ? { marginLeft: -extra } : undefined}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {/* ключ «N/20» и «Выйти» — плашками поверх картинки, вне прокручиваемой рамки (не уезжают при листании) */}
             <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s : '100%' }}>
@@ -632,13 +637,11 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                     <Confetti key={party} width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={260} />
                 </div>, document.body)}
             {!bare && panelItem && inBody((
-                // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
-                // там плашка висит внизу экрана поверх (центрирование — на обёртке, анимация — на самой плашке)
                 // Телефон (ангар листается): плашка поверх нижней части ангара, предмет при зуме уезжает в верхнюю треть.
-                // Компьютер: висит внизу экрана по центру самого ангара (panelX — середина рамки).
-                <div className={scrollMode ? 'absolute inset-x-2 bottom-2' : 'lg:pointer-events-none lg:fixed lg:bottom-5 lg:z-[1300] lg:w-[min(540px,calc(100vw-32px))] lg:-translate-x-1/2'}
-                    style={scrollMode ? { zIndex: 1300 } : panelX !== null ? { left: panelX } : undefined}>
-                <div className={`${scrollMode ? '' : 'mt-3'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full`} style={{ animation: 'hangar-pop .35s ease-out' }}>
+                // Компьютер: сразу под ангаром во всю его ширину; страница докручивается, чтобы плашка была видна целиком.
+                <div ref={panelRef} className={scrollMode ? 'absolute inset-x-2 bottom-2' : 'scroll-mb-4'}
+                    style={scrollMode ? { zIndex: 1300 } : undefined}>
+                <div className={`${scrollMode ? '' : 'mt-3'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl`} style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
                         {/* под брезентом предмет не показываем; круг — чтобы тёмные предметы читались на тёмной плашке */}
                         <ItemBadge size={48} pic={panelItem.locked ? hangarTarpPic(panelItem.num) : hangarItemPic(panelItem.num, panelItem.state === 'fixed')} />
