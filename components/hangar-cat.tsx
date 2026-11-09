@@ -216,13 +216,26 @@ function Hearts({ x, y }: { x: number; y: number }) {
 const zOf = (p: Place) => Math.round(p.z * 10) + 10
 const panelX = (x: number) => Math.min(Math.max(x, 262), 762)
 const bedOf = (b: Place) => ({ x: b.x - 6, y: b.y - 52, k: BED_K * (b.w / 150) })
-/** Маленькая полоска сытости над головой котика (внутри его рамки — едет вместе с ним, где бы он ни сидел):
- *  зелёная → жёлтая → красная, голодный — мигает. Без надписей и миски. */
-function SatietyBar({ v }: { v: number }) {
+// Где голова котика на картинке позы: [центр головы между ушами по ширине, кончики ушей по высоте] — доли картинки.
+// Полоска сытости ставится по ним, а не по центру картинки (у сидящего котика хвост слева, голова правее середины).
+const HEAD: Partial<Record<Pose, [number, number]>> = {
+    sit: [0.57, 0], 'sit-half': [0.57, 0], 'sit-closed': [0.57, 0], happy: [0.57, 0], 'sit-shy': [0.6, 0], meow: [0.5, 0], pet: [0.58, 0],
+    sniff: [0.52, 0], sun: [0.73, 0], 'sun-wink': [0.66, 0], land: [0.73, 0], eat: [0.82, 0], sleep: [0.78, 0.05],
+}
+/** Точка над ушами котика в координатах сцены: поза, место (низ по центру), масштаб, отражение, наклон и сплющивание (на бочке). */
+function headTop(pose: Pose, at: { x: number; y: number; k: number }, flip = false, tilt = 0, sy = 1) {
+    const [w, h] = CAT_PX[pose]
+    const [hx, hy] = HEAD[pose] ?? [0.5, 0]
+    const dx = ((flip ? 1 - hx : hx) - 0.5) * w * at.k, dy = -(1 - hy) * h * at.k * sy
+    const r = (tilt * Math.PI) / 180
+    return { x: at.x + dx * Math.cos(r) - dy * Math.sin(r), y: at.y + dx * Math.sin(r) + dy * Math.cos(r) }
+}
+/** Маленькая полоска сытости над головой котика: всегда горизонтальная, зелёная → жёлтая → красная, голодный — мигает. */
+function SatietyBar({ x, y, v }: { x: number; y: number; v: number }) {
     const color = v > 0.6 ? '#78C93C' : v > 0.35 ? '#F2C35B' : '#E5534B'
     return (
-        <span className={`pointer-events-none absolute left-1/2 block -translate-x-1/2 overflow-hidden rounded-full border-[0.18cqw] border-[#2A1B12] bg-[#2A1B12]/80 ${v <= 0.35 ? 'animate-pulse' : ''}`}
-            style={{ top: '-7%', width: '6cqw', height: '0.85cqw' }} title={`Сытость котика: ${Math.round(v * 100)}%`}>
+        <span className={`pointer-events-none absolute block overflow-hidden rounded-full border-[0.18cqw] border-[#2A1B12] bg-[#2A1B12]/80 ${v <= 0.35 ? 'animate-pulse' : ''}`}
+            style={{ left: pct(x), top: pct(y - 6), width: '6cqw', height: '0.85cqw', zIndex: 1150, transform: 'translate(-50%, -100%)' }} title={`Сытость котика: ${Math.round(v * 100)}%`}>
             <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.max(6, v * 100)}%`, background: color }} />
         </span>
     )
@@ -965,7 +978,6 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     transition={{ duration: stroll.walking || stroll.jump ? stroll.dur : 0, ease: stroll.jump ? [0.3, 0, 0.4, 1] : 'linear' }}
                     onClick={stroll.walking || bare ? undefined : petCat}>
                     {!stroll.perch && !stroll.jump && <CatShadow />}
-                    {!bare && !stroll.walking && !stroll.jump && !stroll.crouch && !stroll.under && shownSatiety !== null && <SatietyBar v={shownSatiety} />}
                     {/* прыжок — дугой: кроме перелёта к точке, картинка подлетает вверх и опускается */}
                     <motion.div className="absolute inset-0"
                         animate={{ y: stroll.walking ? ['0%', '-1.5%', '0%'] : stroll.jump ? ['0%', '-45%', '0%'] : stroll.eat ? ['0%', '1.6%', '0%'] : '0%' }}
@@ -979,10 +991,17 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 style={{ ...box(pose, BED), zIndex: catZ }}
                 onClick={() => { if (night) { playJustClick(); if (dreamOn) nextDream(); else openDream(); return } if (asleep) return; petCat() }}>
                 <CatImg pose={pose} poses={allSit} />
-                {!bare && shownSatiety !== null && <SatietyBar v={shownSatiety} />}
             </button>
             )}
             {meal && <MealBowl meal={meal} />}
+            {/* сытость — над ушами котика, где бы он ни сидел; на ходу, в прыжке и под столом не показываем */}
+            {!bare && shownSatiety !== null && (stroll
+                ? !stroll.walking && !stroll.jump && !stroll.crouch && !stroll.under && (() => {
+                    const perch = !!stroll.perch && !stroll.land
+                    const t = headTop(strollPose, { x: stroll.x, y: stroll.y, k: strollK }, stroll.flip, perch ? BARREL_TILT : 0, perch ? 0.9 : 1)
+                    return <SatietyBar x={t.x} y={t.y} v={shownSatiety} />
+                })()
+                : sbox === 'idle' && !away && (() => { const t = headTop(pose, BED); return <SatietyBar x={t.x} y={t.y} v={shownSatiety} /> })())}
             {stroll?.perch && !stroll.jump && (
                 // котик на бочке греется: тёплое пятно солнца на нём
                 <div className="pointer-events-none absolute rounded-full" style={{ left: pct(stroll.x - 70), top: pct(stroll.y - 120), width: pct(140), height: pct(150),
