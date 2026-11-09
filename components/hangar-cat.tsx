@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CAT_DECOR, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
+import { CAT_DECOR, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
@@ -344,7 +344,7 @@ function SchrodingerBox({ p, state, onOpen }: { p: Place; state: 'idle' | 'close
         <button type="button" disabled={!onOpen} onClick={onOpen} aria-label={onOpen ? 'Открыть коробку' : 'Коробка'}
             className={`absolute select-none ${onOpen ? 'cursor-pointer' : 'pointer-events-none'}`}
             // поверх хлама на полу (штаны, банки), как и сам котик
-            style={{ ...placeStyle(p), zIndex: CAT_TOP_Z - 5 }}>
+            style={{ ...placeStyle(p), zIndex: depthZIndex(p.y) }}>
             {(['open', 'closed', 'peek'] as const).map((k) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <motion.img key={k} src={`/hangar/life/cat-sbox-${k}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full"
@@ -588,6 +588,18 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const t = setInterval(() => setStep((s) => (s + 1) % 3), 150)
         return () => clearInterval(t)
     }, [phase, stroll?.walking])
+
+    // Слой гуляющего котика — по глубине, как у предметов (depthZIndex по низу на полу): за тем, что стоит ближе к
+    // зрителю, котик прячется. Пока идёт — глубина по тому, где сейчас его лапы (читаем из DOM на каждом кадре ходьбы).
+    const strollElRef = useRef<HTMLDivElement>(null)
+    const [liveY, setLiveY] = useState<number | null>(null)
+    useEffect(() => {
+        const el = strollElRef.current
+        const parent = el?.parentElement
+        if (!el || !parent || !stroll?.walking) { setLiveY(null); return }
+        const r = el.getBoundingClientRect(), pr = parent.getBoundingClientRect()
+        if (pr.height > 0) setLiveY(((r.bottom - pr.top) / pr.height) * 1024)
+    }, [step, stroll?.walking]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // дома иногда мяукает сам
     useEffect(() => {
@@ -891,7 +903,11 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам; под столом — лежит.
                 // Слой — поверх всего на полу (CAT_TOP_Z), размер — по глубине точки (kAt).
-                <motion.div className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`} style={{ zIndex: CAT_TOP_Z, transformOrigin: '50% 100%' }}
+                // слой: прыжки, бочка, еда, под столом, коробка Шрёдингера — поверх всего на полу (CAT_TOP_Z, как раньше);
+                // обычная прогулка — по глубине лап
+                <motion.div ref={strollElRef} className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`}
+                    style={{ zIndex: stroll.jump || stroll.crouch || stroll.land || stroll.perch || stroll.eat || stroll.under || stroll.ky !== undefined || sbox !== 'idle'
+                        ? CAT_TOP_Z : depthZIndex((stroll.walking && liveY !== null ? liveY : stroll.y) + 4), transformOrigin: '50% 100%' }}
                     // старт прогулки — от коробки (раньше initial={false}: котик сразу оказывался в точке прогулки, «телепортировался»)
                     initial={box('walk-1', { x: BED.x, y: BED.y, k: kAt(BED.y) })}
                     // на бочке котик лежит вдоль её верха: бочка лежит наискосок (верх уходит вверх-вправо ~8°), поэтому котик
