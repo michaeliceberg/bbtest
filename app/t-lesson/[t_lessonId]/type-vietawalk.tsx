@@ -387,17 +387,17 @@ const PairSlot = ({ label, val, active, state, onClick }: {
     label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
 }) => {
     // Верно — числа остаются белыми, рамка бледно-зелёная: иначе зелёные 3 и 4 сливались с салатовым c (12).
-    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
+    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : '#3A464E'
     const color = state === 'bad' ? BAD_COLOR : '#F2F7FB'
     const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
         <button type="button" onClick={onClick}
-            className="min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors"
+            className={cn('min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors', active && !state && 'animate-slot-hop')}
             style={{ borderColor: border, color, backgroundColor: bg }}>
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
-                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
+                : <span className={cn('text-xl', active && !state && 'animate-slot-label-fast')}
                     style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
         </button>
     )
@@ -605,7 +605,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, rightOverride,
 // 1–2. Подбери 2 числа: произведение и сумма.
 // explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
 // 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
-const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, assemble, memo, quickMemo }: SceneProps & { intro: string; sysText?: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean; quickMemo?: boolean }) => {
+const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, assemble, memo, quickMemo, noDiscr }: SceneProps & { intro: string; sysText?: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean; quickMemo?: boolean; noDiscr?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
     // memo (1-е уравнение): «Запомни систему:» → строка x₁·x₂ = c → «Ага, вижу c справа» → строка x₁+x₂ = −b →
@@ -702,8 +702,12 @@ const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, asse
                     onDone={() => setAsmStep(3)} />
             )}
             {phase >= 4 && (
-                <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
-                    parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
+                <TypedBig onDone={() => (explain ? setPhase(5) : noDiscr ? setPhase(4.5) : onSettled?.())} readMs={explain ? 900 : 300}
+                    parts={[{ text: 'x₁ = ' }, { text: `${x1}`, color: ROOT_COLOR }, { text: ', x₂ = ' }, { text: `${x2}`, color: ROOT_COLOR }]} />
+            )}
+            {noDiscr && phase >= 4.5 && (
+                <TypedBig small onDone={() => onSettled?.()} readMs={300}
+                    parts={[{ text: 'Мы нашли ответ даже без дискриминанта!' }]} />
             )}
             {explain && phase >= 5 && (
                 <TypedBig small onDone={() => setPhase((p) => Math.max(p, 6))} readMs={700}
@@ -732,7 +736,7 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     }, [])
     return null
 }
-const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble memo />
+const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble memo noDiscr />
 const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" sysText="Составим систему:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} assemble memo quickMemo />
 
 // «КОМБО»: решаем Виетом в 2 этапа. Этап 1 — правая часть (c и −b), этап 2 — подбираем x₁ и x₂.
@@ -801,7 +805,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
         const rv = right[i]
         // Заполненная правая часть — нейтральная рамка (зелёная сбивала с толку), красная — только при ошибке.
         const rightBorder = stage === 2 ? '#3A464E'
-            : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(B_COLOR, 0.75) : '#3A464E'
+            : st === 'bad' ? BAD_COLOR : active === i && !result ? B_COLOR : '#3A464E'
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] rounded-2xl px-2 py-1.5 border-2 transition-all duration-500"
@@ -816,12 +820,12 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                     onClick={() => stage === 2 && !result && setActive(1)} />
                 <span>=</span>
                 <button type="button" onClick={() => stage === 1 && !result && setActive(i)}
-                    className="min-w-[64px] h-[52px] px-2 rounded-xl border-2 border-b-4 bg-[#161F23] flex items-center justify-center transition-colors"
+                    className={cn('min-w-[64px] h-[52px] px-2 rounded-xl border-2 border-b-4 bg-[#161F23] flex items-center justify-center transition-colors', stage === 1 && active === i && !result && rv === null && 'animate-slot-hop')}
                     style={{ borderColor: rightBorder }}>
                     {rv !== null
                         ? <motion.span key={rv} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: stage === 1 && st === 'bad' ? BAD_COLOR : color }}>{fmt(rv)}</motion.span>
-                        : <span className={cn('text-xl', active === i && 'animate-slot-label')}
+                        : <span className={cn('text-xl', active === i && 'animate-slot-label-fast')}
                             style={{ color: active === i ? B_COLOR : '#5C6B73', ['--slot-c' as string]: B_COLOR }}>?</span>}
                 </button>
                 {/* Галочка/крестик справа после проверки этапа, исчезают вместе со сменой этапа/сбросом. */}
@@ -896,8 +900,9 @@ const ZakrepScene = ({ onSettled }: SceneProps) => {
         <>
             <ZakrepPlate />
             <PauseThen ms={1200} onDone={() => setPhase(1)} />
-            {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={400} parts={[{ text: 'Сам составь систему и найди x₁ x₂' }]} />}
-            {phase >= 2 && (
+            {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={400} parts={[{ text: 'Сначала составь систему' }]} />}
+            {phase >= 2 && <TypedBig small onDone={() => setPhase(3)} readMs={400} parts={[{ text: 'И потом найди x₁ x₂' }]} />}
+            {phase >= 3 && (
                 <ComboRounds rounds={ZAKREP_ROUNDS} onDone={() => onSettled?.()}
                     doneText={<TypedBig parts={[{ text: 'Закреп ' }, { text: 'есть', color: OK_COLOR }, { text: ' 💪' }]} readMs={200} />} />
             )}
@@ -1443,7 +1448,7 @@ const X1_ROUNDS: RootRound[] = [
 const RootSlot = ({ label, val, active, state, onClick }: {
     label: string; val: string | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
 }) => {
-    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
+    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : '#3A464E'
     const color = state === 'bad' ? BAD_COLOR : '#F2F7FB'
     const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
@@ -1453,7 +1458,7 @@ const RootSlot = ({ label, val, active, state, onClick }: {
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-flex"><NumText s={val} /></motion.span>
-                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
+                : <span className={cn('text-xl', active && !state && 'animate-slot-label-fast')}
                     style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
         </button>
     )
@@ -1581,7 +1586,8 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
 const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryOneScene, X1PracticeScene, CheckMinusScene, SummaryMinusScene, MixPracticeScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
-    [CoefScene, 'Невидимка, понял 👀'],
+    [CoefScene, 'a = 1 Невидимка, понял'],
+    [Guess56Scene, 'Круто! Решили без дискриминанта!'],
     [TheoremScene, 'Запомнил!'],
     [CheckOneScene, 'ГАААААЗ'],
     [CheckMinusScene, 'ГАААААЗ'],

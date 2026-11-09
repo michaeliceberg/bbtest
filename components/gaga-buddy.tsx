@@ -57,14 +57,8 @@ export const endLessonFun = () => { lessonActive = false; setJokeTopic(null) }
 let answers = 0
 let nextAt = 2 + Math.floor(Math.random() * 2)
 export const reportGagaAnswer = (correct: boolean): boolean => {
-    if (correct && lessonActive) {
-        lessonCorrect++
-        if (!dictShown && lessonCorrect >= 3 && Math.random() < DICT_CHANCE) {
-            dictShown = true
-            showDictGame()
-            return true
-        }
-    }
+    // В уроке тренажёра ни шуток Мигеля, ни «Словаря физтеха»: внимание ребёнка только на задачах, на ответы — стикеры-мемы
+    if (lessonActive) return false
     answers++
     if (answers < nextAt) return false
     if (Date.now() - lastShownAt < MIN_GAP_MS) return false

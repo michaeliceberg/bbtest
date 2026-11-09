@@ -800,6 +800,11 @@ body {
 /* Активный слот x₁/x₂ (Виета): спокойная кнопка, только сама буква мягко переливается в белый. */
 @keyframes slot-label { 0%, 100% { color: var(--slot-c); } 50% { color: #FFFFFF; } }
 .animate-slot-label { animation: slot-label 1.6s ease-in-out infinite; }
+/* Активный слот, куда сейчас подставляем: кнопка заметно подпрыгивает, буква мигает быстрее и ярче (только transform/opacity/color). */
+@keyframes slot-hop { 0%, 55%, 100% { transform: translateY(0); } 15% { transform: translateY(-9px); } 30% { transform: translateY(0); } 42% { transform: translateY(-4px); } }
+.animate-slot-hop { animation: slot-hop 1.1s ease-in-out infinite; }
+@keyframes slot-label-fast { 0%, 100% { color: var(--slot-c); transform: scale(1); } 50% { color: #FFFFFF; transform: scale(1.3); } }
+.animate-slot-label-fast { display: inline-block; animation: slot-label-fast 0.8s ease-in-out infinite; }
 
 /* Варианты ответа в пошаговых разборах «падают сверху» по очереди, через 0,5 с после вопроса.
    Класс вешается на контейнер (сетку) вариантов. backwards — до старта скрыты, после — обычный вид. */
