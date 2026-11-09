@@ -360,7 +360,9 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
             // ловил колонку на ходу — ангар уезжал левым краем под сайдбар. Колонка: сайдбар 280 + поле (ширина − 280 − 1056)/2
             // + px-6 (24); до сайдбара оставляем 20px. clientWidth — без полосы прокрутки.
             const vw = document.documentElement.clientWidth
-            const ex = wideLeft && window.innerWidth >= 1024 ? Math.max(0, Math.floor((vw - 280 - 1056) / 2) + 24 - 20) : 0
+            // ОТКЛЮЧЕНО 2026-11-09: страницу задачника оборачивает LearnWrapper с overflow-x-clip — сдвинутая влево часть
+            // ангара обрезалась (у учеников был виден только правый кусок). Ангар — строго по ширине колонки.
+            const ex = 0 * vw
             setExtra(ex)
             const root = el.parentElement?.parentElement
             // wideLeft: меряем блок вокруг корня (он не меняется) + ex — ResizeObserver на корне после смены отступа не срабатывал
