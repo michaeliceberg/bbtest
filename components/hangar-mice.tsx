@@ -23,9 +23,11 @@ export type MiceScene = 'peek' | 'raid' | 'catch'
 
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
-// норка: кусок стены и её «вход» (низ арки по центру)
-const HOLE_IMG = { x: 901, y: 657, w: 96, h: 65 }
-const HOLE = { x: 976, y: 709 }
+// норка — место из редактора (MICE_DECOR 'mouse-hole'); вход (низ арки по центру) — доля картинки куска стены
+const HOLE_MOUTH = { dx: 0.28, dy: 0.2 }
+// мышка в норке — в перспективе стены, как сама норка: стена справа уходит вниз к зрителю (skewY > 0), слева — наоборот
+const WALL_SKEW = 20
+const WALL_SQUASH = 0.85
 // сундук — место из редактора /test-hangar-layout (MICE_DECOR); низ корпуса выше низа рамки (там монеты на полу)
 const CHEST_BODY_BOTTOM = 0.93 // доля высоты картинки, где низ корпуса
 
@@ -38,7 +40,34 @@ const IMG = {
     caught: { src: '/hangar/life/cat-caught-mouse.webp', r: 338 / 320 },
 }
 // ширина мышки растёт к зрителю: у норки 46, на 100 точек ближе — на 10 больше
-const mouseW = (y: number) => Math.max(40, Math.min(66, 46 + ((y - HOLE.y) / 100) * 10))
+const mouseW = (y: number, holeY: number) => Math.max(40, Math.min(66, 46 + ((y - holeY) / 100) * 10))
+
+// Что пищит мышка, когда её засекли (случайная фраза; шутки про физику и математику).
+const CAUGHT_PHRASES = [
+    'Пи! Меня засекли!',
+    'Я тут просто π считаю…',
+    'Пи = 3,14… дальше не помню!',
+    'Я не мышь, я точка на графике!',
+    'Тсс! Я в суперпозиции',
+    'Ты меня не видел. Я — мнимая единица',
+    'Я просто стремлюсь к нулю…',
+    'Кратчайший путь — прямо в норку!',
+    'Скорость — производная от страха!',
+    'Норка — начало моих координат',
+    'Не трогай, я корень уравнения!',
+    'Мой вектор направлен к сыру',
+    'Я не ворую, я перераспределяю',
+    'Ищу экстремум… сыра',
+    'Сработал закон сохранения мышки',
+    'Не говори котику!',
+    'Сыр делится на всё, кроме котика',
+    'Я тут на подготовке к ЕГЭ',
+    'Мышь Шрёдингера: я есть и меня нет',
+    'Сила трения тянет меня в норку!',
+    'Пи-пи-пи! Это не сигнал, это я',
+    'Мой IQ — целое число сыров',
+]
+const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]
 
 type Pose = 'run' | 'stand' | 'carry' | 'peek'
 type MouseState = { x: number; y: number; pose: Pose; flip: boolean; dur: number; show: boolean }
@@ -70,10 +99,14 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     offline?: boolean
     /** Превью ангара: мышку нельзя нажать. */
     bare?: boolean
-    /** Расстановка из редактора (место сундука). */
+    /** Расстановка из редактора (место норки и сундука). */
     layout?: LayoutOverrides | null
 }) {
-    const chestP = placeAnyState(layout, 'a', MICE_DECOR[0])
+    const holeP = placeAnyState(layout, 'a', MICE_DECOR[0])
+    const HOLE = { x: holeP.x - holeP.w / 2 + holeP.w * (0.5 + HOLE_MOUTH.dx), y: holeP.y - holeP.h * HOLE_MOUTH.dy }
+    const holeK = holeP.w / 96 // окошко выглядывания растёт вместе с норкой
+    const skew = holeP.x > 512 ? WALL_SKEW : -WALL_SKEW
+    const chestP = placeAnyState(layout, 'a', MICE_DECOR[1])
     const CHEST = { x: chestP.x, y: chestP.y - chestP.h * (1 - CHEST_BODY_BOTTOM), w: chestP.w }
     const [mouse, setMouse] = useState<MouseState>({ ...HOLE, pose: 'peek', flip: false, dur: 0, show: false })
     const [peekUp, setPeekUp] = useState(false)
@@ -138,11 +171,11 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
         // catch
         setChest('closed')
         let t = peek(200, 1400)
-        const mid = { x: 840, y: 760 }
+        const mid = { x: Math.round(HOLE.x - 130), y: Math.round(HOLE.y + 50) } // от норки к зрителю — котик успевает прыгнуть
         later(t, () => setMouse({ ...HOLE, pose: 'run', flip: true, dur: 0, show: true }))
         t = runTo(t + 50, HOLE, mid, 'run', 90)
         // котик прыгает слева на мышку
-        const from = { x: 560, y: 820 }
+        const from = { x: mid.x - 280, y: mid.y + 60 }
         later(t - 700, () => setCat({ pose: 'pounce', x: from.x, y: from.y, w: 150, dur: 0, flip: false }))
         later(t - 650, () => setCat({ pose: 'pounce', x: mid.x - 40, y: mid.y + 10, w: 150, dur: 0.65, flip: false }))
         later(t, () => { setMouse((m) => ({ ...m, show: false })); setCat({ pose: 'caught', x: mid.x - 20, y: mid.y + 12, w: 120, dur: 0, flip: false }); setSay({ x: mid.x - 20, y: mid.y - 120, text: 'Попалась! 😼' }) })
@@ -175,14 +208,14 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
         playJustClick()
         clearAll()
         setLook(false)
-        setSay({ x: HOLE.x - 30, y: HOLE.y - 80, text: 'Пи! Меня засекли! 🙈' })
+        setSay({ x: HOLE.x, y: HOLE.y - 40 * holeK, text: pick(CAUGHT_PHRASES) })
         later(250, () => setPeekUp(false))
-        later(1800, () => setSay(null))
-        later(2000, () => { setMouse((m) => ({ ...m, show: false })); busy.current = false })
+        later(2600, () => setSay(null))
+        later(2800, () => { setMouse((m) => ({ ...m, show: false })); busy.current = false })
         if (!offline) reportAchievement('mouse_spy')
     }
 
-    const w = mouseW(mouse.y)
+    const w = mouseW(mouse.y, HOLE.y)
     const pose = mouse.pose
     const r = pose === 'run' || pose === 'stand' ? IMG.run.r : IMG[pose].r
     return (
@@ -190,7 +223,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             {/* норка в стене: поверх фона, под всем на полу */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/hangar/life/mouse-hole.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
-                style={{ left: pct(HOLE_IMG.x), top: pct(HOLE_IMG.y), width: pct(HOLE_IMG.w), height: pct(HOLE_IMG.h), zIndex: 2 }} />
+                style={{ ...placeStyle(holeP), zIndex: 2 }} />
             {/* сундук с богатством: три картинки в одной рамке, видна одна */}
             {showChest && <div className="pointer-events-none absolute" style={placeStyle(chestP)}>
                 {(['closed', 'open', 'robbed'] as const).map((c) => (
@@ -202,7 +235,8 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             {/* выглядывает: голова поднимается из норки, обрезана по её низу */}
             {mouse.show && pose === 'peek' && mouse.x === HOLE.x && (
                 <div className={`absolute overflow-hidden ${bare ? 'pointer-events-none' : 'cursor-pointer'}`} onClick={caught}
-                    style={{ left: pct(HOLE.x - 24), top: pct(HOLE.y - 34), width: pct(48), height: pct(34), zIndex: 3 }}>
+                    style={{ left: pct(HOLE.x - 24 * holeK), top: pct(HOLE.y - 34 * holeK), width: pct(48 * holeK), height: pct(34 * holeK), zIndex: 3,
+                        transform: `skewY(${skew}deg) scaleX(${WALL_SQUASH})`, transformOrigin: '50% 100%' }}>
                     <motion.div className="absolute bottom-0 left-0 w-full" style={{ height: '100%' }}
                         animate={{ y: peekUp ? '0%' : '105%' }} initial={{ y: '105%' }} transition={{ type: 'spring', stiffness: 260, damping: 18 }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -248,8 +282,10 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             )}
             {say && (
                 // центрирование — на статичной обёртке: framer перезаписывает transform анимируемого узла
-                <div className="pointer-events-none absolute -translate-x-1/2" style={{ left: pct(say.x), top: pct(say.y), zIndex: 1160 }}>
-                    <motion.div key={say.text} className="whitespace-nowrap rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2 py-0.5 font-black text-[#5A3A22] shadow-md"
+                // у края ангара облачко уходит внутрь (прижато правым/левым краем), длинная фраза переносится
+                <div className="pointer-events-none absolute" style={{ left: pct(say.x), top: pct(say.y), zIndex: 1160,
+                    transform: `translate(${say.x > 760 ? '-92%' : say.x < 260 ? '-8%' : '-50%'}, -100%)` }}>
+                    <motion.div key={say.text} className="w-max max-w-[30cqw] rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2 py-1 text-center font-black leading-tight text-[#5A3A22] shadow-md"
                         style={{ fontSize: '2.2cqw' }}
                         initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 14 }}>
                         {say.text}

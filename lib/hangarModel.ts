@@ -78,6 +78,10 @@ export const CAT_DECOR: Decor[] = [
 // Не ломается — место одно на обе вкладки редактора (берём ту, где сдвинули). Картинка — в общей рамке с открытым
 // и ограбленным сундуком (монеты на полу), поэтому низ рамки чуть ниже корпуса.
 export const MICE_DECOR: Decor[] = [
+    // норка — кусок стены у пола (вырезан из правки ангара); мышка выглядывает из её арки
+    { key: 'mouse-hole', label: 'Норка мыши',
+        a: { src: '/hangar/life/mouse-hole.webp', x: 949, y: 722, w: 96, h: 65 },
+        b: { src: '/hangar/life/mouse-hole.webp', x: 949, y: 722, w: 96, h: 65 } },
     { key: 'loot-chest', label: 'Сундук с богатством',
         a: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 },
         b: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 } },
