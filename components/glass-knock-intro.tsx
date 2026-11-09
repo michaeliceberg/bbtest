@@ -48,7 +48,7 @@ export function GlassKnockIntro({ src, targetRef, size, onActive, force = false 
             setFrom({ x: r.left + r.width / 2 - window.innerWidth / 2, y: r.top + size / 2 - window.innerHeight / 2, scale: size / side, side })
             onActive(true)
             setPhase('grow')
-            timers.current.push(window.setTimeout(() => { setPhase('knock'); playSound(KNOCK_GLASS_SOUND) }, GROW_MS))
+            timers.current.push(window.setTimeout(() => { setPhase('knock'); playSound(KNOCK_GLASS_SOUND, 1 / 3) }, GROW_MS))
             timers.current.push(window.setTimeout(goBack, GROW_MS + HOLD_MS))
         }, { threshold: 0.6 })
         io.observe(el)

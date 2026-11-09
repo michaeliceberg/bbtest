@@ -244,7 +244,7 @@ export const GagaBuddyLayer = () => {
                     voiceDone = true
                     const rest = MIN_SHOW_MS - (Date.now() - startedAt)
                     timers.current.push(setTimeout(leave, Math.max(400, rest)))
-                }, 0.9)
+                }, 0.3)
             }
             timers.current.push(setTimeout(() => { if (voiceDone) leave() }, MIN_SHOW_MS))
             timers.current.push(setTimeout(leave, MAX_SHOW_MS))

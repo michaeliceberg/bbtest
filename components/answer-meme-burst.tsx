@@ -7,7 +7,7 @@ import { playRightClick } from '@/lib/sound'
 // плавно поднимается вверх, мигая подсветкой (красной — неверно, зелёной — верно);
 // через 2 секунды резко, с ускорением, улетает вверх и схлопывается в точку. Картинки — public/answer-meme-right/N.webp
 // и public/answer-meme-wrong/N.webp (стикеры 512×512).
-// На неверный ответ — всегда, на верный — с шансом 50%.
+// На неверный ответ — всегда, на верный — всегда.
 //
 // Использование: на странице один раз <AnswerMemeLayer />, дальше
 // showAnswerMeme(isCorrect) в обработчике ответа. Точку берём из последнего
@@ -20,7 +20,7 @@ import { reportGagaAnswer } from '@/components/gaga-buddy'
 
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
-const RIGHT_CHANCE = 0.5
+const RIGHT_CHANCE = 1
 const SHOW_MS = 2000
 const SIZE = 132
 
