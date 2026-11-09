@@ -122,3 +122,11 @@ y 400–800), сила 0.7–0.8. Я потом вырежу из результ
 > keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
 >
 > Avoid: empty chest, almost empty, closed lid, different chest, broken chest, mice, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
+
+`loot-chest-robbed.png`, третья версия: вторая (`loot-chest-robbed-v2.jpg`) удалась, но золота столько же, сколько в
+полном. Add Image = `loot-chest-robbed-v2.jpg`, сила 0.5:
+> The amount of gold must be clearly smaller than in the reference. Keep exactly the same open treasure chest (same wood, same iron bands, same lid, same padlock, same paw prints, same two coins on the ground, same size, same angle, same colours and outlines), but much less treasure inside: the gold coins now fill the chest only about one third of the way up and lie low and flat below the front rim, with uneven gaps where coins were dug out, only one pizza slice with a bite missing, only one small pink gem, the wooden inner walls of the chest are clearly visible above the coins, no glow
+>
+> keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
+>
+> Avoid: chest full to the top, coins piled above the rim, overflowing, empty chest, different chest, closed lid, mice, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
