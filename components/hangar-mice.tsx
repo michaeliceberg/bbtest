@@ -19,6 +19,9 @@ import { reportAchievement } from '@/lib/achievementsClient'
 import { playJustClick, playSound, CAT_MEW_SOUNDS } from '@/lib/sound'
 import { Siren } from 'lucide-react'
 import type { MiceLoot } from '@/lib/catMice'
+import Lottie from '@/components/lottie-player'
+import LottieCoins from '@/public/Lottie/LottieCoins.json'
+import LottieGems from '@/public/Lottie/LottieGems.json'
 import { MICE_DECOR, placeAnyState, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 
 export type MiceScene = 'peek' | 'raid' | 'catch'
@@ -85,24 +88,11 @@ function boxAt(x: number, y: number, w: number, r: number) {
 function Loot({ kind }: { kind: MiceLoot }) {
     if (kind === 'pizza') return (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/pizzaSVG/pizza_8_1.svg" alt="" draggable={false} className="h-full w-full select-none" />
+        <img src="/pizzaSVG/pizza_8_1.svg" alt="" draggable={false} className="h-full w-full select-none drop-shadow-[0_3px_0_rgba(0,0,0,0.35)]" />
     )
-    if (kind === 'gems') return (
-        <svg viewBox="0 0 20 20" className="h-full w-full">
-            <path d="M5 4 H15 L19 9 L10 19 L1 9 Z" fill="#F07BC3" stroke="#5A1F3F" strokeWidth="1.4" strokeLinejoin="round" />
-            <path d="M1 9 H19 M7 4 L10 19 L13 4" fill="none" stroke="#B23F82" strokeWidth="0.9" />
-        </svg>
-    )
-    return <Coin />
-}
-
-function Coin() {
-    return (
-        <svg viewBox="0 0 20 20" className="h-full w-full">
-            <ellipse cx="10" cy="10" rx="8.5" ry="8.5" fill="#F2C35B" stroke="#5A3A12" strokeWidth="1.6" />
-            <ellipse cx="10" cy="10" rx="5" ry="5" fill="none" stroke="#B8862E" strokeWidth="1.2" />
-        </svg>
-    )
+    // монета в LottieCoins нарисована внизу холста и мелко — увеличиваем и поднимаем
+    if (kind === 'gems') return <Lottie animationData={LottieGems} className="h-full w-full" />
+    return <Lottie animationData={LottieCoins} className="h-full w-full" style={{ transform: 'scale(2.2) translateY(-14%)' }} />
 }
 
 export type MiceEventView = { id: number; kind: 'raid' | 'catch'; lootKind: MiceLoot; resolved: boolean }
@@ -324,8 +314,8 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
                         )}
                     </div>
                     {loot && (
-                        <motion.div className="absolute" style={{ left: '38%', top: '-28%', width: '34%', aspectRatio: '1' }}
-                            initial={{ scale: 0, y: 10 }} animate={{ scale: 1, y: [0, -3, 0] }} transition={{ y: { duration: 0.3, repeat: Infinity }, scale: { type: 'spring', stiffness: 400, damping: 12 } }}>
+                        <motion.div className="pointer-events-none absolute" style={{ left: '-10%', top: '-108%', width: '120%', aspectRatio: '1' }}
+                            initial={{ scale: 0, y: 10 }} animate={{ scale: 1, y: [0, -10, 0] }} transition={{ y: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', stiffness: 400, damping: 12 } }}>
                             <Loot kind={loot} />
                         </motion.div>
                     )}
