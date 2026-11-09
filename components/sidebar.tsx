@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket, Sparkles, Cat, Siren } from 'lucide-react'
+import { Dumbbell, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Rocket, Sparkles, Siren } from 'lucide-react'
 import { ProSidebarButton } from '@/components/pro-sidebar-button'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
@@ -128,8 +128,10 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
     )
     if (item.href === '/learn' && catAlert === 'hungry') return (
       <span className="relative mr-3 inline-flex" title="Котик голодный — покорми его в ангаре">
-        <Cat className="h-5 w-5 text-[#F2C35B]" />
-        <span className="absolute -bottom-0.5 left-[3px] h-[6px] w-[4px] animate-bounce rounded-full bg-[#53ADEF]" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }} />
+        {/* голова нашего котика (вырезана из cat-sit) и слеза под левым глазом */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/hangar/life/cat-head.webp" alt="" className="h-7 w-7" />
+        <span className="absolute left-[7px] top-[17px] h-[7px] w-[5px] animate-bounce bg-[#53ADEF]" style={{ borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%', boxShadow: '0 0 0 1px #1E3A5F' }} />
       </span>
     )
     const Icon = item.icon
