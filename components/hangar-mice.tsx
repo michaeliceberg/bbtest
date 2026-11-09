@@ -314,7 +314,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
                         )}
                     </div>
                     {loot && (
-                        <motion.div className="pointer-events-none absolute" style={{ left: '-10%', top: '-108%', width: '120%', aspectRatio: '1' }}
+                        <motion.div className="pointer-events-none absolute" style={{ left: '-70%', top: '-228%', width: '240%', aspectRatio: '1' }}
                             initial={{ scale: 0, y: 10 }} animate={{ scale: 1, y: [0, -10, 0] }} transition={{ y: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', stiffness: 400, damping: 12 } }}>
                             <Loot kind={loot} />
                         </motion.div>
