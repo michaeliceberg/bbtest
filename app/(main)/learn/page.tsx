@@ -431,8 +431,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           : <ScrollToLesson lessonId={lastTouchedLessonId} />}
       </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
-        {/* экран ангара: на окне уже 1280 правая колонка отняла бы у ангара половину ширины — прячем её */}
-        <StickyWrapper from={onHangarScreen ? 'xl' : 'lg'}>
+        {/* экран ангара: правой колонки нет — ангар на всю ширину (серия и Сетометр в углу ангара) */}
+        {!onHangarScreen && <StickyWrapper>
           <UserProgress
             activeCourse={activeCourse}
             hearts={currentHearts}
@@ -464,7 +464,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               isCompleted={isHwCompleted}
             />
           )}
-        </StickyWrapper>
+        </StickyWrapper>}
 
         <FeedWrapper>
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
