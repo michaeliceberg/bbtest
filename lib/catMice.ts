@@ -14,7 +14,7 @@ import { moscowToday } from '@/lib/catFood'
 
 export type MiceEventKind = 'raid' | 'catch'
 export type MiceLoot = 'pizza' | 'coins' | 'gems' | null
-export type MiceEvent = { id: number; kind: MiceEventKind; lootKind: MiceLoot; lootAmount: number; resolved: boolean }
+export type MiceEvent = { id: number; kind: MiceEventKind; lootKind: MiceLoot; lootAmount: number; resolved: boolean; resolvedAt: string | null }
 export type CatStatus = { hasCat: boolean; event: MiceEvent | null; fedAt: string | null }
 
 const CATCH_CHANCE = 0.7
@@ -30,7 +30,7 @@ const dayBefore = (d: string) => {
 }
 const toEvent = (r: Row): MiceEvent | null =>
     r.kind === 'raid' || r.kind === 'catch'
-        ? { id: Number(r.id), kind: r.kind, lootKind: (r.loot_kind as MiceLoot) ?? null, lootAmount: Number(r.loot_amount ?? 0), resolved: !!r.resolved_at }
+        ? { id: Number(r.id), kind: r.kind, lootKind: (r.loot_kind as MiceLoot) ?? null, lootAmount: Number(r.loot_amount ?? 0), resolved: !!r.resolved_at, resolvedAt: r.resolved_at ? new Date(r.resolved_at as string).toISOString() : null }
         : null
 
 /** Событие с мышами на сегодня (создаётся при первом заходе за день) и время последнего кормления. */

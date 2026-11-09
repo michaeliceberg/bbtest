@@ -11,7 +11,7 @@
 // Картинки — public/hangar/life/cat-*.webp (Leonardo, исходники docs/hangar/leonardo/cat-*.png), все в одном масштабе:
 // размер позы в сцене = исходный размер (CAT_PX) × масштаб глубины. Координаты сцены — 1024×1024, точка = низ по центру.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CAT_DECOR, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
@@ -149,20 +149,46 @@ const PHRASES = {
 }
 const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)]
 
+/** На телефоне ангар шире экрана (листается вбок): окно поверх ангара сдвигаем внутрь видимой части экрана.
+ *  Возвращает ref и сдвиг в px для translateX. */
+function useFitInView() {
+    const boxRef = useRef<HTMLDivElement>(null)
+    const [shift, setShift] = useState(0)
+    useLayoutEffect(() => {
+        const fit = () => {
+            const el = boxRef.current
+            if (!el) return
+            const r = el.getBoundingClientRect()
+            const left = r.left - shift, right = r.right - shift, pad = 10
+            let d = 0
+            if (right > window.innerWidth - pad) d = window.innerWidth - pad - right
+            if (left + d < pad) d = pad - left
+            if (Math.abs(d - shift) > 1) setShift(d)
+        }
+        fit()
+        const sc = boxRef.current?.closest('.hangar-frame')
+        sc?.addEventListener('scroll', fit, { passive: true })
+        window.addEventListener('resize', fit)
+        return () => { sc?.removeEventListener('scroll', fit); window.removeEventListener('resize', fit) }
+    })
+    return [boxRef, shift] as const
+}
+
 /** Сон котика: облако-мысль с загадкой над спящим котиком. Висит, пока не нажмут крестик;
  *  «Отгадать» — окно с цифровой клавиатурой (components/cat-dream-modal.tsx). Загадки — lib/catDreams.ts. */
 function Dream({ x, y, dream, solved, left, canNext, joke, onSolve, onNext, onClose }: {
     x: number; y: number; dream: CatDream | null; solved: boolean; left: number | null; canNext: boolean; joke: string
     onSolve: () => void; onNext: () => void; onClose: () => void
 }) {
+    const [boxRef, shift] = useFitInView()
     return (
-        <div className="absolute w-[62%] -translate-x-1/2 -translate-y-full" style={{ left: pct(Math.min(Math.max(x, 330), 694)), top: pct(y), zIndex: 1185 }}>
+        <div ref={boxRef} className="absolute w-[62%]" style={{ left: pct(Math.min(Math.max(x, 330), 694)), top: pct(y), zIndex: 1185, maxWidth: 'calc(100vw - 20px)', transform: `translate(calc(-50% + ${shift}px), -100%)` }}>
             <motion.div key={dream?.id ?? 'none'} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 18 }}
                 className="relative rounded-[22px] border-2 border-[#6E7BC4] bg-[#1B2140]/95 px-3 py-2.5 text-left shadow-[0_0_24px_rgba(140,160,255,0.35)]"
                 style={{ transformOrigin: '20% 100%' }}>
                 <div className="flex items-center gap-2">
                     <span className="flex-1 text-[10px] font-black uppercase tracking-wide text-[#AEB8FF] sm:text-[11px]">Котику снится загадка</span>
-                    {left !== null && <span className="text-[10px] font-black text-[#AEB8FF] sm:text-[11px]">снов осталось: {left}</span>}
+                    {left !== null && <span className="text-[10px] font-black text-[#AEB8FF] sm:text-[11px]">Снов на сегодня осталось {left}.</span>}
                     <button type="button" aria-label="Закрыть сон" onClick={onClose} className="-mr-1 -mt-0.5 rounded-md px-1 text-base font-black leading-none text-[#AEB8FF] hover:text-white">✕</button>
                 </div>
                 {dream ? (
@@ -309,8 +335,9 @@ function NamePanel({ fr, initial, onSave, onClose }: { fr: Place; initial: strin
         setBusy(false)
         if (e) setErr(e)
     }
+    const [boxRef, shift] = useFitInView()
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(panelX(fr.x - 60)), top: pct(fr.y - fr.h - 22), zIndex: 1185 }}>
+        <div ref={boxRef} className="absolute" style={{ left: pct(panelX(fr.x - 60)), top: pct(fr.y - fr.h - 22), zIndex: 1185, transform: `translate(calc(-50% + ${shift}px), -100%)` }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                 className="w-[48cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[38cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Как назовём котика?</div>

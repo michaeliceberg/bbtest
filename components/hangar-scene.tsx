@@ -515,7 +515,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
                 {/* мышка: норка в правой стене, выглядывает время от времени; на /test-mice — ещё сундук и сцены кражи и ловли */}
                 {mice ? <HangarMice scene={mice.scene} auto={mice.auto} layout={layout} offline />
-                    : <HangarMice auto={!bare} bare={bare} layout={layout} event={!mice ? miceEvent : null} onEventDone={finishMiceEvent} />}
+                    : <HangarMice auto={!bare} bare={bare} layout={layout} event={!mice ? miceEvent : null} onEventDone={finishMiceEvent} fedAt={catFedAt} />}
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky time={time} />
                 {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}

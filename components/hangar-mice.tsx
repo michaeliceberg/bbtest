@@ -95,9 +95,9 @@ function Loot({ kind }: { kind: MiceLoot }) {
     return <Lottie animationData={LottieCoins} className="h-full w-full" style={{ transform: 'scale(2.2) translateY(-14%)' }} />
 }
 
-export type MiceEventView = { id: number; kind: 'raid' | 'catch'; lootKind: MiceLoot; resolved: boolean }
+export type MiceEventView = { id: number; kind: 'raid' | 'catch'; lootKind: MiceLoot; resolved: boolean; resolvedAt?: string | null }
 
-export function HangarMice({ scene, auto = false, chest: showChest = true, offline = false, bare = false, layout, onDone, event = null, onEventStart, onEventDone }: {
+export function HangarMice({ scene, auto = false, chest: showChest = true, offline = false, bare = false, layout, onDone, event = null, onEventStart, onEventDone, fedAt = null }: {
     /** Запустить сцену (меняется вместе с runKey снаружи). */
     scene?: { kind: MiceScene; key: number } | null
     /** Мышка сама часто выглядывает из норки. */
@@ -117,6 +117,8 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     onEventStart?: () => void
     /** Событие досмотрено: сервер его помечает и выдаёт ачивку. */
     onEventDone?: (ev: MiceEventView) => void
+    /** Когда котика кормили последний раз: покормили после кражи — сундук закрывается. */
+    fedAt?: string | null
 }) {
     const holeP = placeAnyState(layout, 'b', MICE_DECOR[0])
     const HOLE = { x: holeP.x - holeP.w / 2 + holeP.w * (0.5 + HOLE_MOUTH.dx), y: holeP.y - holeP.h * HOLE_MOUTH.dy }
@@ -129,8 +131,15 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     const [peekUp, setPeekUp] = useState(false)
     const [look, setLook] = useState(false)
     const [step, setStep] = useState(0)
-    // сундук ограблен сегодня — так и стоит до конца дня
-    const [chest, setChest] = useState<'closed' | 'open' | 'robbed'>(event?.kind === 'raid' && event.resolved ? 'robbed' : 'closed')
+    // сундук ограблен — стоит открытым и пустым, пока котика не покормят после кражи
+    const robbedAt = useRef<number | null>(event?.kind === 'raid' && event.resolved ? (event.resolvedAt ? Date.parse(event.resolvedAt) : Date.now()) : null)
+    const fedAfterRaid = (t: number | null) => t !== null && !!fedAt && Date.parse(fedAt) > t
+    const [chest, setChest] = useState<'closed' | 'open' | 'robbed'>(robbedAt.current !== null && !fedAfterRaid(robbedAt.current) ? 'robbed' : 'closed')
+    const [slam, setSlam] = useState(0)
+    useEffect(() => {
+        if (chest === 'robbed' && fedAfterRaid(robbedAt.current)) { robbedAt.current = null; setChest('closed'); setSlam((n) => n + 1) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fedAt, chest])
     const [loot, setLoot] = useState<MiceLoot | false>(false)
     const [siren, setSiren] = useState(false)
     // поимка: котик сидит с мышкой (holding) → нажали: мяу, отпустил (released) → мышка в норке, котик ушёл домой (null)
@@ -193,7 +202,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             later(t, () => { setMouse((m) => ({ ...m, pose: 'stand', dur: 0 })); setChest('open'); setSay({ x: atChest.x, y: atChest.y - 70, text: 'Ого, богатство!' }) })
             later(t + 1300, () => { setSay(null); setLoot(lootKind ?? 'coins'); setMouse((m) => ({ ...m, pose: 'carry', flip: false })) })
             t = runTo(t + 1700, atChest, HOLE, 'carry', 95)
-            later(t, () => { setMouse((m) => ({ ...m, show: false })); setLoot(false); setChest('robbed') })
+            later(t, () => { setMouse((m) => ({ ...m, show: false })); setLoot(false); robbedAt.current = Date.now(); setChest('robbed') })
             finish(t + 300)
             return
         }
@@ -294,13 +303,14 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             <img src="/hangar/life/mouse-hole.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
                 style={{ ...placeStyle(holeP), zIndex: 2 }} />
             {/* сундук с богатством: три картинки в одной рамке, видна одна */}
-            {showChest && <div className="pointer-events-none absolute" style={placeStyle(chestP)}>
+            {showChest && <motion.div key={slam} className="pointer-events-none absolute" style={{ ...placeStyle(chestP), transformOrigin: '50% 100%' }}
+                initial={slam ? { scaleY: 0.82, scaleX: 1.08 } : false} animate={{ scaleY: 1, scaleX: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 9 }}>
                 {(['closed', 'open', 'robbed'] as const).map((c) => (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img key={c} src={`/hangar/life/loot-chest-${c}.webp`} alt="" draggable={false}
                         className="absolute inset-0 h-full w-full select-none transition-opacity duration-300" style={{ opacity: chest === c ? 1 : 0 }} />
                 ))}
-            </div>}
+            </motion.div>}
             {/* выглядывает: голова поднимается из норки, обрезана по её низу */}
             {mouse.show && pose === 'peek' && mouse.x === HOLE.x && (
                 <div className={`absolute overflow-hidden ${bare ? 'pointer-events-none' : 'cursor-pointer'}`} onClick={caught}
