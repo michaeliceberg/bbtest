@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { reportAchievement } from '@/lib/achievementsClient'
-import { playJustClick, playSound, CAT_MEW_SOUNDS } from '@/lib/sound'
+import { playJustClick, playSound, playSoundTracked, preloadSound, CAT_MEW_SOUNDS, MICE_SIREN_SOUND, MICE_SIREN_VOLUME } from '@/lib/sound'
 import { Siren } from 'lucide-react'
 import type { MiceLoot } from '@/lib/catMice'
 import Lottie from '@/components/lottie-player'
@@ -221,6 +221,15 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
 
     // кража дня: играет сама вскоре после захода в ангар, с сиреной; после — событие досмотрено
     const eventStarted = useRef(false)
+    // тихая сирена звучит, пока идёт кража (siren), и обрывается, когда мышь скрылась в норке
+    useEffect(() => {
+        if (!siren) return
+        const stop = playSoundTracked(MICE_SIREN_SOUND, undefined, MICE_SIREN_VOLUME)
+        return stop
+    }, [siren])
+    useEffect(() => {
+        if (!bare && event?.kind === 'raid' && !event.resolved) preloadSound(MICE_SIREN_SOUND)
+    }, [event?.id, bare]) // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (bare || !event || event.resolved || event.kind !== 'raid' || eventStarted.current) return
         // флаг — только когда таймер сработал: в dev React дважды запускает эффект и первый таймер отменяет
