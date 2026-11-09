@@ -356,7 +356,11 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
             // ширину берём у внешнего блока (рамка на компьютере сужается под квадрат) минус рамка 2+2 px
             // компьютер (wideLeft): колонка страницы max-w 1056 по центру справа от сайдбара 280px — слева остаётся пустая
             // полоса; ангар занимает и её (оставляем 20px до сайдбара). Корень сдвигаем влево отрицательным отступом.
-            const ex = wideLeft && window.innerWidth >= 1024 && el.parentElement?.parentElement?.parentElement ? Math.max(0, Math.round(el.parentElement.parentElement.parentElement.getBoundingClientRect().left - 280 - 20)) : 0
+            // Считаем по раскладке страницы, а не замером: страница въезжает анимацией со сдвигом, и getBoundingClientRect
+            // ловил колонку на ходу — ангар уезжал левым краем под сайдбар. Колонка: сайдбар 280 + поле (ширина − 280 − 1056)/2
+            // + px-6 (24); до сайдбара оставляем 20px. clientWidth — без полосы прокрутки.
+            const vw = document.documentElement.clientWidth
+            const ex = wideLeft && window.innerWidth >= 1024 ? Math.max(0, Math.floor((vw - 280 - 1056) / 2) + 24 - 20) : 0
             setExtra(ex)
             const root = el.parentElement?.parentElement
             // wideLeft: меряем блок вокруг корня (он не меняется) + ex — ResizeObserver на корне после смены отступа не срабатывал
@@ -370,12 +374,10 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
             })
         }
         measure()
-        // страница задачника въезжает анимацией (сдвиг по x) — левый край колонки меряем ещё раз, когда она встала
-        const late = window.setTimeout(measure, 900)
         const ro = new ResizeObserver(measure)
         ro.observe(el.parentElement?.parentElement ?? el)
         window.addEventListener('resize', measure)
-        return () => { window.clearTimeout(late); ro.disconnect(); window.removeEventListener('resize', measure) }
+        return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
     }, [bare, phoneReserve, wideLeft])
     const scrollMode = !!frame && frame.s > frame.w
     const [extra, setExtra] = useState(0)
