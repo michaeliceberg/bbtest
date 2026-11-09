@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, hangarTarpPic, TARP_OF_ITEM, type LayoutOverrides } from '@/lib/hangarModel'
 import { ItemBadge } from '@/components/learn-section-header'
 import { HangarFan, FAN } from '@/components/hangar-fan'
+import { HangarMice, type MiceScene } from '@/components/hangar-mice'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
 import { unveilHangarItem, fixHangarItem, claimHangarGold } from '@/actions/hangar'
@@ -153,7 +154,7 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, cornerTop, phoneReserve = 116 }: {
+export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, catSboxDone = false, mice, cornerRight, cornerTop, phoneReserve = 116 }: {
     /** плашка в правом верхнем углу ангара (серия на /learn) */
     cornerRight?: React.ReactNode
     cornerTop?: React.ReactNode // сверху по центру поверх картинки (полоска «Сета» на /learn); тогда ключ и cornerRight — столбиком слева под ней
@@ -161,6 +162,10 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     phoneReserve?: number
     catFood?: CatFoodStock
     catDemo?: 'barrel' | 'sbox'
+    /** Ачивка «Кот Шрёдингера» уже есть — коробки в ангаре больше нет. */
+    catSboxDone?: boolean
+    /** Мыши: норка в правой стене и сундук с богатством (пока только /test-mice). */
+    mice?: { scene: { kind: MiceScene; key: number } | null; auto: boolean }
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
@@ -482,6 +487,8 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
+                {/* мышка: норка в правой стене, выглядывает время от времени; на /test-mice — ещё сундук и сцены кражи и ловли */}
+                {mice ? <HangarMice scene={mice.scene} auto={mice.auto} layout={layout} offline /> : <HangarMice auto={!bare} chest={false} bare={bare} />}
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky time={time} />
                 {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}
@@ -515,7 +522,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                 <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
                     onClick={() => { if (!bare) toggleTray() }}
                     style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} sboxDone={catSboxDone} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'

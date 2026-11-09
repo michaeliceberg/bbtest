@@ -80,7 +80,7 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
 
 /** Задачник «ЕГЭ Математика»: ангар — целый экран (на телефоне ровно по высоте, пульт виден без прокрутки).
  *  «К задачам» в плашке предмета ведёт на экран раздела /learn?task=N. */
-export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, cornerRight, cornerTop, openNum = null }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode; openNum?: number | null }) {
+export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, catSboxDone = false, cornerRight, cornerTop, openNum = null }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; catSboxDone?: boolean; cornerRight?: React.ReactNode; cornerTop?: React.ReactNode; openNum?: number | null }) {
     // /learn?unveil=N (экран в конце урока): сразу приближаем предмет, кнопка «Снять брезент» уже перед учеником
     useEffect(() => {
         if (!openNum) return
@@ -91,7 +91,7 @@ export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = fal
         // На телефоне — во всю ширину экрана и вплотную к шапке (страница задачника даёт px-6 и сверху ~32px)
         <div id="learn-hangar" className="-mx-6 -mt-8 lg:mx-0 lg:mt-0">
             {/* 50 шапка + 106 пульт под ангаром */}
-            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={156} />
+            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} catSboxDone={catSboxDone} cornerRight={cornerRight} cornerTop={cornerTop} phoneReserve={156} />
         </div>
     )
 }

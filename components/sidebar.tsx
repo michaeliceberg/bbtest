@@ -97,7 +97,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
     // Порядок (2026-11-05): Задачник, Тренажёр, Мой путь. disabled: true —
     // сделать пункт неактивным (приглушён, замок, не ссылка).
     // У задачника — ракета (как на пульте ангара), но тем же серым значком, что остальные пункты.
-    { label: 'Задачник', href: '/learn', icon: Rocket, disabled: learnLocked },
+    // У ЕГЭ Математики задачник открывается ангаром (предмет = задание ЕГЭ) — так и подписываем, чтобы было понятно, куда ведёт.
+    { label: courses.find((c) => c.id === displayedCourseId)?.title.includes('ЕГЭ Математика') ? 'Задачник / Ангар' : 'Задачник', href: '/learn', icon: Rocket, disabled: learnLocked },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell },
     { label: 'Мой путь', href: '/path', icon: Route },
     // Справочник временно убран (2026-10-29): будет премиальной страницей с теорией из пройденных step-by-step.

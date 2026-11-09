@@ -399,8 +399,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo, sboxDone = false }: {
     stage: number
+    /** Ачивка «Кот Шрёдингера» уже получена: коробки больше нет, котик в неё не ходит (сцена — один раз). */
+    sboxDone?: boolean
     /** Тестовые страницы: котик сразу и по кругу запрыгивает на бочку (/test-cat-barrel) или в коробку Шрёдингера (/test-cat-sbox). */
     demo?: 'barrel' | 'sbox'
     /** Лежащая бочка (№13, пока не починена) — любимое место: котик запрыгивает на неё и греется на солнце. */
@@ -443,6 +445,11 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const sboxStateRef = useRef(sbox) // котик в коробке: домик пуст, мурлыкать там некому
     sboxStateRef.current = sbox
     const [sboxSay, setSboxSay] = useState<string | null>(null)
+    // коробка Шрёдингера — один раз: открыли сами (ачивка «Кот Шрёдингера») — котик выпрыгнул, коробка исчезла навсегда
+    const [sboxGone, setSboxGone] = useState(sboxDone)
+    const sboxGoneRef = useRef(sboxGone)
+    sboxGoneRef.current = sboxGone
+    const sboxOpenedByUser = useRef(false)
     const sboxRef = useRef<Place | null>(null)
     const sboxResume = useRef<(() => void) | null>(null) // продолжение прогулки после открытия: выпрыгнуть и домой
     // покормили — котик спрыгивает с коробки, ест из миски и возвращается (задаётся в эффекте прогулки)
@@ -608,7 +615,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const openSboxRef = useRef<((self?: boolean) => void) | null>(null)
     openSboxRef.current = (self = false) => {
         if (sbox !== 'closed') return
-        if (!self) { playJustClick(); if (!onHome) reportAchievement('schrodinger') }
+        if (!self) { playJustClick(); sboxOpenedByUser.current = true; if (!onHome) reportAchievement('schrodinger') }
         const asleep = !self && Math.random() < 0.5
         setSbox(asleep ? 'sleep' : 'peek')
         setSboxSay(asleep ? 'Спит без задних лап 😴' : self ? 'Мяу! Надоело ждать 😼' : 'Мяу! Не спит! 😺')
@@ -688,7 +695,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
 
             // коробка Шрёдингера: запрыгнул внутрь → коробка закрылась → ждём, пока откроют (или сам через минуту)
             const sb = sboxRef.current
-            if (sb && demo !== 'barrel' && (demo === 'sbox' || Math.random() < 0.25)) {
+            if (sb && !sboxGoneRef.current && demo !== 'barrel' && (demo === 'sbox' || Math.random() < 0.25)) {
                 const front = { x: Math.round(sb.x + sb.w * 0.42), y: Math.round(sb.y + 8) } // на полу справа-спереди
                 const top = { x: Math.round(sb.x), y: Math.round(sb.y - sb.h * 0.55) } // над открытой коробкой
                 leaveBox(front)
@@ -702,6 +709,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     t = 0
                     at(() => { setSbox('idle'); setSboxSay(null) })
                     jump(top, front, false, { ky: sb.y }, {})
+                    // открыли сами — сцена была, коробка пропадает (на тестовой странице — остаётся, чтобы смотреть по кругу)
+                    at(() => { if (sboxOpenedByUser.current && demo !== 'sbox') setSboxGone(true) })
                     comeHome(front)
                 }
                 // никто не открыл за минуту — котику надоело, выглядывает сам
@@ -866,7 +875,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard p={boxP} />
-            <SchrodingerBox p={sbP} state={sbox} onOpen={!bare && sbox === 'closed' ? () => openSboxRef.current?.() : undefined} />
+            {!(sboxGone && sbox === 'idle') && <SchrodingerBox p={sbP} state={sbox} onOpen={!bare && sbox === 'closed' ? () => openSboxRef.current?.() : undefined} />}
             {!bare && sboxSay && <Bubble x={sbP.x} y={sbP.y - sbP.h * (sbox === 'peek' ? 0.98 : 0.86)}>{sboxSay}</Bubble>}
             {!bare && sbox === 'closed' && (
                 <div className="pointer-events-none absolute w-[34%] -translate-x-1/2 rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4]/95 px-2 py-1 text-center text-[2.1cqw] font-bold leading-tight text-[#5A3A22] shadow-md sm:text-[1.7cqw]"

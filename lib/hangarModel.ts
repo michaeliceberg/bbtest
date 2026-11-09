@@ -74,6 +74,24 @@ export const CAT_DECOR: Decor[] = [
         b: { src: '/hangar/life/cat-sbox-open.webp', x: 420, y: 905, w: 130, h: 133 } },
 ]
 
+// Сундук с богатством ученика (components/hangar-mice.tsx): мыши его грабят, если котика давно не кормили.
+// Не ломается — место одно на обе вкладки редактора (берём ту, где сдвинули). Картинка — в общей рамке с открытым
+// и ограбленным сундуком (монеты на полу), поэтому низ рамки чуть ниже корпуса.
+export const MICE_DECOR: Decor[] = [
+    { key: 'loot-chest', label: 'Сундук с богатством',
+        a: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 },
+        b: { src: '/hangar/life/loot-chest-closed.webp', x: 735, y: 808, w: 120, h: 112 } },
+]
+/** Место вещи, которая не ломается: вкладка, где её сдвинули в редакторе (сначала state). */
+export function placeAnyState(o: LayoutOverrides | null | undefined, state: HangarState, d: Decor): Place {
+    const def = d.a
+    const moved = (q: Place) => q.x !== def.x || q.y !== def.y || q.w !== def.w || q.h !== def.h || (q.rot ?? 0) !== 0
+    const mine = place(o, state, d.key, def)
+    if (moved(mine)) return mine
+    const other = place(o, state === 'a' ? 'b' : 'a', d.key, def)
+    return moved(other) ? other : mine
+}
+
 // Слой — АВТОМАТИЧЕСКИ по глубине: что стоит ниже на полу (больше y нижнего края), то ближе и рисуется сверху.
 // Раньше слои задавались вручную номерами отдельно для «Сломано» и «Починено» — у ученика, у которого часть предметов
 // починена, а часть нет, номера из двух разных шкал сравнивались между собой и порядок ломался. Теперь номер не нужен:
@@ -103,7 +121,7 @@ export function editorObjects(o: LayoutOverrides | null | undefined, state: Hang
     const list: EditorObj[] = [
         { ...rocket, ...place(o, state, 'rocket', rocket), key: 'rocket', label: 'Ракета' },
         ...(state === 'b' ? JUNK.map((j) => ({ ...j, ...place(o, state, j.key, j) })) : []),
-        ...[...DECOR, ...CAT_DECOR].map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
+        ...[...DECOR, ...CAT_DECOR, ...MICE_DECOR].map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
         ...ROOM_IDS.map((id) => { const s = L[id][state]; return { ...s, ...place(o, state, `${id}`, s), key: `${id}`, label: `${ITEM_NAME[id] ?? 'Предмет'} (№${taskOfItem(id)})` } }),
     ]
     return list.sort((a, b) => a.z - b.z)

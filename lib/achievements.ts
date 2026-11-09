@@ -274,6 +274,12 @@ export async function syncAchievements(userId: string, opts: { silent?: boolean 
 	return fresh;
 }
 
+// Есть ли у пользователя ачивка (например, «Кот Шрёдингера» — после неё коробка из ангара пропадает).
+export async function hasAchievement(userId: string, key: string): Promise<boolean> {
+	const r = await rows(sql`SELECT 1 FROM achievement_unlocks WHERE user_id = ${userId} AND key = ${key} LIMIT 1`);
+	return r.length > 0;
+}
+
 // Сколько наград за ачивки ещё не забрано (число на пункте меню «Ачивки»).
 export async function countUnclaimedAchievements(userId: string): Promise<number> {
 	const r = await rows(sql`SELECT count(*) AS n FROM achievement_unlocks WHERE user_id = ${userId} AND claimed_at IS NULL`);

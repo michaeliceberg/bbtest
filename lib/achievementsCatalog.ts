@@ -128,6 +128,7 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
 	{ key: 'fridge_sg', group: 'start', emoji: '⚖️', iconSrc: '/achievement-portraits/saul.webp', title: 'Сол Гудман был здесь!', desc: 'Нашёл надпись, нацарапанную в холодильнике котика' },
 	{ key: 'schrodinger', group: 'start', emoji: '📦', iconSrc: '/achievement-portraits/schrodinger.webp', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, спит ли котик' },
+	{ key: 'mouse_spy', group: 'start', emoji: '🐭', iconSrc: '/hangar/life/mouse-peek.webp', title: 'Агент 00-Сыр', desc: 'Засёк мышку-шпиона, которая подглядывает из норки в ангаре' },
 	{ key: 'cat_feed_10', group: 'habit', emoji: '🥛', title: 'Заботливый хозяин', desc: 'Кормил котика 10 дней подряд' },
 	{ key: 'cat_feed_50', group: 'habit', emoji: '🐟', title: 'Кошачий шеф', desc: 'Кормил котика 50 дней подряд' },
 	{ key: 'cat_feed_100', group: 'habit', emoji: '👑', title: 'Лучший друг котика', desc: 'Кормил котика 100 дней подряд — мыши обходят ангар стороной' },
@@ -219,6 +220,7 @@ export const REWARDS: Record<string, AchievementReward> = {
 	cat_home: { kind: 'coins', amount: 50 },
 	fridge_sg: { kind: 'pizza', amount: 1 },
 	schrodinger: { kind: 'coins', amount: 50 },
+	mouse_spy: { kind: 'coins', amount: 30 },
 	cat_feed_10: { kind: 'gems', amount: 5 },
 	cat_feed_50: { kind: 'gems', amount: 20 },
 	cat_feed_100: { kind: 'pizza', amount: 1 },
@@ -232,5 +234,5 @@ export type AchievementDTO = { key: string; title: string; desc: string; emoji: 
 export const toDTO = (a: AchievementDef): AchievementDTO => ({ key: a.key, title: a.title, desc: a.desc, emoji: a.emoji, iconSrc: a.iconSrc, group: a.group });
 
 // События, о которых может сообщить браузер (остальные ачивки выдаются только сервером).
-export const CLIENT_EVENT_KEYS = ['first_mistake', 'mistakes_3', 'combo_8', 'review_ok', 'review_first', 'reference_open', 'fridge_sg', 'schrodinger'] as const;
+export const CLIENT_EVENT_KEYS = ['first_mistake', 'mistakes_3', 'combo_8', 'review_ok', 'review_first', 'reference_open', 'fridge_sg', 'schrodinger', 'mouse_spy'] as const;
 export type ClientEventKey = (typeof CLIENT_EVENT_KEYS)[number];
