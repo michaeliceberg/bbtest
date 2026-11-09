@@ -141,6 +141,8 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
+    // конец кражи дня: отдельный ref — onDoneRef перезаписывается пропом на каждой перерисовке
+    const eventDoneRef = useRef<(() => void) | null>(null)
 
     const later = (ms: number, f: () => void) => { timers.current.push(setTimeout(f, ms)) }
     const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = [] }
@@ -168,7 +170,13 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
         later(t0, () => setMouse({ x: to.x, y: to.y, pose, flip: to.x < from.x, dur, show: true }))
         return t0 + dur * 1000
     }
-    const finish = (t: number) => later(t, () => { busy.current = false; onDoneRef.current?.() })
+    const finish = (t: number) => later(t, () => {
+        busy.current = false
+        const ev = eventDoneRef.current
+        eventDoneRef.current = null
+        if (ev) ev()
+        onDoneRef.current?.()
+    })
 
     const play = (kind: MiceScene, lootKind: MiceLoot = null) => {
         clearAll()
@@ -221,8 +229,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             eventStarted.current = true
             onEventStart?.()
             setSiren(true)
-            const prev = onDoneRef.current
-            onDoneRef.current = () => { setSiren(false); onDoneRef.current = prev; onEventDone?.(event) }
+            eventDoneRef.current = () => { setSiren(false); onEventDone?.(event) }
             play('raid', event.lootKind)
         }, 1500)
         return () => clearTimeout(t)
