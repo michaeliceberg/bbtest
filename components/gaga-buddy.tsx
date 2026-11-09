@@ -27,7 +27,8 @@ const MIN_GAP_MS = 9000
 const BIG: GagaEvent[] = ['chest', 'levelup', 'done', 'boss']
 
 export const isGagaVoiceOn = () => {
-    try { return localStorage.getItem(VOICE_KEY) !== 'off' } catch { return true }
+    // По умолчанию голос выключен: включается в настройках аккаунта
+    try { return localStorage.getItem(VOICE_KEY) === 'on' } catch { return false }
 }
 export const setGagaVoiceOn = (on: boolean) => {
     try { localStorage.setItem(VOICE_KEY, on ? 'on' : 'off') } catch { /* приватный режим */ }
