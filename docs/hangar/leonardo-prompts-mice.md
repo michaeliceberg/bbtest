@@ -130,3 +130,11 @@ y 400–800), сила 0.7–0.8. Я потом вырежу из результ
 > keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
 >
 > Avoid: chest full to the top, coins piled above the rim, overflowing, empty chest, different chest, closed lid, mice, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
+
+`loot-chest-robbed.png`, четвёртая версия: Kontext не убирает золото (возвращает ту же кучу), зато хорошо дорисовывает.
+Поэтому образец — почти пустой `loot-chest-robbed-v1.jpg`, сила 0.5, и просим насыпать немного:
+> Keep exactly the same open treasure chest (same wood, same iron bands, same lid, same rusty padlock, same paw prints, same size, same angle, same colours and outlines), but add some treasure inside: a low layer of gold coins covering the bottom of the chest, piled into a small heap in the right corner that just reaches the front rim, with a clear empty dent on the left side where coins were dug out, one pizza slice with a bite missing lying on the coins, one small pink gem, two gold coins dropped on the ground in front of the chest, the wooden inner back wall still visible above the coins
+>
+> (хвост стиля как выше) Avoid: chest full to the top, coins above the rim, overflowing pile, many pizza slices, different chest, closed lid, mice, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
+
+Запасной путь: v1 и v2 нарисованы с одного образца, крышка и корпус совпадают — вставить внутренность v1 в v2 вручную.
