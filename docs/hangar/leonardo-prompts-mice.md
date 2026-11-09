@@ -114,3 +114,11 @@ y 400–800), сила 0.7–0.8. Я потом вырежу из результ
 > same art style as the image: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading, slightly worn comic look
 >
 > Avoid: changing the wall, changing the floor, changing colours, moving the posts, extra holes, mouse, text, letters, magenta, blurry, 3D render
+
+`loot-chest-robbed.png`, вторая версия (2026-11-09): первая вышла почти пустой, а мышь уносит одну монету за раз —
+сундук должен остаться почти полным, видна только «ямка» в куче. Add Image = готовый открытый сундук, сила 0.5:
+> Keep exactly the same open treasure chest full of treasure (same wood, same iron bands, same lid position, same size, same angle, same pile of gold coins, pink gems and pizza slices, same colours and outlines), but show that mice have stolen a little: a small dug-out dent in the top of the coin pile, two or three coins dropped on the front rim and one coin on the ground in front of the chest, a small bite missing from one pizza slice, the padlock hangs open and slightly crooked, a few tiny mouse paw prints on the lid and on the front
+>
+> keep the same art style: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, flat solid pure magenta background #FF00FF, no text, no shadow on the ground, no frame
+>
+> Avoid: empty chest, almost empty, closed lid, different chest, broken chest, mice, background scenery, text, letters, shadow, blurry, 3D render, magenta on the object
