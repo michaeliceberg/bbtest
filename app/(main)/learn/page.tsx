@@ -431,7 +431,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           : <ScrollToLesson lessonId={lastTouchedLessonId} />}
       </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
-        <StickyWrapper>
+        {/* экран ангара: на окне уже 1280 правая колонка отняла бы у ангара половину ширины — прячем её */}
+        <StickyWrapper from={onHangarScreen ? 'xl' : 'lg'}>
           <UserProgress
             activeCourse={activeCourse}
             hearts={currentHearts}

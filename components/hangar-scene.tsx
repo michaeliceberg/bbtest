@@ -367,7 +367,10 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
             const w = (wideLeft && root?.parentElement ? root.parentElement.clientWidth + ex : root?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
             // телефон: ангар во всю высоту экрана, снизу остаётся место только под кнопки (влево · к ракете · вправо)
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - phoneReserve, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
+            // узкая колонка на компьютере (окно ~1000px: справа колонка с уровнем и Сетометром) — НЕ телефонный режим:
+            // мышкой ангар не пролистать, левая часть пропадала. На компьютере квадрат всегда целиком по ширине колонки.
+            const desktop = window.innerWidth >= 1024
+            const s = w < 480 && !desktop ? Math.max(w, Math.round(Math.min(window.innerHeight - phoneReserve, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
