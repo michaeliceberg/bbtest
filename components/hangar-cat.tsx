@@ -216,18 +216,28 @@ function Hearts({ x, y }: { x: number; y: number }) {
 const zOf = (p: Place) => Math.round(p.z * 10) + 10
 const panelX = (x: number) => Math.min(Math.max(x, 262), 762)
 const bedOf = (b: Place) => ({ x: b.x - 6, y: b.y - 52, k: BED_K * (b.w / 150) })
-/** Шкала сытости над котиком: зелёная → жёлтая → красная; почти пустая — мигает. */
-function SatietyBar({ x, y, v }: { x: number; y: number; v: number }) {
+/** Шкала сытости у холодильника котика: видна всегда (и когда котик гуляет), зелёная → жёлтая → красная;
+ *  голодный — мигает и просит «Покорми!». Нажатие открывает холодильник. */
+function SatietyBar({ x, y, v, onClick }: { x: number; y: number; v: number; onClick?: () => void }) {
+    // стоит на полу перед холодильником (над котиком мешали номера заданий 10 и 5)
     const color = v > 0.6 ? '#78C93C' : v > 0.35 ? '#F2C35B' : '#E5534B'
+    const hungry = v <= 0.35
     return (
-        <div className="pointer-events-none absolute flex items-center gap-[0.6cqw]" style={{ left: pct(x), top: pct(y), zIndex: 1150, transform: 'translate(-50%, -100%)' }}
+        <button type="button" disabled={!onClick} onClick={onClick}
+            className={`absolute flex flex-col items-center gap-[0.3cqw] rounded-[1.2cqw] border-[0.25cqw] border-[#3A2414] bg-[#1E140D]/85 px-[1cqw] py-[0.6cqw] ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
+            style={{ left: pct(x), top: pct(y), zIndex: 1150, transform: 'translate(-50%, 0)' }}
             title={`Сытость котика: ${Math.round(v * 100)}%`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hangar/life/cat-bowl.webp" alt="" draggable={false} className="h-[2.6cqw] w-auto select-none" />
-            <div className={`h-[1.3cqw] w-[9cqw] overflow-hidden rounded-full border border-[#3A2414] bg-[#2A1B12]/80 ${v <= 0.35 ? 'animate-pulse' : ''}`}>
-                <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(4, v * 100)}%`, background: color }} />
-            </div>
-        </div>
+            <span className={`whitespace-nowrap text-[2cqw] font-extrabold leading-none ${hungry ? 'text-[#FF8A80] animate-pulse' : 'text-[#F2E6D0]'}`}>
+                {hungry ? 'Покорми!' : 'Сытость'} {Math.round(v * 100)}%
+            </span>
+            <span className="flex items-center gap-[0.6cqw]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hangar/life/cat-bowl.webp" alt="" draggable={false} className="h-[3cqw] w-auto select-none" />
+                <span className={`block h-[1.8cqw] w-[13cqw] overflow-hidden rounded-full border-[0.2cqw] border-[#3A2414] bg-[#2A1B12] ${hungry ? 'animate-pulse' : ''}`}>
+                    <span className="block h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(4, v * 100)}%`, background: color }} />
+                </span>
+            </span>
+        </button>
     )
 }
 
@@ -1001,7 +1011,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 </>
             )}
             {/* сытость: шкала над котиком на коробке, за сутки после кормления убывает до нуля */}
-            {!bare && phase === 'home' && !stroll && !away && sbox === 'idle' && satiety !== null && <SatietyBar x={BED.x} y={BED.y - CAT_PX[pose][1] * BED.k - 10} v={satiety} />}
+            {!bare && phase === 'home' && satiety !== null && <SatietyBar x={frP.x} y={frP.y - 22} v={satiety}
+                onClick={fridgeOk && !asleep ? () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) } : undefined} />}
             {(night || asleep) && !away && (
                 <motion.span className="pointer-events-none absolute font-black text-[#C9D3FF]" style={{ left: pct(BED.x + 30), top: pct(BED.y - 80), zIndex: 1160, fontSize: '3cqw' }}
                     animate={{ y: ['0cqw', '-3cqw'], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>Zzz</motion.span>
