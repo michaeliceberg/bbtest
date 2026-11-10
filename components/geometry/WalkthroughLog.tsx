@@ -727,9 +727,26 @@ const useIsLatestFeedback = () => {
     return latest
 }
 
+// Подбадривающий Мигель вместо Lottie-огоньков (их из приложения убрали): случайная поза, прилетает с отскоком + конфетти.
+const FIERY_MIGUELS = ['happy', 'bullseye', 'dance', 'proud', 'fire', 'combo', 'salute-stars', 'trophy', 'victory', 'pizza'].map((n) => `/miguel/miguel-${n}.webp`)
+export const FieryMiguel = () => {
+    const [src, setSrc] = useState<string | null>(null)
+    useEffect(() => { setSrc(FIERY_MIGUELS[Math.floor(Math.random() * FIERY_MIGUELS.length)]) }, [])
+    return (
+        <div className="w-1/4 max-w-[110px] shrink-0">
+            {src && (
+                <>
+                    <motion.img src={src} alt="" draggable={false} className="w-full object-contain pointer-events-none select-none"
+                        initial={{ scale: 0.3, y: 30, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 11 }} />
+                    <LocalAnswerConfetti />
+                </>
+            )}
+        </div>
+    )
+}
+
 export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
-    const [lottieData] = useState(() => (fiery ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
-    const lottieReady = useLottieModuleReady(fiery, lottieData)
     // зелёная фраза уже есть — облачко-мем над кнопкой не нужно (свой мем справа или Lottie)
     useEffect(() => { cancelPendingRightMeme() }, [])
     const latest = useIsLatestFeedback()
@@ -744,10 +761,8 @@ export const FieryFeedbackBanner = ({ children, fiery = false }: { children: Rea
         )
     }
     return (
-        <div className={`flex flex-row items-center gap-3 w-full transition-opacity duration-300 ${lottieReady ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="w-1/4 max-w-[110px] shrink-0">
-                {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
-            </div>
+        <div className="flex flex-row items-center gap-3 w-full">
+            <FieryMiguel />
             <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
                 {/* flex items-center — children здесь обычно "иконка +
                     текст" (например <Check/> + фраза), а Tailwind preflight

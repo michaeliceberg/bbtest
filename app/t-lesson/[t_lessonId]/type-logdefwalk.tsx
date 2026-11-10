@@ -47,12 +47,11 @@ import {
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, useLottieModuleReady,
+    isFieryMilestoneTrial, FieryMiguel,
     useWalkthroughCombo,
     RememberPlate, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
 import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
-import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 
@@ -363,16 +362,12 @@ const OptionsHint = ({ wrongFlash }: { wrongFlash: string | null }) => (
 // (см. paperPolice/Lottie выше) и своя форма feedback-баннера (correct/
 // correctText вместо детей).
 const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { correct: boolean; correctText?: string; seed: number; fiery?: boolean }) => {
-    const [lottieData] = useState(() => (fiery && correct ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
-    const lottieReady = useLottieModuleReady(fiery && correct, lottieData)
     const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
     if (fiery && correct) {
         cancelPendingRightMeme()
         return (
-            <div className={`flex flex-row items-center gap-3 w-full transition-opacity duration-300 ${lottieReady ? 'opacity-100' : 'opacity-0'}`}>
-                <div className="w-1/4 max-w-[110px] shrink-0">
-                    {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
-                </div>
+            <div className="flex flex-row items-center gap-3 w-full">
+                <FieryMiguel />
                 <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
                     <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{text}</span>
                     <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>

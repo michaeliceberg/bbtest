@@ -1708,7 +1708,7 @@ const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c',
 
 // ===== Квиз =====
 // fact — картинка и интересная история, показываются после верного ответа (вопрос-шутка про Виета).
-type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string; fact?: { src: string; caption: string; story: React.ReactNode } }
+type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string; allCorrect?: boolean; fact?: { src: string; caption: string; story: React.ReactNode } }
 
 // Итоговый тест: подбор корней, c/a и −b/a, угадывание x = ±1 и вопросы-шутки для настроения.
 const makeRawTrials = (): Trial[] => [
@@ -1726,7 +1726,8 @@ const makeRawTrials = (): Trial[] => [
     { prompt: 'Угадай корень и найди второй', eq: { a: 4, b: 9, c: 5 }, options: shuffle(['−1 и −5/4', '−1 и 5/4', '1 и −5/4', '−1 и −4/5']), correct: '−1 и −5/4', hint: '4 − 9 + 5 = 0, значит x₁ = −1, а x₂ = −c/a = −5/4.' },
     { prompt: 'x = 1 и x = −1 оба НЕ подошли. Что делаем?', options: shuffle(['Считаем дискриминант', 'Плачем 😭', 'Закрываем тетрадь', 'Звоним маме']), correct: 'Считаем дискриминант', hint: 'Виета не всемогущ: тогда честно считаем дискриминант 🫡' },
     { prompt: 'Угадай корень и найди второй', eq: { a: 100, b: -99, c: -1 }, options: shuffle(['1 и −1/100', '1 и 1/100', '−1 и 1/100', '1 и −100']), correct: '1 и −1/100', hint: '100 − 99 − 1 = 0, значит x₁ = 1, а x₂ = c/a = −1/100.' },
-    { prompt: 'Бонус! Кто теперь шарит в теореме Виета? 😎', options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
+    // Десерт в конце урока: любой вариант верный (подбадриваем, внушаем уверенность); порядок не перемешиваем.
+    { prompt: 'Кто теперь шарит в теореме Виета?', options: ['Я 😎', 'Конечно, я', 'Несомненно, я', 'Кто же ещё, как не я'], correct: 'Я 😎', allCorrect: true, hint: 'Именно ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
 ]
 
 // Верный ответ не стоит на том же месте, что в прошлом задании, и не всегда первым: иначе можно кликать наугад.
@@ -1735,6 +1736,7 @@ const makeTrials = (): Trial[] => {
     return makeRawTrials().map((t) => {
         if (t.options.length < 2) return t
         let opts = t.options
+        if (t.allCorrect) return t
         for (let k = 0; k < 20 && opts.indexOf(t.correct) === prev; k++) opts = shuffle(t.options)
         prev = opts.indexOf(t.correct)
         return { ...t, options: opts }
@@ -1758,6 +1760,7 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<string[]>([])
+    const [picked, setPicked] = useState<string | null>(null)
     const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
@@ -1916,13 +1919,13 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                 <div className={cn('drop-in-options grid gap-3', t.options.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
                                     {t.options.map((o) => {
                                         const isWrong = isCurrent && wrongTried.includes(o)
-                                        const state = isDone && o === t.correct ? 'correct' : isWrong ? 'wrong' : 'idle'
+                                        const state = isDone && (t.allCorrect ? o === picked : o === t.correct) ? 'correct' : isWrong ? 'wrong' : 'idle'
                                         return (
                                             <button
                                                 key={o}
                                                 type="button"
                                                 disabled={isDone || isWrong}
-                                                onClick={isDone ? undefined : () => answer(o === t.correct, o)}
+                                                onClick={isDone ? undefined : () => { if (t.allCorrect) setPicked(o); answer(t.allCorrect || o === t.correct, o) }}
                                                 className={cn(
                                                     'flex min-h-[64px] items-center justify-center py-3 px-3 rounded-xl border-2 font-extrabold text-center transition-colors',
                                                     o.length > 12 ? 'text-base md:text-lg' : 'text-xl md:text-2xl',
