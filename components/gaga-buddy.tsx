@@ -89,7 +89,7 @@ type Shown = { id: number; event: GagaEvent; caption: string; src: string; leavi
 const CELEB_JOKE_CHANCE = 0.45
 const CELEBS = [
     '/lesson-pics/jason.webp', '/lesson-pics/dicaprio-point.webp', '/lesson-pics/dicaprio-walk2.webp',
-    '/remember-stickers/gentelmen-notext.webp', '/more-memes/meme-2.webp', '/more-memes/meme-20.webp',
+    '/remember-stickers/rock.webp', '/more-memes/meme-2.webp', '/more-memes/meme-20.webp',
     '/more-memes/meme-3.webp', '/more-memes/meme-4.webp', '/more-memes/meme9.webp', '/more-memes/meme7.webp',
     '/more-memes/meme-10.webp', '/more-memes/saul-1.webp', '/more-memes/saul-5.webp', '/more-memes/saul-8.webp',
 ]

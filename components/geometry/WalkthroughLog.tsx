@@ -997,7 +997,7 @@ export const DiagramBlock = ({ children, onSettled }: { children: React.ReactNod
 // Золотая плашка в стиле «Урок» на /trainer (класс .lesson-pill: градиент + пробегающий блик),
 // справа — случайный стикер из public/remember-stickers/ (выбираем после монтирования, чтобы
 // сервер и браузер не разошлись). title — надпись на плашке, children — тело под ней (если нужно).
-export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/r${n}.webp`)
+export const REMEMBER_STICKERS = ['/remember-stickers/rock.webp', '/remember-stickers/kid.webp']
 
 export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker, flipSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string; flipSticker?: boolean }) => {
     const [sticker, setSticker] = useState<string | null>(fixedSticker ?? null)
@@ -1006,7 +1006,7 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
     useEffect(() => { if (Math.random() < 0.4) showGaga('rule', { delayMs: 700 }) }, [])
     useEffect(() => {
         if (fixedSticker !== undefined) return
-        // половина — «Джентльмены» r1–r5, половина — удивлённые мемы public/more-memes, лицом к плашке (влево)
+        // половина — один из двух стикеров (rock, kid), половина — удивлённые мемы public/more-memes, лицом к плашке (влево)
         if (Math.random() < 0.5) { setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)]); setAutoFlip(false); return }
         const m = pickMoreMeme('wow')
         setSticker(m.src); setAutoFlip(memeFlip(m, 'left'))

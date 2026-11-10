@@ -1079,7 +1079,6 @@ const A1_LIST: EqSpec[] = [
     ...ZAKREP_ROUNDS.map((r) => ({ a: 1, b: r.b, c: r.c })),
 ]
 const Cf = ({ k, children }: { k: string; children: React.ReactNode }) => <span style={{ color: k }}>{children}</span>
-const VIETA_STICKER = '/remember-stickers/vieta-kid.webp'
 
 // После закрепа: везде было a = 1 → а если нет? → Теорема Виета (c/a и −b/a).
 // Стрелка от «a» в строке «…делим на a» вверх, вправо и раздваивается на оба знаменателя a в плашке.
@@ -1176,7 +1175,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
             )}
             {phase >= 8 && (
                 <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 9))}>
-                    <RememberPlate title="Настоящая теорема Виета" sticker={VIETA_STICKER}>
+                    <RememberPlate title="Настоящая теорема Виета">
                         <span data-marker="vieta-body" className="flex flex-col items-center gap-2">
                             <span data-marker="row-1" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
                                 x₁ · x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<span data-marker="den-1"><Cf k={A_COLOR}>a</Cf></span>} />
