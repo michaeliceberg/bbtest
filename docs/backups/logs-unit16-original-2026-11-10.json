@@ -1,0 +1,4036 @@
+{
+ "unit": [
+  {
+   "id": 16,
+   "title": "8 свойств логарифмов",
+   "description": "",
+   "image_src": "/unit-pics/logarithm.svg",
+   "t_course_id": 5,
+   "order": 8,
+   "unlock_after_t_unit_id": null,
+   "unlock_after_lesson_order": null,
+   "block_title": "Логарифмы"
+  }
+ ],
+ "lessons": [
+  {
+   "id": 466,
+   "title": "Что такое логарифм?",
+   "t_unit_id": 16,
+   "order": 1,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "определение логарифма: log_a b = c ⇔ a^c = b; ОДЗ: аргумент > 0, основание > 0 и ≠ 1",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 478,
+   "title": "Определение логарифма — тренировка",
+   "t_unit_id": 16,
+   "order": 2,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  },
+  {
+   "id": 519,
+   "title": "Отрицательные степени в логарифмах",
+   "t_unit_id": 16,
+   "order": 3,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": "log₂ ⅛ = −3",
+   "ai_hint": "логарифмы с отрицательными степенями и дробями: a⁻ⁿ = 1/aⁿ, log₂(1/8) = −3, log₈(1/2) = −1/3, log_{1/2} 16 = −4, приведение к одному основанию",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 465,
+   "title": "Как складывать логарифмы?",
+   "t_unit_id": 16,
+   "order": 4,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "сумма логарифмов: log_a x + log_a y = log_a(x·y)",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 467,
+   "title": "Как вычитать логарифмы?",
+   "t_unit_id": 16,
+   "order": 5,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "разность логарифмов: log_a x − log_a y = log_a(x/y)",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 479,
+   "title": "Сумма и разность логарифмов — тренировка",
+   "t_unit_id": 16,
+   "order": 6,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  },
+  {
+   "id": 468,
+   "title": "Степень в основании и аргументе",
+   "t_unit_id": 16,
+   "order": 7,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "степень в основании и аргументе: log_{a^n} b^m = (m/n)·log_a b; например log_8 x = (1/3)·log_2 x",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 469,
+   "title": "Логарифм в степени",
+   "t_unit_id": 16,
+   "order": 8,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "число в степени с логарифмом: a^(log_b c) = c^(log_b a) (основание степени и аргумент логарифма меняются местами); частный случай a^(log_a b) = b; упрощает выражения вида 2^(log_8 x)",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 480,
+   "title": "Степени и обмен местами — тренировка",
+   "t_unit_id": 16,
+   "order": 9,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  },
+  {
+   "id": 481,
+   "title": "Контрольная: мифический кейс",
+   "t_unit_id": 16,
+   "order": 10,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  },
+  {
+   "id": 470,
+   "title": "Деление логарифмов",
+   "t_unit_id": 16,
+   "order": 11,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "частное логарифмов с одинаковым основанием: log_a x / log_a y = log_y x (переход к новому основанию)",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 471,
+   "title": "К-к-комбо логарифмов",
+   "t_unit_id": 16,
+   "order": 12,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "произведение-цепочка: log_a b · log_b c = log_a c",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 472,
+   "title": "Перевёртыш",
+   "t_unit_id": 16,
+   "order": 13,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": "перевёртыш: log_a b = 1 / log_b a",
+   "ege_part": 1,
+   "preview_src": null
+  },
+  {
+   "id": 482,
+   "title": "Частное, комбо и перевёртыш — тренировка",
+   "t_unit_id": 16,
+   "order": 14,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  },
+  {
+   "id": 483,
+   "title": "Босс-экзамен: Логарифмы",
+   "t_unit_id": 16,
+   "order": 15,
+   "extra_unlock_after_t_unit_id": null,
+   "badge": null,
+   "ai_hint": null,
+   "ege_part": null,
+   "preview_src": null
+  }
+ ],
+ "challenges": [
+  {
+   "id": 3173,
+   "lesson_id": 465,
+   "type": "LOGWALK",
+   "question": "Как складывать логарифмы?",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3174,
+   "lesson_id": 466,
+   "type": "LOGDEFWALK",
+   "question": "Что такое логарифм?",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3175,
+   "lesson_id": 467,
+   "type": "LOGSUBWALK",
+   "question": "Как вычитать логарифмы?",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3176,
+   "lesson_id": 468,
+   "type": "LOGPOWWALK",
+   "question": "Степень в основании и аргументе",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3177,
+   "lesson_id": 469,
+   "type": "LOGSWAPWALK",
+   "question": "Логарифм в степени",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3178,
+   "lesson_id": 470,
+   "type": "LOGDIVWALK",
+   "question": "Деление логарифмов",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3179,
+   "lesson_id": 471,
+   "type": "LOGCOMBOWALK",
+   "question": "К-к-комбо логарифмов",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3180,
+   "lesson_id": 472,
+   "type": "LOGFLIPWALK",
+   "question": "Перевёртыш",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3243,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{8} = ? $",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3244,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{81} = ? $",
+   "order": 2,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3245,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{25} = ? $",
+   "order": 3,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3246,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{32} = ? $",
+   "order": 4,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3247,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{10}{1} = ? $",
+   "order": 5,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3248,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{7}{7} = ? $",
+   "order": 6,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3249,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{64} = ? $",
+   "order": 7,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3250,
+   "lesson_id": 478,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{27} = ? $",
+   "order": 8,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3251,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{3} + \\log_{2}{5} = ? $",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3252,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{14} + \\log_{5}{3} = ? $",
+   "order": 2,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3253,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{9}{20} + \\log_{9}{5} = ? $",
+   "order": 3,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3254,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{6} + \\log_{3}{4} = ? $",
+   "order": 4,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3255,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{7}{2} + \\log_{7}{11} = ? $",
+   "order": 5,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3256,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{15} - \\log_{2}{5} = ? $",
+   "order": 6,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3257,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{36} - \\log_{3}{4} = ? $",
+   "order": 7,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3258,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{24} - \\log_{5}{6} = ? $",
+   "order": 8,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3259,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{7}{15} - \\log_{7}{3} = ? $",
+   "order": 9,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3260,
+   "lesson_id": 479,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{10}{100} - \\log_{10}{4} = ? $",
+   "order": 10,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3261,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3^{5}} {8^{2}} = ? $",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3262,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{4^{2}} {5^{3}} = ? $",
+   "order": 2,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3263,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5^{3}} {9^{4}} = ? $",
+   "order": 3,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3264,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2^{3}} {7^{5}} = ? $",
+   "order": 4,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3265,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{6^{4}} {11^{3}} = ? $",
+   "order": 5,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3266,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large 7^{ \\log_{5}{9} } = ? $",
+   "order": 6,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3267,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large 11^{ \\log_{3}{8} } = ? $",
+   "order": 7,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3268,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large 2^{ \\log_{9}{13} } = ? $",
+   "order": 8,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3269,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large 4^{ \\log_{7}{10} } = ? $",
+   "order": 9,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3270,
+   "lesson_id": 480,
+   "type": "M_ASC",
+   "question": "$ \\large 6^{ \\log_{2}{15} } = ? $",
+   "order": 10,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3271,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{4}{16} = ? $",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3272,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{125} = ? $",
+   "order": 2,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3273,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{6}{36} = ? $",
+   "order": 3,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3274,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{9}{9} = ? $",
+   "order": 4,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3275,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{7} + \\log_{2}{3} = ? $",
+   "order": 5,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3276,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{6}{4} + \\log_{6}{9} = ? $",
+   "order": 6,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3277,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{8} + \\log_{5}{3} = ? $",
+   "order": 7,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3278,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{21} - \\log_{2}{3} = ? $",
+   "order": 8,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3279,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{4}{30} - \\log_{4}{5} = ? $",
+   "order": 9,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3280,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{6}{18} - \\log_{6}{2} = ? $",
+   "order": 10,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3281,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3^{2}} {10^{7}} = ? $",
+   "order": 11,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3282,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5^{4}} {6^{3}} = ? $",
+   "order": 12,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3283,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2^{5}} {9^{2}} = ? $",
+   "order": 13,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3284,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large 5^{ \\log_{3}{12} } = ? $",
+   "order": 14,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3285,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large 13^{ \\log_{4}{7} } = ? $",
+   "order": 15,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3286,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large 3^{ \\log_{8}{11} } = ? $",
+   "order": 16,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3287,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{8} = ? $",
+   "order": 17,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3288,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3^{5}} {8^{2}} = ? $",
+   "order": 18,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3289,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large 7^{ \\log_{5}{9} } = ? $",
+   "order": 19,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3290,
+   "lesson_id": 481,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{3} + \\log_{2}{5} = ? $",
+   "order": 20,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3291,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large 5^{ \\log_{3}{12} } = ? $",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3292,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large 13^{ \\log_{4}{7} } = ? $",
+   "order": 2,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3293,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large 3^{ \\log_{8}{11} } = ? $",
+   "order": 3,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3294,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\frac{\\log_{5}{27}}{\\log_{5}{3}} = ? $",
+   "order": 4,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3295,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\frac{\\log_{2}{125}}{\\log_{2}{5}} = ? $",
+   "order": 5,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3296,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\frac{\\log_{7}{64}}{\\log_{7}{4}} = ? $",
+   "order": 6,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3297,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\frac{\\log_{3}{49}}{\\log_{3}{7}} = ? $",
+   "order": 7,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3298,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{8} \\cdot \\log_{8}{11} = ? $",
+   "order": 8,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3299,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{12} \\cdot \\log_{12}{19} = ? $",
+   "order": 9,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3300,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{6}{14} \\cdot \\log_{14}{23} = ? $",
+   "order": 10,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3301,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{7} \\cdot \\log_{7}{9} = ? $",
+   "order": 11,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3302,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{3}{10} = ? $",
+   "order": 12,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3303,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{5}{12} = ? $",
+   "order": 13,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3304,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{8}{15} = ? $",
+   "order": 14,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3305,
+   "lesson_id": 482,
+   "type": "M_ASC",
+   "question": "$ \\large \\log_{2}{9} = ? $",
+   "order": 15,
+   "points": 10,
+   "author": "ЕГЭ Математика Профиль",
+   "num_r_ans": "1",
+   "difficulty": "1",
+   "image_src": "0",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  },
+  {
+   "id": 3425,
+   "lesson_id": 519,
+   "type": "SCENEWALK",
+   "question": "Отрицательные степени в логарифмах",
+   "order": 1,
+   "points": 10,
+   "author": "ЕГЭ Математика",
+   "num_r_ans": "1",
+   "difficulty": "",
+   "image_src": "",
+   "stage": 1,
+   "multistep_data": null,
+   "frac_trick_data": null,
+   "trig_table_data": null,
+   "unit_circle_data": null,
+   "vieta_data": null
+  }
+ ],
+ "options": [
+  {
+   "id": 4574,
+   "t_challenge_id": 3243,
+   "text": "$ 3 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4575,
+   "t_challenge_id": 3243,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4576,
+   "t_challenge_id": 3243,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4577,
+   "t_challenge_id": 3243,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4578,
+   "t_challenge_id": 3243,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4579,
+   "t_challenge_id": 3244,
+   "text": "$ 4 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4580,
+   "t_challenge_id": 3244,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4581,
+   "t_challenge_id": 3244,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4582,
+   "t_challenge_id": 3244,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4583,
+   "t_challenge_id": 3244,
+   "text": "$ 8 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4584,
+   "t_challenge_id": 3245,
+   "text": "$ 2 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4585,
+   "t_challenge_id": 3245,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4586,
+   "t_challenge_id": 3245,
+   "text": "$ 1 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4587,
+   "t_challenge_id": 3245,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4588,
+   "t_challenge_id": 3245,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4589,
+   "t_challenge_id": 3246,
+   "text": "$ 5 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4590,
+   "t_challenge_id": 3246,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4591,
+   "t_challenge_id": 3246,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4592,
+   "t_challenge_id": 3246,
+   "text": "$ 7 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4593,
+   "t_challenge_id": 3246,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4594,
+   "t_challenge_id": 3246,
+   "text": "$ 10 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4595,
+   "t_challenge_id": 3247,
+   "text": "$ 0 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4596,
+   "t_challenge_id": 3247,
+   "text": "$ 1 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4597,
+   "t_challenge_id": 3247,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4598,
+   "t_challenge_id": 3247,
+   "text": "$ 10 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4599,
+   "t_challenge_id": 3248,
+   "text": "$ 1 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4600,
+   "t_challenge_id": 3248,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4601,
+   "t_challenge_id": 3248,
+   "text": "$ 0 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4602,
+   "t_challenge_id": 3248,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4603,
+   "t_challenge_id": 3248,
+   "text": "$ 7 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4604,
+   "t_challenge_id": 3249,
+   "text": "$ 6 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4605,
+   "t_challenge_id": 3249,
+   "text": "$ 7 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4606,
+   "t_challenge_id": 3249,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4607,
+   "t_challenge_id": 3249,
+   "text": "$ 8 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4608,
+   "t_challenge_id": 3249,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4609,
+   "t_challenge_id": 3249,
+   "text": "$ 12 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4610,
+   "t_challenge_id": 3250,
+   "text": "$ 3 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4611,
+   "t_challenge_id": 3250,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4612,
+   "t_challenge_id": 3250,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4613,
+   "t_challenge_id": 3250,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4614,
+   "t_challenge_id": 3250,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4615,
+   "t_challenge_id": 3251,
+   "text": "$ \\log_{2}{15} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4616,
+   "t_challenge_id": 3251,
+   "text": "$ \\log_{2}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4617,
+   "t_challenge_id": 3251,
+   "text": "$ \\log_{2}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4618,
+   "t_challenge_id": 3251,
+   "text": "$ \\log_{15}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4619,
+   "t_challenge_id": 3251,
+   "text": "$ \\log_{2}{17} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4620,
+   "t_challenge_id": 3252,
+   "text": "$ \\log_{5}{42} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4621,
+   "t_challenge_id": 3252,
+   "text": "$ \\log_{5}{17} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4622,
+   "t_challenge_id": 3252,
+   "text": "$ \\log_{5}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4623,
+   "t_challenge_id": 3252,
+   "text": "$ \\log_{42}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4624,
+   "t_challenge_id": 3252,
+   "text": "$ \\log_{5}{47} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4625,
+   "t_challenge_id": 3253,
+   "text": "$ \\log_{9}{100} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4626,
+   "t_challenge_id": 3253,
+   "text": "$ \\log_{9}{25} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4627,
+   "t_challenge_id": 3253,
+   "text": "$ \\log_{9}{15} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4628,
+   "t_challenge_id": 3253,
+   "text": "$ \\log_{100}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4629,
+   "t_challenge_id": 3253,
+   "text": "$ \\log_{9}{109} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4630,
+   "t_challenge_id": 3254,
+   "text": "$ \\log_{3}{24} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4631,
+   "t_challenge_id": 3254,
+   "text": "$ \\log_{3}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4632,
+   "t_challenge_id": 3254,
+   "text": "$ \\log_{3}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4633,
+   "t_challenge_id": 3254,
+   "text": "$ \\log_{24}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4634,
+   "t_challenge_id": 3254,
+   "text": "$ \\log_{3}{27} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4635,
+   "t_challenge_id": 3255,
+   "text": "$ \\log_{7}{22} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4636,
+   "t_challenge_id": 3255,
+   "text": "$ \\log_{7}{13} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4637,
+   "t_challenge_id": 3255,
+   "text": "$ \\log_{7}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4638,
+   "t_challenge_id": 3255,
+   "text": "$ \\log_{22}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4639,
+   "t_challenge_id": 3255,
+   "text": "$ \\log_{7}{29} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4640,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{2}{3} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4641,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{2}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4642,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{2}{75} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4643,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{2}{20} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4644,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{3}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4645,
+   "t_challenge_id": 3256,
+   "text": "$ \\log_{2}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4646,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{3}{9} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4647,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{3}{32} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4648,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{3}{144} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4649,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{3}{40} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4650,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{9}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4651,
+   "t_challenge_id": 3257,
+   "text": "$ \\log_{3}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4652,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{5}{4} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4653,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{5}{18} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4654,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{5}{144} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4655,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{5}{30} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4656,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{4}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4657,
+   "t_challenge_id": 3258,
+   "text": "$ \\log_{5}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4658,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{7}{5} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4659,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{7}{12} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4660,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{7}{45} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4661,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{7}{18} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4662,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{5}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4663,
+   "t_challenge_id": 3259,
+   "text": "$ \\log_{7}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4664,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{10}{25} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4665,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{10}{96} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4666,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{10}{400} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4667,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{10}{104} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4668,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{25}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4669,
+   "t_challenge_id": 3260,
+   "text": "$ \\log_{10}{26} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4670,
+   "t_challenge_id": 3261,
+   "text": "$ \\frac{2}{5} \\log_{3}{8} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4671,
+   "t_challenge_id": 3261,
+   "text": "$ \\frac{5}{2} \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4672,
+   "t_challenge_id": 3261,
+   "text": "$ 10 \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4673,
+   "t_challenge_id": 3261,
+   "text": "$ \\frac{2}{5} \\log_{8}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4674,
+   "t_challenge_id": 3261,
+   "text": "$ 3 \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4675,
+   "t_challenge_id": 3262,
+   "text": "$ \\frac{3}{2} \\log_{4}{5} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4676,
+   "t_challenge_id": 3262,
+   "text": "$ \\frac{2}{3} \\log_{4}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4677,
+   "t_challenge_id": 3262,
+   "text": "$ 6 \\log_{4}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4678,
+   "t_challenge_id": 3262,
+   "text": "$ \\frac{3}{2} \\log_{5}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4679,
+   "t_challenge_id": 3262,
+   "text": "$ 1 \\log_{4}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4680,
+   "t_challenge_id": 3263,
+   "text": "$ \\frac{4}{3} \\log_{5}{9} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4681,
+   "t_challenge_id": 3263,
+   "text": "$ \\frac{3}{4} \\log_{5}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4682,
+   "t_challenge_id": 3263,
+   "text": "$ 12 \\log_{5}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4683,
+   "t_challenge_id": 3263,
+   "text": "$ \\frac{4}{3} \\log_{9}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4684,
+   "t_challenge_id": 3263,
+   "text": "$ 1 \\log_{5}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4685,
+   "t_challenge_id": 3264,
+   "text": "$ \\frac{5}{3} \\log_{2}{7} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4686,
+   "t_challenge_id": 3264,
+   "text": "$ \\frac{3}{5} \\log_{2}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4687,
+   "t_challenge_id": 3264,
+   "text": "$ 15 \\log_{2}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4688,
+   "t_challenge_id": 3264,
+   "text": "$ \\frac{5}{3} \\log_{7}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4689,
+   "t_challenge_id": 3264,
+   "text": "$ 2 \\log_{2}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4690,
+   "t_challenge_id": 3265,
+   "text": "$ \\frac{3}{4} \\log_{6}{11} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4691,
+   "t_challenge_id": 3265,
+   "text": "$ \\frac{4}{3} \\log_{6}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4692,
+   "t_challenge_id": 3265,
+   "text": "$ 12 \\log_{6}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4693,
+   "t_challenge_id": 3265,
+   "text": "$ \\frac{3}{4} \\log_{11}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4694,
+   "t_challenge_id": 3265,
+   "text": "$ 1 \\log_{6}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4695,
+   "t_challenge_id": 3266,
+   "text": "$ 9^{ \\log_{5}{7} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4696,
+   "t_challenge_id": 3266,
+   "text": "$ 9^{ \\log_{7}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4697,
+   "t_challenge_id": 3266,
+   "text": "$ 5^{ \\log_{9}{7} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4698,
+   "t_challenge_id": 3266,
+   "text": "$ 7^{ \\log_{9}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4699,
+   "t_challenge_id": 3267,
+   "text": "$ 8^{ \\log_{3}{11} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4700,
+   "t_challenge_id": 3267,
+   "text": "$ 8^{ \\log_{11}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4701,
+   "t_challenge_id": 3267,
+   "text": "$ 3^{ \\log_{8}{11} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4702,
+   "t_challenge_id": 3267,
+   "text": "$ 11^{ \\log_{8}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4703,
+   "t_challenge_id": 3268,
+   "text": "$ 13^{ \\log_{9}{2} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4704,
+   "t_challenge_id": 3268,
+   "text": "$ 13^{ \\log_{2}{9} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4705,
+   "t_challenge_id": 3268,
+   "text": "$ 9^{ \\log_{13}{2} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4706,
+   "t_challenge_id": 3268,
+   "text": "$ 2^{ \\log_{13}{9} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4707,
+   "t_challenge_id": 3269,
+   "text": "$ 10^{ \\log_{7}{4} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4708,
+   "t_challenge_id": 3269,
+   "text": "$ 10^{ \\log_{4}{7} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4709,
+   "t_challenge_id": 3269,
+   "text": "$ 7^{ \\log_{10}{4} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4710,
+   "t_challenge_id": 3269,
+   "text": "$ 4^{ \\log_{10}{7} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4711,
+   "t_challenge_id": 3270,
+   "text": "$ 15^{ \\log_{2}{6} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4712,
+   "t_challenge_id": 3270,
+   "text": "$ 15^{ \\log_{6}{2} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4713,
+   "t_challenge_id": 3270,
+   "text": "$ 2^{ \\log_{15}{6} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4714,
+   "t_challenge_id": 3270,
+   "text": "$ 6^{ \\log_{15}{2} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4715,
+   "t_challenge_id": 3271,
+   "text": "$ 2 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4716,
+   "t_challenge_id": 3271,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4717,
+   "t_challenge_id": 3271,
+   "text": "$ 1 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4718,
+   "t_challenge_id": 3271,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4719,
+   "t_challenge_id": 3272,
+   "text": "$ 3 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4720,
+   "t_challenge_id": 3272,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4721,
+   "t_challenge_id": 3272,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4722,
+   "t_challenge_id": 3272,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4723,
+   "t_challenge_id": 3272,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4724,
+   "t_challenge_id": 3273,
+   "text": "$ 2 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4725,
+   "t_challenge_id": 3273,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4726,
+   "t_challenge_id": 3273,
+   "text": "$ 1 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4727,
+   "t_challenge_id": 3273,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4728,
+   "t_challenge_id": 3273,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4729,
+   "t_challenge_id": 3274,
+   "text": "$ 1 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4730,
+   "t_challenge_id": 3274,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4731,
+   "t_challenge_id": 3274,
+   "text": "$ 0 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4732,
+   "t_challenge_id": 3274,
+   "text": "$ 3 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4733,
+   "t_challenge_id": 3274,
+   "text": "$ 9 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4734,
+   "t_challenge_id": 3275,
+   "text": "$ \\log_{2}{21} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4735,
+   "t_challenge_id": 3275,
+   "text": "$ \\log_{2}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4736,
+   "t_challenge_id": 3275,
+   "text": "$ \\log_{2}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4737,
+   "t_challenge_id": 3275,
+   "text": "$ \\log_{21}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4738,
+   "t_challenge_id": 3275,
+   "text": "$ \\log_{2}{23} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4739,
+   "t_challenge_id": 3276,
+   "text": "$ \\log_{6}{36} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4740,
+   "t_challenge_id": 3276,
+   "text": "$ \\log_{6}{13} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4741,
+   "t_challenge_id": 3276,
+   "text": "$ \\log_{6}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4742,
+   "t_challenge_id": 3276,
+   "text": "$ \\log_{36}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4743,
+   "t_challenge_id": 3276,
+   "text": "$ \\log_{6}{42} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4744,
+   "t_challenge_id": 3277,
+   "text": "$ \\log_{5}{24} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4745,
+   "t_challenge_id": 3277,
+   "text": "$ \\log_{5}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4746,
+   "t_challenge_id": 3277,
+   "text": "$ \\log_{5}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4747,
+   "t_challenge_id": 3277,
+   "text": "$ \\log_{24}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4748,
+   "t_challenge_id": 3277,
+   "text": "$ \\log_{5}{29} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4749,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{2}{7} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4750,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{2}{18} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4751,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{2}{63} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4752,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{2}{24} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4753,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{7}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4754,
+   "t_challenge_id": 3278,
+   "text": "$ \\log_{2}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4755,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{4}{6} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4756,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{4}{25} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4757,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{4}{150} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4758,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{4}{35} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4759,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{6}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4760,
+   "t_challenge_id": 3279,
+   "text": "$ \\log_{4}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4761,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{6}{9} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4762,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{6}{16} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4763,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{6}{36} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4764,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{6}{20} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4765,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{9}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4766,
+   "t_challenge_id": 3280,
+   "text": "$ \\log_{6}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4767,
+   "t_challenge_id": 3281,
+   "text": "$ \\frac{7}{2} \\log_{3}{10} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4768,
+   "t_challenge_id": 3281,
+   "text": "$ \\frac{2}{7} \\log_{3}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4769,
+   "t_challenge_id": 3281,
+   "text": "$ 14 \\log_{3}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4770,
+   "t_challenge_id": 3281,
+   "text": "$ \\frac{7}{2} \\log_{10}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4771,
+   "t_challenge_id": 3281,
+   "text": "$ 5 \\log_{3}{10} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4772,
+   "t_challenge_id": 3282,
+   "text": "$ \\frac{3}{4} \\log_{5}{6} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4773,
+   "t_challenge_id": 3282,
+   "text": "$ \\frac{4}{3} \\log_{5}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4774,
+   "t_challenge_id": 3282,
+   "text": "$ 12 \\log_{5}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4775,
+   "t_challenge_id": 3282,
+   "text": "$ \\frac{3}{4} \\log_{6}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4776,
+   "t_challenge_id": 3282,
+   "text": "$ 1 \\log_{5}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4777,
+   "t_challenge_id": 3283,
+   "text": "$ \\frac{2}{5} \\log_{2}{9} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4778,
+   "t_challenge_id": 3283,
+   "text": "$ \\frac{5}{2} \\log_{2}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4779,
+   "t_challenge_id": 3283,
+   "text": "$ 10 \\log_{2}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4780,
+   "t_challenge_id": 3283,
+   "text": "$ \\frac{2}{5} \\log_{9}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4781,
+   "t_challenge_id": 3283,
+   "text": "$ 3 \\log_{2}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4782,
+   "t_challenge_id": 3284,
+   "text": "$ 12^{ \\log_{3}{5} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4783,
+   "t_challenge_id": 3284,
+   "text": "$ 12^{ \\log_{5}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4784,
+   "t_challenge_id": 3284,
+   "text": "$ 3^{ \\log_{12}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4785,
+   "t_challenge_id": 3284,
+   "text": "$ 5^{ \\log_{12}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4786,
+   "t_challenge_id": 3285,
+   "text": "$ 7^{ \\log_{4}{13} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4787,
+   "t_challenge_id": 3285,
+   "text": "$ 7^{ \\log_{13}{4} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4788,
+   "t_challenge_id": 3285,
+   "text": "$ 4^{ \\log_{7}{13} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4789,
+   "t_challenge_id": 3285,
+   "text": "$ 13^{ \\log_{7}{4} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4790,
+   "t_challenge_id": 3286,
+   "text": "$ 11^{ \\log_{8}{3} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4791,
+   "t_challenge_id": 3286,
+   "text": "$ 11^{ \\log_{3}{8} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4792,
+   "t_challenge_id": 3286,
+   "text": "$ 8^{ \\log_{11}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4793,
+   "t_challenge_id": 3286,
+   "text": "$ 3^{ \\log_{11}{8} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4794,
+   "t_challenge_id": 3287,
+   "text": "$ 3 $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4795,
+   "t_challenge_id": 3287,
+   "text": "$ 4 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4796,
+   "t_challenge_id": 3287,
+   "text": "$ 2 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4797,
+   "t_challenge_id": 3287,
+   "text": "$ 5 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4798,
+   "t_challenge_id": 3287,
+   "text": "$ 6 $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4799,
+   "t_challenge_id": 3288,
+   "text": "$ \\frac{2}{5} \\log_{3}{8} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4800,
+   "t_challenge_id": 3288,
+   "text": "$ \\frac{5}{2} \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4801,
+   "t_challenge_id": 3288,
+   "text": "$ 10 \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4802,
+   "t_challenge_id": 3288,
+   "text": "$ \\frac{2}{5} \\log_{8}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4803,
+   "t_challenge_id": 3288,
+   "text": "$ 3 \\log_{3}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4804,
+   "t_challenge_id": 3289,
+   "text": "$ 9^{ \\log_{5}{7} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4805,
+   "t_challenge_id": 3289,
+   "text": "$ 9^{ \\log_{7}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4806,
+   "t_challenge_id": 3289,
+   "text": "$ 5^{ \\log_{9}{7} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4807,
+   "t_challenge_id": 3289,
+   "text": "$ 7^{ \\log_{9}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4808,
+   "t_challenge_id": 3290,
+   "text": "$ \\log_{2}{15} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4809,
+   "t_challenge_id": 3290,
+   "text": "$ \\log_{2}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4810,
+   "t_challenge_id": 3290,
+   "text": "$ \\log_{2}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4811,
+   "t_challenge_id": 3290,
+   "text": "$ \\log_{15}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4812,
+   "t_challenge_id": 3290,
+   "text": "$ \\log_{2}{17} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4813,
+   "t_challenge_id": 3291,
+   "text": "$ 12^{ \\log_{3}{5} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4814,
+   "t_challenge_id": 3291,
+   "text": "$ 12^{ \\log_{5}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4815,
+   "t_challenge_id": 3291,
+   "text": "$ 3^{ \\log_{12}{5} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4816,
+   "t_challenge_id": 3291,
+   "text": "$ 5^{ \\log_{12}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4817,
+   "t_challenge_id": 3292,
+   "text": "$ 7^{ \\log_{4}{13} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4818,
+   "t_challenge_id": 3292,
+   "text": "$ 7^{ \\log_{13}{4} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4819,
+   "t_challenge_id": 3292,
+   "text": "$ 4^{ \\log_{7}{13} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4820,
+   "t_challenge_id": 3292,
+   "text": "$ 13^{ \\log_{7}{4} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4821,
+   "t_challenge_id": 3293,
+   "text": "$ 11^{ \\log_{8}{3} } $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4822,
+   "t_challenge_id": 3293,
+   "text": "$ 11^{ \\log_{3}{8} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4823,
+   "t_challenge_id": 3293,
+   "text": "$ 8^{ \\log_{11}{3} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4824,
+   "t_challenge_id": 3293,
+   "text": "$ 3^{ \\log_{11}{8} } $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4825,
+   "t_challenge_id": 3294,
+   "text": "$ \\log_{3}{27} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4826,
+   "t_challenge_id": 3294,
+   "text": "$ \\log_{5}{\\frac{27}{3}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4827,
+   "t_challenge_id": 3294,
+   "text": "$ \\log_{27}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4828,
+   "t_challenge_id": 3294,
+   "text": "$ \\log_{5}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4829,
+   "t_challenge_id": 3294,
+   "text": "$ \\frac{27}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4830,
+   "t_challenge_id": 3294,
+   "text": "$ \\log_{5}{27} - \\log_{5}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4831,
+   "t_challenge_id": 3295,
+   "text": "$ \\log_{5}{125} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4832,
+   "t_challenge_id": 3295,
+   "text": "$ \\log_{2}{\\frac{125}{5}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4833,
+   "t_challenge_id": 3295,
+   "text": "$ \\log_{125}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4834,
+   "t_challenge_id": 3295,
+   "text": "$ \\log_{2}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4835,
+   "t_challenge_id": 3295,
+   "text": "$ \\frac{125}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4836,
+   "t_challenge_id": 3295,
+   "text": "$ \\log_{2}{125} - \\log_{2}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4837,
+   "t_challenge_id": 3296,
+   "text": "$ \\log_{4}{64} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4838,
+   "t_challenge_id": 3296,
+   "text": "$ \\log_{7}{\\frac{64}{4}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4839,
+   "t_challenge_id": 3296,
+   "text": "$ \\log_{64}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4840,
+   "t_challenge_id": 3296,
+   "text": "$ \\log_{7}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4841,
+   "t_challenge_id": 3296,
+   "text": "$ \\frac{64}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4842,
+   "t_challenge_id": 3296,
+   "text": "$ \\log_{7}{64} - \\log_{7}{4} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4843,
+   "t_challenge_id": 3297,
+   "text": "$ \\log_{7}{49} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4844,
+   "t_challenge_id": 3297,
+   "text": "$ \\log_{3}{\\frac{49}{7}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4845,
+   "t_challenge_id": 3297,
+   "text": "$ \\log_{49}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4846,
+   "t_challenge_id": 3297,
+   "text": "$ \\log_{3}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4847,
+   "t_challenge_id": 3297,
+   "text": "$ \\frac{49}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4848,
+   "t_challenge_id": 3297,
+   "text": "$ \\log_{3}{49} - \\log_{3}{7} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4849,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{3}{11} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4850,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{3}{88} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4851,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{11}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4852,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{3}{19} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4853,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{8}{11} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4854,
+   "t_challenge_id": 3298,
+   "text": "$ \\log_{8}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4855,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{5}{19} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4856,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{5}{228} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4857,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{19}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4858,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{5}{31} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4859,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{12}{19} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4860,
+   "t_challenge_id": 3299,
+   "text": "$ \\log_{12}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4861,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{6}{23} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4862,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{6}{322} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4863,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{23}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4864,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{6}{37} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4865,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{14}{23} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4866,
+   "t_challenge_id": 3300,
+   "text": "$ \\log_{14}{6} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4867,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{2}{9} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4868,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{2}{63} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4869,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{9}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4870,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{2}{16} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4871,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{7}{9} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4872,
+   "t_challenge_id": 3301,
+   "text": "$ \\log_{7}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4873,
+   "t_challenge_id": 3302,
+   "text": "$ \\frac{1}{\\log_{10}{3}} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4874,
+   "t_challenge_id": 3302,
+   "text": "$ \\log_{10}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4875,
+   "t_challenge_id": 3302,
+   "text": "$ \\frac{1}{\\log_{3}{10}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4876,
+   "t_challenge_id": 3302,
+   "text": "$ -\\log_{10}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4877,
+   "t_challenge_id": 3302,
+   "text": "$ \\frac{10}{3} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4878,
+   "t_challenge_id": 3303,
+   "text": "$ \\frac{1}{\\log_{12}{5}} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4879,
+   "t_challenge_id": 3303,
+   "text": "$ \\log_{12}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4880,
+   "t_challenge_id": 3303,
+   "text": "$ \\frac{1}{\\log_{5}{12}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4881,
+   "t_challenge_id": 3303,
+   "text": "$ -\\log_{12}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4882,
+   "t_challenge_id": 3303,
+   "text": "$ \\frac{12}{5} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4883,
+   "t_challenge_id": 3304,
+   "text": "$ \\frac{1}{\\log_{15}{8}} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4884,
+   "t_challenge_id": 3304,
+   "text": "$ \\log_{15}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4885,
+   "t_challenge_id": 3304,
+   "text": "$ \\frac{1}{\\log_{8}{15}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4886,
+   "t_challenge_id": 3304,
+   "text": "$ -\\log_{15}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4887,
+   "t_challenge_id": 3304,
+   "text": "$ \\frac{15}{8} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4888,
+   "t_challenge_id": 3305,
+   "text": "$ \\frac{1}{\\log_{9}{2}} $",
+   "correct": true,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4889,
+   "t_challenge_id": 3305,
+   "text": "$ \\log_{9}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4890,
+   "t_challenge_id": 3305,
+   "text": "$ \\frac{1}{\\log_{2}{9}} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4891,
+   "t_challenge_id": 3305,
+   "text": "$ -\\log_{9}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  },
+  {
+   "id": 4892,
+   "t_challenge_id": 3305,
+   "text": "$ \\frac{9}{2} $",
+   "correct": false,
+   "image_src": null,
+   "audio_src": null
+  }
+ ],
+ "links": [],
+ "achievementNote": "Снимок строк unit 16 (8 свойств логарифмов) до переделки по правилам step-by-step"
+}
