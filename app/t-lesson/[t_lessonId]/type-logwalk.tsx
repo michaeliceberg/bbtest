@@ -33,7 +33,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -161,17 +161,30 @@ const LogTerm = ({
 type FormulaState = {
     baseHighlighted: boolean
     showRightSide: boolean
-    // 'reserved' — «(3·5)» занимает место, но невидимо (чтобы стрелки знали, куда целиться); 'shown' — падает баунсом
-    product: 'hidden' | 'reserved' | 'shown'
+    // 'reserved' — «(3·5)» занимает место, но невидимо (стрелки целятся в него); 'shown' — падает баунсом
+    product: 'reserved' | 'shown'
+    rowRef: React.RefObject<HTMLDivElement | null>
+    // сдвиг всей строки по X: пока справа ничего нет, левая часть стоит по центру (правая часть уже занимает место, но невидима)
+    shift: number | null
+    slide: boolean
 }
 
-// Строка примера «log₂3 + log₂5 [= log₂(3·5)]» — ОДНА на весь разбор, растёт на месте (MergedScene).
-// data-marker: base1/2/3 — основания (стрелки BaseMatchArrow), arg3/arg5 — аргументы и prod — «(3·5)» (стрелки ProductArrows).
-const ExampleFormula = ({ baseHighlighted, showRightSide, product }: FormulaState) => {
+// Строка примера «log₂3 + log₂5 = log₂(3·5)» — ОДНА на весь разбор, растёт на месте (MergedScene). Правая часть присутствует
+// с самого начала невидимой, чтобы ничего не прыгало: левая часть сначала стоит по центру за счёт сдвига, потом плавно
+// уезжает влево (slide), и справа проявляется «= log₂».
+// data-marker: base1/2/3 — основания (BaseMatchArrow), arg3/arg5 и prod — аргументы и «(3·5)» (ProductArrows), rightgrp — правая часть.
+const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift, slide }: FormulaState) => {
     let tokenCount = 0
     const nextDelay = () => (tokenCount++) * 0.13
     return (
-        <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-[min(1.875rem,4.5vw)] font-extrabold py-1">
+        <motion.div
+            ref={rowRef as React.RefObject<HTMLDivElement>}
+            className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-[min(1.875rem,4.5vw)] font-extrabold py-1"
+            style={{ opacity: shift === null ? 0 : 1 }}
+            initial={false}
+            animate={{ x: shift ?? 0 }}
+            transition={{ duration: slide ? 0.9 : 0, ease: 'easeInOut' }}
+        >
             <Token delay={nextDelay()}>
                 <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} baseMarker="base1" argMarker="arg3" />
             </Token>
@@ -181,33 +194,27 @@ const ExampleFormula = ({ baseHighlighted, showRightSide, product }: FormulaStat
             <Token delay={nextDelay()}>
                 <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} baseMarker="base2" argMarker="arg5" />
             </Token>
-            {showRightSide && (
-                <>
-                    <Token delay={nextDelay()}><Plain>=</Plain></Token>
-                    <Token delay={nextDelay()}>
-                        <span className="inline-flex items-baseline whitespace-nowrap">
-                            <Plain>log</Plain>
-                            <sub className="ml-0.5" data-marker="base3">
-                                <NumSticker value={2} color={BASE_COLOR} small />
-                            </sub>
-                            {product !== 'hidden' && (
-                                // внешняя обёртка неподвижна — по ней стрелки меряют место, куда упадёт «(3·5)»
-                                <span data-marker="prod" className="ml-1 inline-flex">
-                                    <motion.span
-                                        className="inline-flex items-baseline gap-1 whitespace-nowrap text-[#F2F7FB]"
-                                        initial={false}
-                                        animate={product === 'shown' ? { y: 0, opacity: 1 } : { y: -70, opacity: 0 }}
-                                        transition={{ type: 'spring', stiffness: 260, damping: 11 }}
-                                    >
-                                        (3<span>·</span>5)
-                                    </motion.span>
-                                </span>
-                            )}
-                        </span>
-                    </Token>
-                </>
-            )}
-        </div>
+            <span data-marker="rightgrp" className="inline-flex items-center gap-x-2" style={{ opacity: showRightSide ? 1 : 0, transition: 'opacity 0.35s' }}>
+                <Plain>=</Plain>
+                <span className="inline-flex items-baseline whitespace-nowrap">
+                    <Plain>log</Plain>
+                    <sub className="ml-0.5" data-marker="base3">
+                        <NumSticker key={showRightSide ? 'on' : 'off'} value={2} color={BASE_COLOR} small />
+                    </sub>
+                    {/* внешняя обёртка неподвижна — по ней стрелки меряют место, куда упадёт «(3·5)» */}
+                    <span data-marker="prod" className="ml-1 inline-flex">
+                        <motion.span
+                            className="inline-flex items-baseline gap-1 whitespace-nowrap text-[#F2F7FB]"
+                            initial={false}
+                            animate={product === 'shown' ? { y: 0, opacity: 1 } : { y: -70, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 11 }}
+                        >
+                            (3<span>·</span>5)
+                        </motion.span>
+                    </span>
+                </span>
+            </span>
+        </motion.div>
     )
 }
 
@@ -237,35 +244,6 @@ const TypedLineWithSticker = ({
                     {withBreaks(before)}
                     {stickerValue !== '' && <NumSticker value={stickerValue} color={stickerColor} />}
                     {withBreaks(after)}
-                </>
-            )}
-        </div>
-    )
-}
-
-// Финальная строка "Ответ: log₂15" — по прямой просьбе пользователя
-// вместо арифметического пересказа ("3·5=15, поэтому..."). "Ответ:"
-// печатается как обычный текст, сама формула справа — статичная (без
-// анимации подстановки, результат уже показан построчно выше в самой
-// диаграмме) зелёным (цвет "верно" по всему проекту).
-const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
-    const [typed, setTyped] = useState(false)
-    return (
-        <div className="w-full text-base md:text-lg text-[#F2F7FB] flex items-baseline gap-2 flex-wrap">
-            {!typed ? (
-                <Typewriter text="Ответ:" onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 400) }} />
-            ) : (
-                <>
-                    <span>Ответ:</span>
-                    <motion.span
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                        className="inline-flex items-baseline font-extrabold text-lg md:text-xl"
-                        style={{ color: CORRECT_COLOR }}
-                    >
-                        log<sub className="ml-0.5">2</sub><span className="ml-0.5">15</span>
-                    </motion.span>
                 </>
             )}
         </div>
@@ -331,7 +309,7 @@ const ProductArrows = ({ containerRef }: { containerRef: React.RefObject<HTMLDiv
                 buildElbowPath(mid(r5), top(r5), rp.left - cr.left + rp.width * 0.26, yEnd, bridge - 16),
             ])
         }
-        const t = setTimeout(measure, 750)
+        const t = setTimeout(measure, ARROW_MEASURE_MS)
         window.addEventListener('resize', measure)
         return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -409,7 +387,7 @@ const BaseMatchArrow = ({
         }
         // Ждём, пока каскад токенов и bounce-стикеры осядут, прежде чем
         // измерять реальные позиции (тот же таймаут, что и у ArgumentsArrow).
-        const t = setTimeout(measure, 750)
+        const t = setTimeout(measure, ARROW_MEASURE_MS)
         window.addEventListener('resize', measure)
         return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -465,27 +443,49 @@ const BaseMatchArrow = ({
 // пауза, потом только текст — не всё разом, как раньше. Тот же принцип
 // "не начинать следующий бит, пока не доиграл предыдущий", что уже
 // применён в FluxScene (FARADAYWALK) / DefinitionSequence (LOGDEFWALK).
-const BASE_MATCH_PAUSE_MS = 900
-// Столько реально рисуется BaseMatchArrow (750мс задержка измерения +
-// 0.2с delay + 0.8с сама draw-анимация, см. BaseMatchArrow выше).
-const BASE_MATCH_ARROW_DRAW_MS = 1750
+// Стрелки меряют позиции почти сразу (стикеры уже на месте), рисуются 0.2с задержка + 0.8с.
+const ARROW_MEASURE_MS = 120
+const ARROW_DRAW_MS = 1150
 
-// Шаги 0-2 — ОДНА сцена с одной формулой, которая растёт на месте (по просьбе пользователя: не переписывать
-// пример заново в каждой сцене). step приходит от родителя (кнопка «Дальше»), внутри — строгая очередь:
-// 0: пример → «заметим одинаковое основание. Это 2» → двойки становятся стикерами → пауза → двойная стрелка;
-// 1: «поэтому получится логарифм с тем же основанием 2» → справа дописывается «= log₂» → пауза → стрелка с тремя концами;
-// 2: аргументы цветными стикерами и «(3·5)» → пауза → стрелка «+» → «·» → «аргументы надо перемножить».
-// Прошлые строки текста бледнеют (opacity + grayscale), когда пишется новая.
+// Шаги 0-3 — ОДНА сцена с одной формулой, которая растёт на месте (по просьбе пользователя: не переписывать
+// пример заново в каждой сцене). step приходит от родителя (кнопка), внутри — строгая очередь:
+// 0: «Если складываем логарифмы с одинаковым основанием, например здесь это 2» → двойки стикерами и сразу двойная стрелка;
+// 1: «Тогда получится логарифм с тем же основанием 2» → вся формула плавно уезжает влево → справа «= log₂» и сразу тройная стрелка;
+// 2: прошлый текст бледнеет → «И, так как логарифмы складываются, то цифры 3 и 5 надо перемножить» → две стрелки вверху →
+//    «(3·5)» падает баунсом;
+// 3: прошлое бледнеет → с новой строки по центру «= log₂15» + конфетти.
 type MergedArrow = 'none' | 'two' | 'three' | 'args'
 const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void }) => {
     const [lines, setLines] = useState(0)
     const [sticks, setSticks] = useState(false)
     const [rightSide, setRightSide] = useState(false)
-    const [product, setProduct] = useState<'hidden' | 'reserved' | 'shown'>('hidden')
+    const [product, setProduct] = useState<'reserved' | 'shown'>('reserved')
     const [arrow, setArrow] = useState<MergedArrow>('none')
+    const [shift, setShift] = useState<number | null>(null)
+    const [slide, setSlide] = useState(false)
+    const [answer, setAnswer] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
+    const rowRef = useRef<HTMLDivElement>(null)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+
+    // Пока справа пусто, левая часть стоит по центру: сдвигаем строку вправо на половину ширины невидимой правой части.
+    // DiagramBlock монтирует детей не сразу, поэтому пробуем, пока строка не появится.
+    useLayoutEffect(() => {
+        const measure = (): boolean => {
+            const row = rowRef.current
+            if (!row) return false
+            const grp = row.querySelector<HTMLElement>('[data-marker="rightgrp"]')
+            const a5 = row.querySelector<HTMLElement>('[data-marker="arg5"]')
+            if (!grp || !a5) return false
+            if (!slide) setShift(Math.round((grp.getBoundingClientRect().right - a5.getBoundingClientRect().right) / 2))
+            return true
+        }
+        const poll = setInterval(() => { if (measure()) clearInterval(poll) }, 60)
+        const onResize = () => { measure() }
+        window.addEventListener('resize', onResize)
+        return () => { clearInterval(poll); window.removeEventListener('resize', onResize) }
+    }, [slide])
 
     useEffect(() => {
         const list = timers.current
@@ -493,28 +493,42 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
         if (step === 1) later(() => setLines(2), 300)
         if (step === 2) {
             setArrow('none')
-            later(() => setArrow('args'), 700)
-            // две стрелки дорисовались → пауза → «(3·5)» падает баунсом → пауза → текст
-            later(() => setProduct('shown'), 700 + BASE_MATCH_ARROW_DRAW_MS + 700)
-            later(() => setLines(3), 700 + BASE_MATCH_ARROW_DRAW_MS + 700 + 1500)
+            later(() => setLines(3), 900)
+        }
+        if (step === 3) {
+            later(() => setAnswer(true), 800)
+            later(onSettled, 1900)
         }
         return () => { list.forEach(clearTimeout); list.length = 0 }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step])
 
-    const arrowDone = () => later(onSettled, BASE_MATCH_ARROW_DRAW_MS + 300)
-    const dim = (n: number) => lines > n ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' } : { transition: 'opacity 0.4s' }
+    const dim = (n: number) => (lines > n || step >= 2 && n < 3 || step >= 3)
+        ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' }
+        : { transition: 'opacity 0.4s' }
 
     return (
         <>
             <DiagramBlock>
-                <div ref={ref} className="relative w-full pt-12 pb-9">
-                    <ExampleFormula baseHighlighted={sticks} showRightSide={rightSide} product={product} />
+                <div ref={ref} className="relative w-full overflow-x-clip pt-12 pb-9">
+                    <ExampleFormula baseHighlighted={sticks} showRightSide={rightSide} product={product} rowRef={rowRef} shift={shift} slide={slide} />
+                    {answer && (
+                        <motion.div
+                            className="w-full text-center text-[min(1.875rem,4.5vw)] font-extrabold py-1"
+                            style={{ color: CORRECT_COLOR }}
+                            initial={{ scale: 2.2, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+                        >
+                            = log<sub className="ml-0.5">2</sub><span className="ml-1">15</span>
+                        </motion.div>
+                    )}
                     {arrow === 'two' && <BaseMatchArrow key="two" containerRef={ref} markers={['base1', 'base2']} color={BASE_COLOR} />}
                     {arrow === 'three' && <BaseMatchArrow key="three" containerRef={ref} markers={['base1', 'base2', 'base3']} color={BASE_COLOR} />}
                     {arrow === 'args' && <ProductArrows containerRef={ref} />}
                 </div>
             </DiagramBlock>
+            {answer && <LocalAnswerConfetti />}
             {lines >= 1 && (
                 <div style={dim(1)}>
                     <TypedLineWithSticker
@@ -523,8 +537,10 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
                         stickerColor={BASE_COLOR}
                         after="."
                         onSettled={() => {
+                            // двойки становятся стикерами и сразу рисуется двойная стрелка
                             setSticks(true)
-                            later(() => { setArrow('two'); arrowDone() }, 1000)
+                            setArrow('two')
+                            later(onSettled, ARROW_MEASURE_MS + ARROW_DRAW_MS + 300)
                         }}
                     />
                 </div>
@@ -532,16 +548,19 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
             {lines >= 2 && (
                 <div style={dim(2)}>
                     <TypedLineWithSticker
-                        before="Тогда получится логарифм с тем же основанием."
-                        stickerValue=""
+                        before="Тогда получится логарифм с тем же основанием "
+                        stickerValue={2}
                         stickerColor={BASE_COLOR}
                         onSettled={() => {
                             setArrow('none')
+                            setSlide(true)
+                            setShift(0)
+                            // формула доехала влево → справа «= log₂» и сразу тройная стрелка
                             later(() => {
                                 setRightSide(true)
-                                setProduct('reserved')
-                                later(() => { setArrow('three'); arrowDone() }, 1000)
-                            }, 900)
+                                setArrow('three')
+                                later(onSettled, ARROW_MEASURE_MS + ARROW_DRAW_MS + 300)
+                            }, 950)
                         }}
                     />
                 </div>
@@ -549,11 +568,16 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
             {lines >= 3 && (
                 <div style={dim(3)}>
                     <TypedLineWithSticker
-                        before="Цифры 3 и 5 надо "
+                        before="И, так как логарифмы складываются, то цифры 3 и 5 надо "
                         stickerValue="перемножить"
                         stickerColor={ATTENTION_COLOR}
                         after="."
-                        onSettled={onSettled}
+                        onSettled={() => {
+                            // две стрелки сверху → «(3·5)» падает баунсом → кнопка
+                            later(() => setArrow('args'), 600)
+                            later(() => setProduct('shown'), 600 + ARROW_MEASURE_MS + ARROW_DRAW_MS + 500)
+                            later(onSettled, 600 + ARROW_MEASURE_MS + ARROW_DRAW_MS + 500 + 1300)
+                        }}
                     />
                 </div>
             )}
@@ -752,11 +776,6 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const [wrongTried, setWrongTried] = useState<TrialOption[]>([])
     const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
-    // Конфетти на финальный "Ответ: log₂15" (шаг 4 обучающей части) — по
-    // прямой просьбе пользователя, во ВСЕХ таких "локальных ответах"
-    // разбора (см. LocalAnswerConfetti). Отдельная конфетти на верный
-    // ответ ТРЕНИРОВОЧНОГО задания — см. handleOptionClick ниже.
-    const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
 
     const currentCorrectOption: TrialOption = {
         base: trials[trialIndex].a,
@@ -827,7 +846,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    const stepLabel = ['Вижу одинаковые основания 2', 'Вижу основание то же 2', 'Понял, перемножаем'][step] ?? introNextLabel
+    const stepLabel = ['Ага, одинаковые основания', 'Основание такое же', 'Понял, перемножаем'][step] ?? introNextLabel
 
     // Счётчики "повторов" — нужны, чтобы "назад" (см. handleBack ниже)
     // мог ПЕРЕМОНТИРОВАТЬ содержимое целевой сцены (Typewriter/
@@ -837,14 +856,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — та же схема ключей, что и в SINWALK.
-    const latestSceneKey = phase === 'intro' ? (step <= 2 ? 'step-0' : 'step-3') : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? 'step-0' : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
         if (key.startsWith('trial-')) {
             const idx = Number(key.slice('trial-'.length))
-            return idx > 0 ? `trial-${idx - 1}` : 'step-3'
+            return idx > 0 ? `trial-${idx - 1}` : 'step-0'
         }
         if (key.startsWith('step-')) {
-            return key === 'step-3' ? 'step-0' : null
+            return null
         }
         return null
     }
@@ -866,7 +885,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     // ПЕРЕМОНТИРУЕТСЯ). Сцены ПОСЛЕ target сами исчезают из DOM.
     const handleBack = () => {
         if (advancing) return
-        if (phase === 'intro' && step > 0 && step <= 2) {
+        if (phase === 'intro' && step > 0) {
             bumpNonce('step-0'); setStep(0); setStepReady(false)
             return
         }
@@ -890,21 +909,12 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаги 0-2 — одна сцена с растущей формулой (MergedScene), шаг 3 — итог. */}
+                {/* Шаги 0-3 — одна сцена с растущей формулой (MergedScene). */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <MergedScene step={Math.min(step, 2)} onSettled={() => setStepReady(true)} />
+                        <MergedScene step={step} onSettled={() => setStepReady(true)} />
                     </Fragment>
                 </SceneWrapper>
-
-                {step >= 3 && (
-                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
-                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
-                            {showAnswerConfetti && <LocalAnswerConfetti />}
-                        </Fragment>
-                    </SceneWrapper>
-                )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
                     const t = trials[i]
