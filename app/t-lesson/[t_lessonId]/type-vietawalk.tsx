@@ -1503,7 +1503,7 @@ const RuleCase = ({ cond, minus, k }: { cond: string; minus?: boolean; k: number
         {k >= 3 && <Pop delay={0.15}><span className="text-2xl md:text-3xl font-black text-[#F2F7FB]"><X2Formula minus={minus} /></span></Pop>}
     </div>
 )
-const RULES_DELAYS: Record<number, number> = { 1: 500, 2: 600, 3: 700, 4: 1000, 5: 400, 6: 500, 7: 600, 8: 700, 9: 900, 10: 1000, 11: 1200 }
+const RULES_DELAYS: Record<number, number> = { 1: 500, 2: 800, 3: 800, 4: 1000, 5: 400, 6: 500, 7: 800, 8: 800, 9: 1000, 10: 1000, 11: 1200 }
 const RulesBoxingScene = ({ onSettled }: SceneProps) => {
     const [step, setStep] = useState(0)
     useEffect(() => {
