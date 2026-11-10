@@ -13,7 +13,7 @@
 // Правила оформления step-by-step — CLAUDE.md, раздел «Правила создания пошаговых разборов».
 // Ошибки в мини-играх в зачёт урока не идут. Тот же подход, что в type-area6walk.tsx (там свой движок с рисунками-элементами).
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RememberPlate, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { EgeTaskCard, type EgeFocusMode } from '@/components/geometry/ege-task-card'
@@ -110,6 +110,18 @@ export const Note = ({ ok, children }: { ok: boolean; children: React.ReactNode 
     </motion.div>
 )
 
+// Варианты ответа всегда перемешиваем (правило 5a): верный не стоит на одном месте из задания в задание.
+// prevPos — где верный стоял в прошлом задании: при 3+ вариантах он должен оказаться на другом месте.
+export function shuffleOptions<T>(options: T[], correct: T | null, prevPos: number | null = null): T[] {
+    const a = [...options]
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
+    if (correct !== null && prevPos !== null && a.length >= 3) {
+        const at = a.indexOf(correct)
+        if (at === prevPos) { const to = (at + 1 + Math.floor(Math.random() * (a.length - 1))) % a.length; [a[at], a[to]] = [a[to], a[at]] }
+    }
+    return a
+}
+
 // --- «Выбери / посчитай» ---
 // optionsDelay — варианты появляются не сразу с вопросом, а позже (между ними, например, подсветка в условии).
 export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void; optionsDelay?: number }) => {
@@ -126,13 +138,21 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
     const [wrong, setWrong] = useState<string[]>([])
     const [done, setDone] = useState(false)
     const round = rounds[r]
+    // порядок вариантов выбираем после монтирования (случайное — не при серверном рендере)
+    const prevPos = useRef<number | null>(null)
+    const [order, setOrder] = useState<string[] | null>(null)
+    useEffect(() => {
+        const o = shuffleOptions(rounds[r].options, rounds[r].correct, prevPos.current)
+        prevPos.current = o.indexOf(rounds[r].correct)
+        setOrder(o)
+    }, [r]) // eslint-disable-line react-hooks/exhaustive-deps
     const pick = (o: string) => {
         if (done || wrong.includes(o)) return
         if (o === round.correct) {
             setDone(true); showAnswerMeme(true)
             setTimeout(() => {
                 if (r + 1 >= rounds.length) { onDone(); return }
-                setR(r + 1); setWrong([]); setDone(false)
+                setOrder(null); setR(r + 1); setWrong([]); setDone(false)
             }, 1800)
         } else { setWrong((w) => [...w, o]); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false) }
     }
@@ -144,8 +164,8 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
                 <L>{round.prompt}</L>
                 {rounds.length > 1 && !plain && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
             </motion.div>
-            {showOpts && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
-                {round.options.map((o) => {
+            {showOpts && order && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
+                {order.map((o) => {
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (
                         <button key={o} type="button" disabled={isWrong || done} onClick={() => pick(o)}

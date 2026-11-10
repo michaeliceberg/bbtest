@@ -5,8 +5,9 @@ import { PROB_CLASSIC, PROB_COINS, PROB_AND_OR } from './probability'
 import { DERIV_BASIC } from './derivative'
 import { PERCENT_BANK } from './percent'
 import { PROJECTILE_BASIC } from './projectile'
+import { LOG_SUM } from './logSum'
 
 // Реестр уроков SCENEWALK: ключ — t_challenges.question.
-export const SCENE_LESSONS: SceneLesson[] = [LOG_NEGATIVE, LOG_INEQUALITY, PROB_CLASSIC, PROB_COINS, PROB_AND_OR, DERIV_BASIC, PERCENT_BANK, PROJECTILE_BASIC]
+export const SCENE_LESSONS: SceneLesson[] = [LOG_NEGATIVE, LOG_INEQUALITY, PROB_CLASSIC, PROB_COINS, PROB_AND_OR, DERIV_BASIC, PERCENT_BANK, PROJECTILE_BASIC, LOG_SUM]
 export const findSceneLesson = (question: string): SceneLesson =>
     SCENE_LESSONS.find((l) => l.question === question) ?? SCENE_LESSONS[0]

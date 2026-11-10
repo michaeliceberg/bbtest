@@ -4,15 +4,15 @@
 // Какой урок показать — по тексту задания (t_challenges.question), реестр SCENE_LESSONS в lib/scene-lessons.
 // Новый урок = файл со сценами и тренировкой в lib/scene-lessons + строка в реестре + сид задания с этим question.
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { QuestionType } from './page'
 import {
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
+    pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo, isFieryMilestoneTrial, pickMiguelCheer,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
-import { SceneRunner, SLOT_COL } from '@/components/geometry/scene-engine'
+import { SceneRunner, SLOT_COL, shuffleOptions } from '@/components/geometry/scene-engine'
 import { findSceneLesson } from '@/lib/scene-lessons'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
@@ -45,6 +45,17 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<string[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+    const [chosen, setChosen] = useState<string | null>(null)
+    // порядок вариантов в задании: случайный, верный не на том же месте, что в прошлом (правило 5a); считаем после монтирования
+    const prevAnsPos = useRef<number | null>(null)
+    const [trialOpts, setTrialOpts] = useState<string[]>([])
+    useEffect(() => {
+        if (phase !== 'practice') return
+        const tr = TRIALS[trialIndex]
+        const o = tr.allCorrect ? [...tr.options] : shuffleOptions(tr.options, tr.answer, prevAnsPos.current)
+        if (!tr.allCorrect) prevAnsPos.current = o.indexOf(tr.answer)
+        setTrialOpts(o)
+    }, [phase, trialIndex]) // eslint-disable-line react-hooks/exhaustive-deps
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     const [qShow, setQShow] = useState(false)
     const [qTyped, setQTyped] = useState(false)
@@ -79,8 +90,9 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
     const answer = (v: string) => {
         const t = TRIALS[trialIndex]
         if (checked || wrongTried.includes(v)) return
-        if (v === t.answer) {
+        if (t.allCorrect || v === t.answer) {
             showAnswerMeme(true)
+            setChosen(v)
             registerCombo(wrongTried.length === 0)
             setWrongFlash(null)
             setChecked(true)
@@ -154,9 +166,9 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                                 ? <motion.div key={`q-${trialIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onAnimationComplete={() => setQTyped(true)}><MathText>{t.text}</MathText></motion.div>
                                 : <Typewriter key={`q-${trialIndex}`} text={t.text} onDone={() => setQTyped(true)} />)}
                         </div>
-                        {!checked && qTyped && (
+                        {!checked && qTyped && trialOpts.length > 0 && (
                             <div key={`opts-${trialIndex}`} className={cn('drop-in-options grid gap-3 w-full', long ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2')}>
-                                {t.options.map((v) => {
+                                {trialOpts.map((v) => {
                                     const isWrong = wrongTried.includes(v)
                                     return (
                                         <button key={v} type="button" disabled={isWrong} onClick={() => answer(v)}
@@ -174,8 +186,10 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                             </div>
                         )}
                         {checked && (
-                            <FieryFeedbackBanner>
-                                {pickPraise(trialIndex)} <MathText>{t.answer}</MathText>
+                            <FieryFeedbackBanner fiery={isFieryMilestoneTrial(trialIndex)}>
+                                {isFieryMilestoneTrial(trialIndex)
+                                    ? pickMiguelCheer(trialIndex)
+                                    : <>{pickPraise(trialIndex)} <MathText>{t.allCorrect ? (chosen ?? t.answer) : t.answer}</MathText></>}
                             </FieryFeedbackBanner>
                         )}
                         {checked && <LocalAnswerConfetti />}
