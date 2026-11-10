@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ACHIEVEMENT_GROUPS } from '@/lib/achievementsCatalog';
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store';
 import { AchievementIcon } from '@/components/achievement-icon';
+import { enqueueNotice } from '@/lib/noticeQueue';
 import { ACHIEVEMENT_SOUND, playSound, preloadSound } from '@/lib/sound';
 
 const DURATION_MS = 5500;
@@ -18,7 +19,17 @@ const DURATION_MS = 5500;
 export const AchievementUnlockToast = () => {
     const { queue, dismissCurrent, check } = useAchievementUnlockStore();
     const pathname = usePathname();
-    const current = queue[0] ?? null;
+    const head = queue[0] ?? null;
+    // Показываем только когда подошла очередь среди остальных уведомлений (lib/noticeQueue.ts)
+    const [allowedKey, setAllowedKey] = useState<string | null>(null);
+    const requested = useRef<string | null>(null);
+    const doneRef = useRef<(() => void) | null>(null);
+    useEffect(() => {
+        if (!head || requested.current === head.key) return;
+        requested.current = head.key;
+        enqueueNotice((done) => { doneRef.current = done; setAllowedKey(head.key); }, DURATION_MS + 1500);
+    }, [head]);
+    const current = head && allowedKey === head.key ? head : null;
 
     // Забираем «тихо» выданные ачивки при заходе и при смене страницы.
     useEffect(() => {
@@ -39,6 +50,12 @@ export const AchievementUnlockToast = () => {
         const t = setTimeout(dismissCurrent, DURATION_MS);
         return () => clearTimeout(t);
     }, [current, dismissCurrent]);
+
+    // Тост ушёл (по таймеру или тапом) — отпускаем очередь
+    useEffect(() => {
+        if (head && allowedKey === head.key) return;
+        if (allowedKey) { doneRef.current?.(); doneRef.current = null; setAllowedKey(null); }
+    }, [head, allowedKey]);
 
     if (!current) return null;
     const color = ACHIEVEMENT_GROUPS.find((g) => g.id === current.group)?.color ?? '#53ADEF';

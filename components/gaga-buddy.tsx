@@ -17,6 +17,7 @@ import { GAGA_EMOTIONS, gagaAudio, gagaCaption, pickGagaLine, type GagaEvent } f
 import { playSoundTracked } from '@/lib/sound'
 import { pickShortJoke, setJokeTopic, ZN_RUBRIC_TITLE, znSource, type ZnJoke, type ZnTopic } from '@/lib/zaNauku'
 import { showDictGame } from '@/components/fiztech-dict-game'
+import { enqueueNotice } from '@/lib/noticeQueue'
 
 const EVENT = 'gaga-show'
 const VOICE_KEY = 'gagaVoice'
@@ -41,7 +42,12 @@ export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: bo
     const now = Date.now()
     if (!opts?.force && !opts?.shot && !BIG.includes(event) && now - lastShownAt < MIN_GAP_MS) return
     lastShownAt = now
-    const fire = () => window.dispatchEvent(new CustomEvent(EVENT, { detail: { event, shot: !!opts?.shot, joke: opts?.joke } }))
+    // Реплика Га-Га ждёт своей очереди среди тостов/ачивок; выстрел КОМБО — мгновенно, он часть анимации урока
+    const fire = () => {
+        const detail = { event, shot: !!opts?.shot, joke: opts?.joke }
+        if (opts?.shot) window.dispatchEvent(new CustomEvent(EVENT, { detail }))
+        else enqueueNotice((done) => window.dispatchEvent(new CustomEvent(EVENT, { detail: { ...detail, done } })), MAX_SHOW_MS + 4000)
+    }
     if (opts?.delayMs) setTimeout(fire, opts.delayMs)
     else fire()
 }
@@ -215,20 +221,23 @@ export const GagaBuddyLayer = () => {
     const [mounted, setMounted] = useState(false)
     const [shown, setShown] = useState<Shown | null>(null)
     const stopVoice = useRef<() => void>(() => {})
+    const currentDone = useRef<(() => void) | null>(null)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
     useEffect(() => {
         setMounted(true)
         const clear = () => { timers.current.forEach(clearTimeout); timers.current = [] }
         const onShow = (e: Event) => {
-            const { event, shot, joke } = (e as CustomEvent<{ event: GagaEvent; shot?: boolean; joke?: ZnJoke }>).detail
+            const { event, shot, joke, done } = (e as CustomEvent<{ event: GagaEvent; shot?: boolean; joke?: ZnJoke; done?: () => void }>).detail
             clear()
+            currentDone.current?.()
+            currentDone.current = done ?? null
             stopVoice.current()
             const id = Date.now() + Math.random()
             const startedAt = Date.now()
             const leave = () => {
                 setShown((s) => (s && s.id === id ? { ...s, leaving: true } : s))
-                timers.current.push(setTimeout(() => setShown((s) => (s && s.id === id ? null : s)), 400))
+                timers.current.push(setTimeout(() => { setShown((s) => (s && s.id === id ? null : s)); currentDone.current?.(); currentDone.current = null }, 400))
             }
             if (joke) {
                 // шутку читаем глазами — без голоса, держим по длине текста

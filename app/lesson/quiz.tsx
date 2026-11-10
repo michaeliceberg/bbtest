@@ -15,6 +15,7 @@ import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
 import { advanceEgeMove } from "@/actions/ege-move";
 import { showEgeGain } from "@/components/ege-gain-toast";
+import { showFreezeSaved } from "@/components/game-notices";
 import { showCatCall } from "@/components/cat-call-toast";
 import { toast } from "sonner";
 import { useWindowSize, useMount } from "react-use";
@@ -607,7 +608,7 @@ export const Quiz = ({
                         if (response?.streakExtended && response.newStreak) {
                             showStreakCelebration(response.newStreak)
                         }
-                        if (response?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${response.newStreak} дн. подряд`)
+                        if (response?.streakFrozenDays) showFreezeSaved(response.newStreak)
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
                         // первая верная задача задачника — у ворот ангара мяукает котик (components/hangar-cat.tsx)
                         if (response?.catCalled) setTimeout(showCatCall, 1500)

@@ -4,7 +4,7 @@
 // задачника (расчёт — getEgeGain в lib/egeMap.ts). Тап ведёт в «Мой путь».
 
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { enqueueToast } from '@/components/notice-toast'
 import type { EgeGain } from '@/lib/egeMap'
 import { PiggyBank } from '@/components/piggy-bank'
 import { COIN_DROP_SOUND, playSound } from '@/lib/sound'
@@ -25,10 +25,10 @@ export const showEgeGain = (gain: EgeGain | null | undefined) => {
     const text = jumped ? '+1 балл ЕГЭ!'
         : steps !== null && steps <= 10 ? `+1 балл ЕГЭ через ${steps} ${stepsWord(steps, gain.kind)}`
         : 'Прогноз ЕГЭ растёт'
-    toast.custom((id) => (
+    enqueueToast((_id, close) => (
         <Link
             href="/path"
-            onClick={() => toast.dismiss(id)}
+            onClick={close}
             className="flex w-[340px] max-w-[calc(100vw-32px)] items-center gap-3 rounded-2xl border-2 px-3.5 py-3"
             style={{
                 borderColor: jumped ? '#F2C35B' : '#78C93C',
@@ -45,6 +45,5 @@ export const showEgeGain = (gain: EgeGain | null | undefined) => {
             </span>
             <span className="shrink-0 text-xs font-black text-[#9AA7B0]">Мой путь ›</span>
         </Link>
-    ), { duration: 5000 })
-    setTimeout(() => playSound(COIN_DROP_SOUND, 0.5), 1050)
+    ), 5000, () => setTimeout(() => playSound(COIN_DROP_SOUND, 0.5), 1050))
 }

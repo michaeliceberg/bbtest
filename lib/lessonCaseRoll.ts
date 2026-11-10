@@ -24,7 +24,8 @@ import 'server-only';
 import type { LessonCaseTier } from '@/lib/caseRewards';
 
 // Шанс, что кейс выпадет после одного завершённого урока.
-const LESSON_CASE_DROP_CHANCE = 0.55;
+// Сундук должен быть долгожданным (2026-11-11): раньше 0.55 — кейсы сыпались после каждого второго урока.
+const LESSON_CASE_DROP_CHANCE = 0.15;
 
 // Редкость самого выпавшего кейса (сумма весов — не обязательно 100).
 const TIER_WEIGHTS: [LessonCaseTier, number][] = [

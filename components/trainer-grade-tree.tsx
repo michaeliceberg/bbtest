@@ -506,11 +506,32 @@ const StagePath = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [revealId],
     );
+    // Где встанет гусь рядом с кружком k: перебираем места вокруг и берём то, где он (с облачком) меньше всего
+    // перекрывает названия уроков (справа от каждого кружка) и сами кружки; при равенстве — ближе к кружку.
     const cheerSpot = (k: number) => {
-        const p = pts[k];
-        const cx = clampNum(p.x < 150 ? p.x + 100 : p.x - 100, 78, PATH_W - 78);
-        return { x: cx, y: p.y - 92 };
-    };
+        const GW = 170, GH = 175 // гусь + облачко
+        const rects: { x0: number; x1: number; y0: number; y1: number; w: number }[] = []
+        pts.forEach((q) => {
+            rects.push({ x0: q.x + 50, x1: PATH_W, y0: q.y - 50, y1: q.y + 50, w: 3 }) // название урока
+            rects.push({ x0: q.x - 38, x1: q.x + 38, y0: q.y - 38, y1: q.y + 38, w: 2 }) // кружок
+        })
+        const p = pts[k]
+        let best = { x: clampNum(p.x < 150 ? p.x + 100 : p.x - 100, 78, PATH_W - 78), y: p.y - 92 }
+        let bestCost = Infinity
+        for (let cx = GW / 2 - 10; cx <= PATH_W - GW / 2 + 10; cx += 15) {
+            for (let cy = p.y - 170; cy <= p.y + 170; cy += 10) {
+                let cost = 0
+                for (const r of rects) {
+                    const ox = Math.min(cx + GW / 2, r.x1) - Math.max(cx - GW / 2, r.x0)
+                    const oy = Math.min(cy + GH / 2, r.y1) - Math.max(cy - GH / 2, r.y0)
+                    if (ox > 0 && oy > 0) cost += ox * oy * r.w
+                }
+                cost += Math.hypot(cx - p.x, cy - p.y) * 20
+                if (cost < bestCost) { bestCost = cost; best = { x: cx, y: cy } }
+            }
+        }
+        return best
+    }
     const cheerFrom = ri >= 0 ? cheerSpot(ri) : null;
     const cheerTo = ri >= 0 && ri + 1 < n ? cheerSpot(ri + 1) : cheerFrom;
     const walkSec = ri >= 0 && ri + 1 < n ? gooseWalkSeconds(pts[ri], segs[ri].c1, segs[ri].c2, pts[ri + 1]) : 0;

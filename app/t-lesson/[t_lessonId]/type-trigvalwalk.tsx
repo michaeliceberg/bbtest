@@ -1483,7 +1483,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                                             <X className="w-5 h-5" /> {wrongFlash}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+                                        null
                                     )
                                 )}
                                 {isDone && (

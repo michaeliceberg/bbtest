@@ -5,13 +5,13 @@
 // слева выглядывает котик (cat-peek), справа жёлтая кнопка «В ангар» → /learn?hangar=1 (ангар открывается сам).
 
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { enqueueToast } from '@/components/notice-toast'
 
 export const showCatCall = () => {
-    toast.custom((id) => (
+    enqueueToast((_id, close) => (
         <Link
             href="/learn?hangar=1"
-            onClick={() => toast.dismiss(id)}
+            onClick={close}
             className="flex w-[340px] max-w-[calc(100vw-32px)] items-center gap-3 rounded-2xl border-2 px-3.5 py-2.5"
             style={{
                 borderColor: '#F2C35B',
@@ -28,5 +28,5 @@ export const showCatCall = () => {
             </span>
             <span className="shrink-0 rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] px-2.5 py-1.5 text-xs font-black uppercase text-[#3A2A08]">В ангар</span>
         </Link>
-    ), { duration: 9000 })
+    ), 9000)
 }

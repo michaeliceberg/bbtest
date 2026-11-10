@@ -3,6 +3,7 @@
 "use client"
 import { advanceEgeMove } from '@/actions/ege-move'
 import { showEgeGain } from '@/components/ege-gain-toast'
+import { showStormGain, showFreezeSaved } from '@/components/game-notices'
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
@@ -87,12 +88,12 @@ const STREAK_MILESTONES = [3] as const
 // Плоские очки/XP за завершение ОСНОВНОГО прохода урока тренажёра —
 // независимо от числа вопросов и точности (не наказывает за короткий
 // урок из малого числа вопросов, см. историю решения в CLAUDE.md).
-// Было 200 — при XP_PER_LEVEL=100 (lib/xp.ts) это гарантированно 2
+// Было 200 — при плоском пороге 100 XP (lib/xp.ts) это гарантированно 2
 // уровня за один урок, из-за чего повышение всегда "перепрыгивало"
 // через уровень (например 7→9, 8-й никогда не показывался) — заметно и
 // прямо об этом спросил пользователь. Снижено до 50 — соизмеримо с ~5
 // верными ответами курса (обычно 10 XP за ответ), больше не перепрыгивает
-// уровень при типичном XP_PER_LEVEL=100.
+// уровень при пороге уровня 100+ XP.
 const TRAINER_LESSON_TRAINING_PTS = 50
 
 // Мем-модалка (картинка+звук на верный/неверный ответ,
@@ -374,7 +375,7 @@ export default function TQuiz({
     const st = result.storm
     if (st?.until) setStormInfo({ until: st.until, lessons: st.lessons, goal: st.goal, rewarded: st.rewarded })
     if (st?.started) pendingStormStartRef.current = true
-    if (st?.counted) toast.success(st.mythicNow ? `🔥 Штурм: ${st.goal} из ${st.goal}! Мифический кейс твой 👑` : `🔥 Штурм: +${st.coins} монет · ${st.lessons} из ${st.goal}`)
+    if (st?.counted) showStormGain({ goal: st.goal, lessons: st.lessons, coins: st.coins, mythicNow: st.mythicNow })
     if (result.key) {
       return { keyId: result.key.keyId, tier: result.key.tier }
     }
@@ -689,7 +690,7 @@ export default function TQuiz({
         if (progressResult?.streakExtended && progressResult.newStreak) {
           triggerDailyStreakToast(progressResult.newStreak)
         }
-        if (progressResult?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${progressResult.newStreak} дн. подряд`)
+        if (progressResult?.streakFrozenDays) showFreezeSaved(progressResult.newStreak)
         progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
         // Ачивки нового типа (Steam-стиль): сервер выдал их при сохранении — забираем и показываем.
         checkAchievements()
@@ -1251,7 +1252,7 @@ export default function TQuiz({
 
   return (
     <>
-      {stormInfo && <StormPill storm={stormInfo} compact className="fixed bottom-24 left-3 z-40" />}
+      {stormInfo && <StormPill storm={stormInfo} compact className="fixed bottom-[calc(13.5rem+env(safe-area-inset-bottom))] left-3 z-40 md:bottom-44" />}
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
         <LightningStrike key={lightningStrikeKey} variant={lightningVariant} label={lightningLabel} onDone={() => setLightningStrikeActive(false)} />

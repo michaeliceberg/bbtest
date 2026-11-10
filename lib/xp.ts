@@ -9,14 +9,16 @@
 // общий множитель здесь, чтобы позже подкрутить баланс разом, не
 // переписывая три места начисления по отдельности.
 //
-// Уровень — простая линейная кривая (постоянное количество опыта на
-// уровень, не прогрессивно растущий порог): минимальный, предсказуемый
-// старт, который легко заменить на нелинейную кривую позже, если
-// понадобится — level/progress выводятся из xp на лету, нигде не
-// хранятся отдельно.
+// Уровень — растущая лесенка (2026-11-11): каждый следующий уровень дороже предыдущего на LEVEL_STEP_XP,
+// чтобы новый уровень был событием, а не штамповался каждые два урока. level/progress выводятся из xp
+// на лету, нигде не хранятся отдельно.
 
 export const XP_MULTIPLIER = 1;
-export const XP_PER_LEVEL = 100;
+// Цена перехода с уровня L на L+1: LEVEL_BASE_XP + LEVEL_STEP_XP * (L - 1). Один урок тренажёра даёт 50 XP.
+// 1→2: 150 (3 урока), 5→6: 450 (9), 10→11: 825 (16), 20→21: 1575 (31). До 5-го уровня (первый кейс) около 21 урока.
+export const LEVEL_BASE_XP = 150;
+export const LEVEL_STEP_XP = 75;
+export const xpToPassLevel = (level: number): number => LEVEL_BASE_XP + LEVEL_STEP_XP * (Math.max(1, level) - 1);
 
 // Реальная награда за повышение уровня (не только тост) — гемы, тот же
 // прецедент, что уже используют HOT-вопрос/достижения (наградная плашка
@@ -48,13 +50,18 @@ export type LevelInfo = {
 
 export const getLevelInfo = (totalXp: number): LevelInfo => {
     const safeXp = Math.max(0, totalXp || 0);
-    const level = Math.floor(safeXp / XP_PER_LEVEL) + 1;
-    const xpIntoLevel = safeXp % XP_PER_LEVEL;
+    let level = 1;
+    let rest = safeXp;
+    while (rest >= xpToPassLevel(level)) {
+        rest -= xpToPassLevel(level);
+        level += 1;
+    }
+    const need = xpToPassLevel(level);
     return {
         level,
-        xpIntoLevel,
-        xpForNextLevel: XP_PER_LEVEL,
-        progressPercent: Math.round((xpIntoLevel / XP_PER_LEVEL) * 100),
+        xpIntoLevel: rest,
+        xpForNextLevel: need,
+        progressPercent: Math.round((rest / need) * 100),
     };
 };
 

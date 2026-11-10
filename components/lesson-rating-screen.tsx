@@ -92,7 +92,7 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', subject = 'math
 							className="text-xl sm:text-2xl font-extrabold text-center"
 							style={{ color: accent ?? (cozy ? COZY.textSoft : '#9AA7B0') }}
 						>
-							{score == null ? 'Выбери вариант ниже' : score === topScore ? sticker.label : LESSON_RATING_OPTIONS[score - 1].label}
+							{score == null ? 'Как тебе урок?' : score === topScore ? sticker.label : LESSON_RATING_OPTIONS[score - 1].label}
 						</span>
 					</motion.div>
 				</div>
