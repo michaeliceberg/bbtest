@@ -1040,9 +1040,9 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
     }, [fixedSticker])
     // sticker='none' — места под стикер нет картинки (пока родитель её выбирает)
     const shown = fixedSticker === 'none' ? null : fixedSticker || sticker
-    // Сначала рисуется табличка, и только через 700 мс справа прилетает стикер (внимание идёт по очереди).
+    // Сначала рисуется табличка, и только через 500 мс справа прилетает стикер (внимание идёт по очереди).
     const [stickerOn, setStickerOn] = useState(false)
-    useEffect(() => { const t = setTimeout(() => setStickerOn(true), 700); return () => clearTimeout(t) }, [])
+    useEffect(() => { const t = setTimeout(() => setStickerOn(true), 500); return () => clearTimeout(t) }, [])
     // Золотая рамка (не заливка): заголовок сверху, тело — внутри той же рамки под разделителем.
     return (
         <div className="w-full flex items-center gap-3">

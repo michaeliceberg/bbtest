@@ -52,6 +52,7 @@ import {
     RememberPlate, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
 import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { DifficultyBadge, type DifficultyLevel } from '@/components/difficulty-badge'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 
@@ -494,14 +495,14 @@ const TOTAL_INTRO_STEPS = 7
 // примеров (не случайная генерация — пользователь дал точный список),
 // БЕЗ стикеров вообще (по прямой просьбе — не подсказывать цветом). =====
 
-type ExistItem = { base: number; arg: number; correct: boolean }
+type ExistItem = { base: number; arg: number; correct: boolean; level: DifficultyLevel }
 const EXIST_ITEMS: ExistItem[] = [
-    { base: -3, arg: 27, correct: false },
-    { base: 3, arg: 81, correct: true },
-    { base: 1, arg: 4, correct: false },
-    { base: 24, arg: 576, correct: true },
-    { base: 10, arg: -100, correct: false },
-    { base: 4, arg: 1, correct: true },
+    { base: -3, arg: 27, correct: false, level: 2 },
+    { base: 3, arg: 81, correct: true, level: 1 },
+    { base: 1, arg: 4, correct: false, level: 2 },
+    { base: 24, arg: 576, correct: true, level: 3 },
+    { base: 10, arg: -100, correct: false, level: 1 },
+    { base: 4, arg: 1, correct: true, level: 2 },
 ]
 
 const YesNoButton = ({
@@ -523,6 +524,67 @@ const YesNoButton = ({
         {label}
     </button>
 )
+
+// Сцена «ВНИМАНИЕ»: сначала плашка, через полсекунды справа стикер (это делает RememberPlate), потом всё строго по очереди:
+// вводная строка → пауза → пример → пауза → справа «прилетает» штамп «нельзя» → следующий пример … → пауза 1 с → кнопка.
+type ForbidRow = { pre?: string; base: React.ReactNode; arg: React.ReactNode; stamp: string }
+const Stamp = ({ text }: { text: string }) => (
+    <motion.span className="inline-block" initial={{ x: 90, rotate: 14, scale: 1.7, opacity: 0 }} animate={{ x: 0, rotate: -5, scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 16 }}>
+        <Sticker value={text} color={WRONG_COLOR} small />
+    </motion.span>
+)
+const ForbidScene = ({ intro, rows, onSettled }: {
+    intro: { before: string; stickerWord: string; between: string; phrase: string }
+    rows: ForbidRow[]
+    onSettled: () => void
+}) => {
+    // этапы: 0 плашка, 1 вводная строка, дальше для каждой строки: [пояснение], пример, штамп
+    const idx: { pre: number | null; row: number; stamp: number }[] = []
+    let n = 2
+    rows.forEach((r) => { idx.push({ pre: r.pre ? n++ : null, row: n++, stamp: n++ }) })
+    const last = n - 1
+    const [stage, setStage] = useState(0)
+    const advance = (from: number, ms: number) => setTimeout(() => setStage((s) => (s === from ? s + 1 : s)), ms)
+    useEffect(() => {
+        if (stage === 0) { const t = advance(0, 1700); return () => clearTimeout(t) }
+        if (stage === last) { const t = setTimeout(onSettled, 1000); return () => clearTimeout(t) }
+        const isRow = idx.some((x) => x.row === stage)
+        const isStamp = idx.some((x) => x.stamp === stage)
+        if (isRow) { const t = advance(stage, 900); return () => clearTimeout(t) }
+        if (isStamp) { const t = advance(stage, 1100); return () => clearTimeout(t) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stage])
+    return (
+        <>
+            <DiagramBlock><RememberBanner /></DiagramBlock>
+            {stage >= 1 && (
+                <TypedForbidLine {...intro} color={WRONG_COLOR} onSettled={() => { advance(1, 900) }} />
+            )}
+            {stage >= 2 && (
+                <div className="w-full flex flex-col items-center gap-3">
+                    {rows.map((r, i) => (
+                        <Fragment key={i}>
+                            {idx[i].pre !== null && stage >= idx[i].pre! && (
+                                <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+                                    <Typewriter text={r.pre!} onDone={() => { advance(idx[i].pre!, 800) }} />
+                                </div>
+                            )}
+                            {stage >= idx[i].row && (
+                                <FormulaRow>
+                                    <motion.span className="inline-block" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+                                        <LogExpr base={r.base} arg={r.arg} />
+                                    </motion.span>
+                                    {stage >= idx[i].stamp && <Stamp text={r.stamp} />}
+                                </FormulaRow>
+                            )}
+                        </Fragment>
+                    ))}
+                </div>
+            )}
+        </>
+    )
+}
 
 export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'existence'>('intro')
@@ -805,68 +867,35 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     )
                 })}
 
-                {/* Шаг 5 — ЗАПОМНИ: отрицательные числа. */}
+                {/* Шаг 5 — ВНИМАНИЕ: отрицательные числа. */}
                 {step >= 5 && (
                     <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
                         <Fragment key={`step-5-${nonceFor('step-5')}`}>
-                            <DiagramBlock><RememberBanner /></DiagramBlock>
-                            <TypedForbidLine
-                                before="В логарифм "
-                                stickerWord="нельзя"
-                                between=" подставлять "
-                                phrase="отрицательные числа"
-                                color={WRONG_COLOR}
+                            <ForbidScene
+                                intro={{ before: 'В логарифм ', stickerWord: 'нельзя', between: ' подставлять ', phrase: 'отрицательные числа' }}
+                                rows={[
+                                    { base: <Sticker value={-2} color={WRONG_COLOR} small />, arg: <Plain>8</Plain>, stamp: 'НЕЛЬЗЯ!' },
+                                    { base: <Plain>5</Plain>, arg: <Sticker value={-25} color={WRONG_COLOR} />, stamp: 'НЕЛЬЗЯ!' },
+                                    { pre: 'А такое — тем более', base: <Sticker value={-6} color={WRONG_COLOR} small />, arg: <Sticker value={-36} color={WRONG_COLOR} />, stamp: 'ВООБЩЕ НЕЛЬЗЯ!' },
+                                ]}
                                 onSettled={() => setStepReady(true)}
                             />
-                            <DiagramBlock>
-                                <div className="w-full flex flex-col items-center gap-3">
-                                    <FormulaRow>
-                                        <LogExpr base={<Sticker value={-2} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
-                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                    </FormulaRow>
-                                    <FormulaRow>
-                                        <LogExpr base={<Plain>5</Plain>} arg={<Sticker value={-25} color={WRONG_COLOR} />} />
-                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                    </FormulaRow>
-                                    <div className="flex items-center gap-2 text-base md:text-lg font-bold text-[#F2F7FB]">
-                                        <span>А такое — тем более!</span>
-                                        <span className="text-2xl">🤢</span>
-                                    </div>
-                                    <FormulaRow>
-                                        <LogExpr base={<Sticker value={-6} color={WRONG_COLOR} small />} arg={<Sticker value={-36} color={WRONG_COLOR} />} />
-                                        <Sticker value="ВАЩЕ НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                    </FormulaRow>
-                                </div>
-                            </DiagramBlock>
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 6 — ЗАПОМНИ: основание не может быть 1. */}
+                {/* Шаг 6 — ВНИМАНИЕ: основание не может быть 1. */}
                 {step >= 6 && (
                     <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
                         <Fragment key={`step-6-${nonceFor('step-6')}`}>
-                            <DiagramBlock><RememberBanner /></DiagramBlock>
-                            <TypedForbidLine
-                                before="А ещё в основание логарифма "
-                                stickerWord="нельзя"
-                                between=" писать "
-                                phrase="1"
-                                color={WRONG_COLOR}
+                            <ForbidScene
+                                intro={{ before: 'А ещё в основание логарифма ', stickerWord: 'нельзя', between: ' писать ', phrase: '1' }}
+                                rows={[
+                                    { base: <Sticker value={1} color={WRONG_COLOR} small />, arg: <Plain>8</Plain>, stamp: 'НЕЛЬЗЯ!' },
+                                    { base: <Sticker value={1} color={WRONG_COLOR} small />, arg: <Plain>25</Plain>, stamp: 'НЕЛЬЗЯ!' },
+                                ]}
                                 onSettled={() => setStepReady(true)}
                             />
-                            <DiagramBlock>
-                                <div className="w-full flex flex-col items-center gap-3">
-                                    <FormulaRow>
-                                        <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
-                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                    </FormulaRow>
-                                    <FormulaRow>
-                                        <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>25</Plain>} />
-                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                    </FormulaRow>
-                                </div>
-                            </DiagramBlock>
                         </Fragment>
                     </SceneWrapper>
                 )}
@@ -880,9 +909,12 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     return (
                         <SceneWrapper key={`exist-${i}`} innerRef={sceneRef(`exist-${i}`)} active={isSceneActive(`exist-${i}`)}>
                         <Fragment key={`exist-${i}-${nonceFor(`exist-${i}`)}`}>
-                            <div className="flex items-start gap-3 w-full">
+                            <div className="relative w-full flex flex-col items-center gap-2">
+                                <div className="absolute right-0 top-0">
+                                    <DifficultyBadge level={item.level} variant="bars" />
+                                </div>
                                 <div
-                                    className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                    className="self-start flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
                                     style={{
                                         borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
                                         backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
@@ -893,7 +925,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span className="opacity-50 font-normal">/</span>
                                     <span>{EXIST_ITEMS.length}</span>
                                 </div>
-                                <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Бывает ли такой логарифм?</p>
+                                <p className="w-full text-center text-base md:text-lg text-[#F2F7FB]">Бывает ли такой логарифм?</p>
                             </div>
                             <DiagramBlock>
                                 <FormulaRow>
@@ -939,7 +971,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                         <ReplayButton onClick={handleReplay} disabled={advancing} />
                         <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                         <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
-                            {introNextLabel}
+                            {step === 5 ? 'Понял, минусы нельзя' : step === 6 ? 'Понял, единицу нельзя' : introNextLabel}
                         </button>
                     </div>
                 )
@@ -955,7 +987,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                    <p className="flex-1 text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
                 </div>
             )}
         </div>

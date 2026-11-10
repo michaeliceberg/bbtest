@@ -31,8 +31,10 @@ const buildPrefix = () => {
     const active = scenes.filter((s) => s.dataset.wtActive === '1').pop() ?? scenes[scenes.length - 1]
     if (!active) return 'Мне непонятно: '
     const n = scenes.indexOf(active) + 1
-    // первая строка сцены (обычно её заголовок/вопрос); короткую дополняем второй
-    const lines = (active.innerText || '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+    // первая строка сцены с настоящим текстом (счётчики «1 / 4», знаки и формулы без слов пропускаем); короткую дополняем следующей
+    const all = (active.innerText || '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
+    const words = all.filter((l) => (l.match(/[А-Яа-яЁё]/g) ?? []).length >= 4)
+    const lines = words.length ? words : all
     const firstSentence = lines[0] && lines[0].length < 20 && lines[1] ? `${lines[0]} — ${lines[1]}` : (lines[0] ?? '')
     const snippet = firstSentence.length > 70 ? `${firstSentence.slice(0, 70).trimEnd()}…` : firstSentence
     return snippet ? `Мне непонятно на этапе ${n} («${snippet}»): ` : `Мне непонятно на этапе ${n}: `
@@ -82,11 +84,16 @@ export const UnclearButton = ({ className, style }: { className?: string; style?
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-[360px] gap-3 bg-[#161F23] border-[#3A464E]">
                     <DialogHeader className="gap-1 items-center text-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/miguel/miguel-think.webp" alt="" className="w-24 h-24 object-contain -mt-1" />
-                        <DialogTitle className="text-lg text-[#F2F7FB]">Непонятно? Спасибо, что сказал! 💜</DialogTitle>
+                        {/* Га-Га по пояс: стикер в рост обрезан до головы и руки и увеличен, чтобы была видна эмоция */}
+                        <div className="relative h-40 w-[170px] overflow-hidden -mt-1" aria-hidden>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/miguel/miguel-think.webp" alt="" className="absolute max-w-none select-none"
+                                style={{ width: 414, height: 414, left: -104, top: -6 }} />
+                        </div>
+                        <DialogTitle className="text-lg text-[#F2F7FB]">Что-то не совсем понятно?</DialogTitle>
+                        <div className="text-base font-bold text-[#F2F7FB]">Мы обязательно исправим! 💜</div>
                         <DialogDescription className="text-sm text-[#9AA7B0]">
-                            Ты помогаешь сделать урок понятнее для всех. Допиши, что именно запутало, или просто отправь как есть.
+                            Напиши, что именно запутало, или просто отправь как есть. Спасибо, так ты помогаешь сделать урок лучше для всех 💜
                         </DialogDescription>
                     </DialogHeader>
                     <textarea ref={areaRef} value={text} onChange={(e) => setText(e.target.value.slice(0, 1500))} rows={5}
@@ -94,7 +101,7 @@ export const UnclearButton = ({ className, style }: { className?: string; style?
                     <button type="button" onClick={send} disabled={sending || !text.trim()}
                         className={cn('w-full h-12 rounded-xl font-extrabold uppercase tracking-wide text-[#2A1A05] bg-[#F09B38] transition-all duration-100',
                             'shadow-[0_4px_0_#C07C2B] active:shadow-none active:translate-y-[4px]', sending ? 'opacity-60' : '')}>
-                        {sending ? 'Отправляю…' : 'Отправить «непонятно»'}
+                        {sending ? 'Отправляю…' : 'Предлагаю исправить'}
                     </button>
                 </DialogContent>
             </Dialog>
