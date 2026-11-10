@@ -846,8 +846,11 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     const opts = shuffled[stage]
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            {/* Уравнение и плашка этапа — столбиком по центру; «Сложность» стоит справа от вариантов ответа. */}
-            <div className="flex flex-col items-center gap-3">
+            {/* Уравнение и плашка этапа — столбиком по центру; «Сложность» — справа сверху, поверх, условие не сдвигает. */}
+            <div className="relative w-full flex flex-col items-center gap-3">
+                <div className="absolute right-0 top-0">
+                    <DifficultyBadge level={rootsLevel(r)} variant="bars" />
+                </div>
                 <Eq a={1} b={r.b} c={r.c} colors={colors} />
                 <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
                     <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -858,8 +861,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                 {row(0, '·', C_COLOR)}
                 {row(1, '+', B_COLOR)}
             </div>
-            <div className="w-full flex items-start justify-center gap-3">
-            <div key={stage} className="drop-in-options grid grid-cols-3 gap-2.5 flex-1 min-w-0 max-w-[280px] min-h-[122px]">
+            <div key={stage} className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[280px] min-h-[122px]">
                 {showNums && opts.map((n) => {
                     const used = vals[active === 0 ? 1 : 0] === n
                     return (
@@ -869,8 +871,6 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                         </button>
                     )
                 })}
-            </div>
-            <DifficultyBadge level={rootsLevel(r)} variant="bars" />
             </div>
         </div>
     )
@@ -1134,47 +1134,71 @@ const SplitArrowToDens = ({ rootRef }: { rootRef: React.RefObject<HTMLDivElement
     )
 }
 
+// Список уравнений с a = 1: сначала по очереди левый столбик, потом правый (быстро, каждая строка с отскоком).
+const A1_HALF = Math.ceil(A1_LIST.length / 2)
+const A1Reveal = ({ onDone }: { onDone: () => void }) => {
+    const [n, setN] = useState(0)
+    useEffect(() => {
+        if (n >= A1_LIST.length) { const t = setTimeout(onDone, 300); return () => clearTimeout(t) }
+        const t = setTimeout(() => setN((x) => x + 1), 170)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [n])
+    const col = (from: number, to: number) => (
+        <div className="flex flex-col items-center gap-1.5 min-h-[1px]">
+            {A1_LIST.slice(from, to).map((e, i) => from + i < n && (
+                <motion.div key={from + i} initial={{ opacity: 0, y: -14, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 15 }}>
+                    <Eq {...e} showOne size="text-base md:text-lg" />
+                </motion.div>
+            ))}
+        </div>
+    )
+    return <div className="w-full grid grid-cols-2 gap-x-3 items-start">{col(0, A1_HALF)}{col(A1_HALF, A1_LIST.length)}</div>
+}
+
 const TheoremScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const rootRef = useRef<HTMLDivElement>(null)
-    // Когда перешли к «a ≠ 1», длинный список с a = 1 бледнеет: внимание туда уже не нужно.
-    const oldDim: React.CSSProperties = phase >= 3 ? { opacity: 0.3, filter: 'grayscale(1)' } : {}
+    // Когда перешли к «a ≠ 1», всё, что выше (заметили, список с a = 1, кнопка), бледнеет: внимание туда уже не нужно.
+    const oldDim: React.CSSProperties = phase >= 5 ? { opacity: 0.3, filter: 'grayscale(1)' } : {}
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
-            <TypedBig small onDone={() => setPhase(1)} readMs={200} parts={[{ text: 'Давай теперь кое-что заметим' }]} />
-            {phase >= 1 && <EllipsisPause onDone={() => setPhase((p) => Math.max(p, 2))} />}
-            {phase >= 2 && (
-                <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={oldDim}>
-                    <TypedBig small onDone={() => setPhase((p) => Math.max(p, 3))} readMs={300}
+            <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={oldDim}>
+                <TypedBig small onDone={() => setPhase(1)} readMs={200} parts={[{ text: 'Давай теперь кое-что заметим' }]} />
+                {phase >= 1 && <EllipsisPause rounds={1} onDone={() => setPhase((p) => Math.max(p, 2))} />}
+                {phase >= 2 && (
+                    <TypedBig small onDone={() => setPhase((p) => Math.max(p, 3))} readMs={500}
                         parts={[{ text: 'Во всех прошлых уравнениях ' }, { text: 'a = 1', color: A_COLOR }]} />
-                    {phase >= 3 && (
-                        <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 4))}>
-                            <div className="drop-in-options w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
-                                {A1_LIST.map((e, i) => <Eq key={i} {...e} showOne size="text-base md:text-lg" />)}
-                            </div>
-                        </DiagramBlock>
-                    )}
-                </div>
-            )}
-            {phase >= 4 && (
-                <TypedBig onDone={() => setPhase(5)} readMs={800}
+                )}
+                {phase >= 3 && <A1Reveal onDone={() => setPhase((p) => Math.max(p, 4))} />}
+                {phase === 4 && (
+                    <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                        <button type="button" onClick={() => setPhase(5)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                            Действительно везде было a = 1
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+            {phase >= 5 && (
+                <TypedBig onDone={() => setPhase(6)} readMs={800}
                     parts={[{ text: 'Но что если ' }, { text: 'a ≠ 1', color: A_COLOR }, { text: '?' }]} />
             )}
-            {phase >= 5 && <TypedBig small onDone={() => setPhase(6)} readMs={200} parts={[{ text: 'например:' }]} />}
-            {phase >= 6 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 7))}>
+            {phase >= 6 && <TypedBig small onDone={() => setPhase(7)} readMs={200} parts={[{ text: 'например:' }]} />}
+            {phase >= 7 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 8))}>
                     <Eq a={2} b={3} c={-5} colors />
                 </DiagramBlock>
             )}
-            {phase === 7 && (
+            {phase === 8 && (
                 <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                    <button type="button" onClick={() => setPhase(8)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                    <button type="button" onClick={() => setPhase(9)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
                         Вижу a = 2
                     </button>
                 </motion.div>
             )}
-            {phase >= 8 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 9))}>
+            {phase >= 9 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 10))}>
                     <RememberPlate title="Настоящая теорема Виета">
                         <span data-marker="vieta-body" className="flex flex-col items-center gap-2">
                             <span data-marker="row-1" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
@@ -1187,15 +1211,15 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                     </RememberPlate>
                 </DiagramBlock>
             )}
-            {phase >= 9 && <PauseThen ms={2000} onDone={() => setPhase(10)} />}
-            {phase >= 10 && (
+            {phase >= 10 && <PauseThen ms={2000} onDone={() => setPhase(11)} />}
+            {phase >= 11 && (
                 <div className="w-full pt-6">
-                    <TypedBig small onDone={() => setPhase(11)} readMs={200}
+                    <TypedBig small onDone={() => setPhase(12)} readMs={200}
                         parts={[{ text: 'Всё то же самое, но теперь ещё ' }, { text: 'делим на a', color: A_COLOR, marker: 'div-a', sticker: true }]} />
                 </div>
             )}
-            {phase >= 11 && <SplitArrowToDens rootRef={rootRef} />}
-            {phase >= 11 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase >= 12 && <SplitArrowToDens rootRef={rootRef} />}
+            {phase >= 12 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </div>
     )
 }

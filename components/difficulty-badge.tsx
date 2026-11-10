@@ -116,12 +116,11 @@ export const DifficultyBadge = ({ level, variant = 'squares' }: { level: Difficu
         )
     }
     if (variant === 'bars') {
-        // Без рамки: «Сложность» → разделитель → стикер → столбики. Крупно, чтобы читалось и на компьютере.
+        // Без рамки и разделителя: «Сложность» → стикер → столбики. Стоит справа сверху (absolute), условие не сдвигает.
         return (
-            <div className="shrink-0 w-[92px] md:w-[110px] flex flex-col items-center gap-2">
-                <span className="text-[11px] md:text-xs font-black uppercase text-[#9AA7B0]">Сложность</span>
-                <div className="w-full h-0.5 rounded-full bg-[#2A363D]" />
-                <Pic level={level} size="w-20 h-20 md:w-24 md:h-24" />
+            <div className="shrink-0 w-[68px] md:w-[104px] flex flex-col items-center gap-1.5">
+                <span className="text-[9px] md:text-xs font-black uppercase text-[#9AA7B0]">Сложность</span>
+                <Pic level={level} size="w-14 h-14 md:w-24 md:h-24" />
                 <Bars level={level} big />
             </div>
         )
