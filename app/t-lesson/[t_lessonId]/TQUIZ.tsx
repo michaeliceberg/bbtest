@@ -1216,8 +1216,11 @@ export default function TQuiz({
             // Картинку мессенджер подтягивает сам из превью ссылки
             // (app/i/[code]/opengraph) — так текст и картинка приходят
             // одним сообщением.
-            secondaryLabel={battleButtonLabel(inviteSubject)}
-            onSecondary={async () => {
+            // Одна кнопка вместо двух: есть код приглашения — бот присылает карточку в Telegram; нет кода — обычная ссылка.
+            secondaryLabel={invite?.code ? 'Отправить ссылку другу в TG ✈️' : battleButtonLabel(inviteSubject)}
+            onSecondary={invite?.code ? () => {
+              window.open(getTelegramShareLink(invite.code!, inviteSubject, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }), '_blank')
+            } : async () => {
               const res = await shareInviteLink(
                 buildInviteMessage({
                   nickname: invite?.nickname ?? null,
@@ -1230,11 +1233,6 @@ export default function TQuiz({
               )
               if (res === 'copied') toast.success('Ссылка скопирована — отправь другу')
             }}
-            // Telegram не строит превью ссылок на ggege.ru — бот присылает готовую карточку с картинкой.
-            tertiaryLabel={invite?.code ? 'В Telegram с картинкой ✈️' : undefined}
-            onTertiary={invite?.code ? () => {
-              window.open(getTelegramShareLink(invite.code!, inviteSubject, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }), '_blank')
-            } : undefined}
             setHint={setHint}
           />
           {/* По просьбе пользователя временно убрана детальная таблица

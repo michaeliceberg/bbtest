@@ -34,6 +34,6 @@ export async function sendShareCard(chatId: string, payload: string) {
     const png = await img.arrayBuffer()
 
     const ok = await sendTelegramPhoto(chatId, png, caption, [[{ text: '🚀 Пройти урок', url: link }]])
-    if (ok) await sendMessageToTelegram('👆 Перешли эту карточку другу: зажми её → «Переслать» → выбери друга.', chatId)
+    if (ok) await sendMessageToTelegram('👆 Перешли эту карточку другу', chatId)
     else await sendMessageToTelegram(`${text.replace(/\*\*/g, '*')}\n${link}`, chatId)
 }
