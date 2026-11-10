@@ -729,6 +729,15 @@ const useIsLatestFeedback = () => {
 
 // Подбадривающий Мигель вместо Lottie-огоньков (их из приложения убрали): случайная поза, прилетает с отскоком + конфетти.
 const FIERY_MIGUELS = ['happy', 'bullseye', 'dance', 'proud', 'fire', 'combo', 'salute-stars', 'trophy', 'victory', 'pizza'].map((n) => `/miguel/miguel-${n}.webp`)
+// Фразы Мигеля на 1-й и каждый 4-й верный ответ: командир подбадривает своего бойца.
+export const MIGUEL_CHEERS = [
+    'Чётко, боец!', 'Так держать, новобранец!', 'Амиго, ты в ударе!', 'Вот это выправка!',
+    'Мигель гордится тобой, боец!', 'Это было красиво, амиго!', 'Отряд, смотрите: боец это сделал!',
+    'Так решают настоящие команданте!', 'Ещё одна высота взята!', 'Мышки в ангаре дрожат от твоей скорости!',
+    'Лёгкая победа, амиго!', 'Котик бы одобрил: это проще, чем поймать мышку!', 'Из тебя выйдет генерал, боец!',
+]
+export const pickMiguelCheer = (i: number) => MIGUEL_CHEERS[(i * 5 + 2) % MIGUEL_CHEERS.length]
+
 export const FieryMiguel = () => {
     const [src, setSrc] = useState<string | null>(null)
     useEffect(() => { setSrc(FIERY_MIGUELS[Math.floor(Math.random() * FIERY_MIGUELS.length)]) }, [])
@@ -736,9 +745,12 @@ export const FieryMiguel = () => {
         <div className="w-1/4 max-w-[110px] shrink-0">
             {src && (
                 <>
-                    <motion.img src={src} alt="" draggable={false} className="w-full object-contain pointer-events-none select-none"
-                        initial={{ scale: 0.3, y: 30, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 320, damping: 11 }} />
+                    {/* Стикеры Мигеля смотрят влево, а облачко справа: отражаем по горизонтали (на статичной обёртке). */}
+                    <div style={{ transform: 'scaleX(-1)' }}>
+                        <motion.img src={src} alt="" draggable={false} className="w-full object-contain pointer-events-none select-none"
+                            initial={{ scale: 0.3, y: 30, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 11 }} />
+                    </div>
                     <LocalAnswerConfetti />
                 </>
             )}

@@ -24,7 +24,7 @@ import {
     pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner,
+    isFieryMilestoneTrial, FieryFeedbackBanner, pickMiguelCheer,
     useWalkthroughCombo,
     pickFunNextLabel,
     RememberPlate, MarkerLoop, ZakrepPlate,
@@ -1948,7 +1948,7 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                 )}
                                 {isDone && (
                                     <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
-                                        {pickTrialFeedback(i)} {t.hint}
+                                        {isCurrent && isFieryMilestoneTrial(i) ? pickMiguelCheer(i) : pickTrialFeedback(i)}
                                     </FieryFeedbackBanner>
                                 )}
                                 {isDone && t.fact && (
