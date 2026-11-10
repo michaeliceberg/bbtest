@@ -1332,8 +1332,11 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             <SubstEq spec={spec} go={t >= 3} onDone={tn(4)} />
         </DiagramBlock>
     )
+    // «Тогда второй корень:» — всё, что выше (правило, уравнение, подстановка, x₁), целиком бледнеет.
+    const upperDim: React.CSSProperties = t >= 10 ? { opacity: 0.3, filter: 'grayscale(1)' } : {}
     return (
         <>
+            <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={upperDim}>
             {one ? (
                 <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
                     <TypedBig small onDone={next(1)} readMs={1000}
@@ -1388,9 +1391,9 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             {/* Подставляем в уравнение, записанное заново прямо здесь (наверх смотреть неудобно). */}
             {t >= 0 && eqBlock(tn(1))}
             {t >= 1 && (
-                <TypedBig small onDone={tn(2)} readMs={200} parts={[{ text: 'Подставим ' }, { text: `x = ${r}`, color: ROOT_COLOR }]} />
+                <TypedBig small onDone={tn(2)} readMs={200} parts={[{ text: 'Проверим ' }, { text: `x = ${r}`, color: ROOT_COLOR }, { text: ' подходит?' }]} />
             )}
-            {t === 2 && <ReplyButton onClick={() => setT(3)}>Поехали!</ReplyButton>}
+            {t === 2 && <ReplyButton onClick={() => setT(3)}>Давай проверим!</ReplyButton>}
             {t >= 4 && (
                 <div className="w-full flex justify-center text-3xl md:text-4xl font-black text-[#F2F7FB]">
                     <Pop>
@@ -1407,6 +1410,7 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             {t >= 8 && <BigLine color={ROOT_COLOR}>x₁ = {r}</BigLine>}
             {t >= 8 && <PauseThen ms={1000} onDone={tn(9)} />}
             {t === 9 && <ReplyButton onClick={() => setT(10)}>{one ? 'Мы везунчики!' : 'Нам снова везёт!'}</ReplyButton>}
+            </div>
             {t >= 10 && <TypedBig small onDone={tn(11)} readMs={1000} parts={[{ text: 'Тогда второй корень:' }]} />}
             {/* Исходное уравнение к этому месту уже ушло вверх: напоминаем его, подписав a и c. */}
             {t >= 11 && (
