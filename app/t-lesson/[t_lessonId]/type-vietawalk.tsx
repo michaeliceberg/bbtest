@@ -91,7 +91,7 @@ const Pop = ({ delay = 0, children, className }: { delay?: number; children: Rea
     </motion.span>
 )
 
-type BigPart = { text: string; color?: string; marker?: string; sticker?: boolean }
+type BigPart = { text: string; color?: string; marker?: string; sticker?: boolean; big?: boolean }
 const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -102,7 +102,10 @@ const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; on
                 parts.map((p, i) => (
                     <span key={i} data-marker={p.marker}
                         className={p.sticker ? 'inline-block px-2 py-0.5 rounded-lg' : undefined}
-                        style={p.sticker && p.color ? { color: p.color, backgroundColor: hexToRgba(p.color, 0.16), border: `2px solid ${hexToRgba(p.color, 0.6)}` } : p.color ? { color: p.color } : undefined}>
+                        style={{
+                            ...(p.sticker && p.color ? { color: p.color, backgroundColor: hexToRgba(p.color, 0.16), border: `2px solid ${hexToRgba(p.color, 0.6)}` } : p.color ? { color: p.color } : {}),
+                            ...(p.big ? { fontSize: '1.35em', fontWeight: 900 } : {}),
+                        }}>
                         {withBreaks(p.text)}
                     </span>
                 ))
@@ -1628,7 +1631,10 @@ const RootPractice = ({ rounds, intro, finale, onSettled }: SceneProps & { round
     }
     return (
         <>
-            <TypedBig small onDone={() => setPhase(1)} readMs={500} parts={[{ text: intro }]} />
+            {/* Когда пошёл финал («и если захочешь…»), «Теперь сам…» уже прошлая сцена — бледнеет. */}
+            <div className="w-full transition-all duration-700" style={finale && round >= rounds.length ? { opacity: 0.3, filter: 'grayscale(1)' } : undefined}>
+                <TypedBig small onDone={() => setPhase(1)} readMs={500} parts={[{ text: intro }]} />
+            </div>
             {phase >= 1 && round < rounds.length && <RootRoundView key={round} r={rounds[round]} onSolved={solved} />}
             {praise && <div className="w-full flex justify-center"><Pop><span className="text-xl font-black" style={{ color: OK_COLOR }}>{praise}</span></Pop></div>}
             {round >= rounds.length && (finale ? finale(() => onSettled?.()) : (
@@ -1656,10 +1662,10 @@ const DiscrFinale = ({ onDone }: { onDone: () => void }) => {
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <TypedBig onDone={next(1)} readMs={300} parts={[{ text: 'И если захочешь..' }]} />
-            {phase >= 1 && <EllipsisPause onDone={next(2)} />}
+            {phase >= 1 && <EllipsisPause rounds={1} onDone={next(2)} />}
             {phase >= 2 && (
                 <TypedBig small onDone={next(3)} readMs={300}
-                    parts={[{ text: 'можешь проверить этот номер через ' }, { text: 'дискриминант', color: REMEMBER_COLOR }]} />
+                    parts={[{ text: 'можешь проверить ' }, { text: 'ЭТОТ ЖЕ', big: true }, { text: ' номер через ' }, { text: 'дискриминант', color: REMEMBER_COLOR }]} />
             )}
             {phase >= 3 && (
                 <DiagramBlock onSettled={next(4)}>
@@ -1705,7 +1711,7 @@ const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c',
 type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string; fact?: { src: string; caption: string; story: React.ReactNode } }
 
 // Итоговый тест: подбор корней, c/a и −b/a, угадывание x = ±1 и вопросы-шутки для настроения.
-const makeTrials = (): Trial[] => [
+const makeRawTrials = (): Trial[] => [
     { prompt: 'Подбери корни', eq: { a: 1, b: -9, c: 20 }, options: shuffle(['4 и 5', '−4 и −5', '2 и 10', '4 и −5']), correct: '4 и 5', hint: '4 · 5 = 20 = c, 4 + 5 = 9 = −b.' },
     { prompt: 'Как называется теорема, которую мы прошли? 🤔', options: shuffle(['Теорема Виета', 'Теорема Вити', 'Теорема Виталика', 'Теорема Ватсапа']), correct: 'Теорема Виета', hint: 'Франсуа Виет, француз, XVI век 🎩 Витя тут ни при чём.',
         fact: {
@@ -1722,6 +1728,18 @@ const makeTrials = (): Trial[] => [
     { prompt: 'Угадай корень и найди второй', eq: { a: 100, b: -99, c: -1 }, options: shuffle(['1 и −1/100', '1 и 1/100', '−1 и 1/100', '1 и −100']), correct: '1 и −1/100', hint: '100 − 99 − 1 = 0, значит x₁ = 1, а x₂ = c/a = −1/100.' },
     { prompt: 'Бонус! Кто теперь шарит в теореме Виета? 😎', options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
 ]
+
+// Верный ответ не стоит на том же месте, что в прошлом задании, и не всегда первым: иначе можно кликать наугад.
+const makeTrials = (): Trial[] => {
+    let prev = 0
+    return makeRawTrials().map((t) => {
+        if (t.options.length < 2) return t
+        let opts = t.options
+        for (let k = 0; k < 20 && opts.indexOf(t.correct) === prev; k++) opts = shuffle(t.options)
+        prev = opts.indexOf(t.correct)
+        return { ...t, options: opts }
+    })
+}
 
 const pickTrialFeedback = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -1923,9 +1941,7 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                                             <X className="w-5 h-5" /> {wrongFlash}
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант</p>
-                                    )
+                                    ) : null
                                 )}
                                 {isDone && (
                                     <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
