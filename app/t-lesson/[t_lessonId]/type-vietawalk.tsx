@@ -387,7 +387,7 @@ const PairSlot = ({ label, val, active, state, onClick, hop = true }: {
     label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void; hop?: boolean
 }) => {
     // Верно — числа остаются белыми, рамка бледно-зелёная: иначе зелёные 3 и 4 сливались с салатовым c (12).
-    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : '#3A464E'
+    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active && hop ? ROOT_COLOR : '#3A464E'
     const color = state === 'bad' ? BAD_COLOR : '#F2F7FB'
     const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
@@ -397,7 +397,7 @@ const PairSlot = ({ label, val, active, state, onClick, hop = true }: {
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
-                : <span className="text-xl" style={{ color: active ? ROOT_COLOR : '#5C6B73' }}>{label}</span>}
+                : <span className="text-xl" style={{ color: active && hop ? ROOT_COLOR : '#5C6B73' }}>{label}</span>}
         </button>
     )
 }
