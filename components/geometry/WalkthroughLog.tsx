@@ -1013,6 +1013,9 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
     }, [fixedSticker])
     // sticker='none' — места под стикер нет картинки (пока родитель её выбирает)
     const shown = fixedSticker === 'none' ? null : fixedSticker || sticker
+    // Сначала рисуется табличка, и только через 700 мс справа прилетает стикер (внимание идёт по очереди).
+    const [stickerOn, setStickerOn] = useState(false)
+    useEffect(() => { const t = setTimeout(() => setStickerOn(true), 700); return () => clearTimeout(t) }, [])
     // Золотая рамка (не заливка): заголовок сверху, тело — внутри той же рамки под разделителем.
     return (
         <div className="w-full flex items-center gap-3">
@@ -1029,9 +1032,9 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
                 )}
             </div>
             <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center" style={{ transform: (flipSticker ?? autoFlip) ? 'scaleX(-1)' : undefined }}>
-                {shown && (
+                {shown && stickerOn && (
                     <motion.img key={shown} src={shown} alt="" draggable={false}
-                        initial={{ scale: 0.4, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        initial={{ x: 90, scale: 0.4, opacity: 0, rotate: -12 }} animate={{ x: 0, scale: 1, opacity: 1, rotate: 0 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 14 }}
                         className="max-w-full max-h-full object-contain pointer-events-none select-none" />
                 )}

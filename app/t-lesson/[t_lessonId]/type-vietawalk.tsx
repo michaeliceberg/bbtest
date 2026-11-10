@@ -1344,7 +1344,13 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
                         <TypedBig small onDone={next(3)} readMs={1000}
                             parts={[{ text: 'ЕСЛИ ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт, то' }]} />
                     )}
-                    {phase >= 3 && <BigLine><X2Formula /></BigLine>}
+                    {phase >= 3 && (
+                        <BigLine>
+                            <span className="px-4 py-2 rounded-2xl" style={{ border: '2px solid rgba(232, 182, 54, 0.85)', backgroundColor: 'rgba(232, 182, 54, 0.08)' }}>
+                                <X2Formula />
+                            </span>
+                        </BigLine>
+                    )}
                     {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
                     {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'И ВСЁ!', color: REMEMBER_COLOR }]} />}
                 </div>
