@@ -1340,7 +1340,7 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             {one ? (
                 <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
                     <TypedBig small onDone={next(1)} readMs={1000}
-                        parts={[{ text: 'В таких уравнениях мы будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
+                        parts={[{ text: 'В таких уравнениях будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
                     {phase >= 1 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
                     {phase >= 1 && <PauseThen ms={1000} onDone={next(2)} />}
                     {phase >= 2 && (
@@ -1379,7 +1379,13 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
                                 <TypedBig small onDone={next(7)} readMs={300}
                                     parts={[{ text: 'Если подойдёт ' }, { text: 'x = −1', color: ROOT_COLOR }, { text: ', то' }]} />
                             )}
-                            {phase >= 7 && <BigLine><X2Formula minus /></BigLine>}
+                            {phase >= 7 && (
+                                <BigLine>
+                                    <span className="px-4 py-2 rounded-2xl" style={{ border: '2px solid rgba(232, 182, 54, 0.85)', backgroundColor: 'rgba(232, 182, 54, 0.08)' }}>
+                                        <X2Formula minus />
+                                    </span>
+                                </BigLine>
+                            )}
                             {phase >= 7 && <PauseThen ms={1000} onDone={next(8)} />}
                         </div>
                     )}
@@ -1484,6 +1490,45 @@ const SummaryScene = ({ spec, video, onSettled }: SceneProps & { spec: CheckSpec
 const SummaryOneScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_ONE} video={STEVE_BLINK_VIDEO} />
 const SummaryMinusScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_MINUS} video={LEGEND_VIDEO} />
 
+// Мини-итог правил: слева «x₁ = 1 → x₂ = c/a», потом справа «x₁ = −1 → x₂ = −c/a», потом бокс (по очереди).
+const BOXING_VIDEO = '/video/boxing.webm'
+const RuleBox = ({ cond, minus }: { cond: string; minus?: boolean }) => (
+    <Pop className="w-full">
+        <div className="w-full flex flex-col items-center gap-2 px-2 py-3 rounded-2xl text-center"
+            style={{ border: '2px solid rgba(232, 182, 54, 0.85)', backgroundColor: 'rgba(232, 182, 54, 0.08)' }}>
+            <span className="text-base md:text-lg font-black text-[#F2F7FB]">Если <span style={{ color: ROOT_COLOR }}>{cond}</span>, то</span>
+            <span className="text-2xl md:text-3xl font-black text-[#F2F7FB]"><X2Formula minus={minus} /></span>
+        </div>
+    </Pop>
+)
+const RulesBoxingScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    const next = (n: number) => () => setPhase((p) => Math.max(p, n))
+    return (
+        <>
+            <TypedBig small onDone={next(1)} readMs={300} parts={[{ text: 'Запомни два случая' }]} />
+            {phase >= 1 && (
+                <div className="w-full grid grid-cols-2 gap-3 items-start">
+                    <RuleBox cond="x₁ = 1" />
+                    <div>{phase >= 3 && <RuleBox cond="x₁ = −1" minus />}</div>
+                </div>
+            )}
+            {phase >= 1 && <PauseThen ms={900} onDone={next(2)} />}
+            {phase >= 2 && <PauseThen ms={300} onDone={next(3)} />}
+            {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
+            {phase >= 4 && (
+                <div className="w-full flex justify-center">
+                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+                        className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
+                        <video src={BOXING_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                    </motion.div>
+                </div>
+            )}
+            {phase >= 4 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+        </>
+    )
+}
+
 // Тренировка: «Теперь сам! Найди корни:» → уравнение → клетки x₁ и x₂, снизу падают числа (одно из них 1).
 type RootRound = { a: number; b: number; c: number; roots: [string, string]; tiles: string[] }
 const X1_ROUNDS: RootRound[] = [
@@ -1499,13 +1544,12 @@ const RootSlot = ({ label, val, active, state, onClick }: {
     const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
         <button type="button" onClick={onClick}
-            className="min-w-[64px] min-h-[64px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black text-2xl transition-colors flex items-center justify-center"
+            className={cn('min-w-[64px] min-h-[64px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black text-2xl transition-colors flex items-center justify-center', active && !state && 'animate-slot-hop')}
             style={{ borderColor: border, color, backgroundColor: bg }}>
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-flex"><NumText s={val} /></motion.span>
-                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
-                    style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
+                : <span className="text-xl" style={{ color: active ? ROOT_COLOR : '#5C6B73' }}>{label}</span>}
         </button>
     )
 }
@@ -1629,19 +1673,21 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryOneScene, X1PracticeScene, CheckMinusScene, SummaryMinusScene, MixPracticeScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryOneScene, X1PracticeScene, CheckMinusScene, SummaryMinusScene, RulesBoxingScene, MixPracticeScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'a = 1 Невидимка, понял'],
     [Guess56Scene, 'Круто! Решили без дискриминанта!'],
     [TheoremScene, 'Запомнил!'],
+    [SummaryMinusScene, 'Шарю'],
+    [RulesBoxingScene, 'Амиго, я все понял'],
     [CheckOneScene, 'ГАААААЗ'],
     [CheckMinusScene, 'ГАААААЗ'],
     [MixPracticeScene, 'Я что крейзи?'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 // Подписи для админской карты этапов (по порядку SCENES).
-const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'А если x = −1 (3x² + 8x + 5)', 'Итого для x = −1', 'Сам: −1, −1, 1, 193x²', 'Приготовься']
+const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'А если x = −1 (3x² + 8x + 5)', 'Итого для x = −1', 'Два случая (бокс)', 'Сам: −1, −1, 1, 193x²', 'Приготовься']
 
 // ===== Квиз =====
 // fact — картинка и интересная история, показываются после верного ответа (вопрос-шутка про Виета).
