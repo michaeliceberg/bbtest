@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
 import { checkCatName } from '@/lib/catName'
-import { CAT_FOOD, type CatFood } from '@/lib/catFood'
+import { CAT_FOOD, CAT_FEED_BELOW, type CatFood } from '@/lib/catFood'
 
 // Котик у входа в ангар пошёл жить на картонку (cat_stage 1 → 2). Ачивку «Кот в ангаре» выдаёт computeStateKeys.
 export async function bringCatHome(): Promise<{ ok: boolean }> {
@@ -60,19 +60,25 @@ export async function buyCatFood(kind: CatFood): Promise<{ ok: boolean; count?: 
     return { ok: false, reason: 'coins' }
 }
 
-// Покормить котика одной купленной порцией (раз в день по Москве). Серия кормлений: вчера кормили — +1, иначе с 1.
-// Всё одним UPDATE: порции нет или сегодня уже кормили — ничего не меняется.
-export async function feedCat(kind: CatFood): Promise<{ ok: boolean; reason?: 'empty' | 'fed'; streak?: number; left?: number }> {
+// Покормить котика одной купленной порцией. Можно, пока сытость меньше половины; порция добавляет CAT_FOOD[kind].gain процентов
+// (сытость хранится временем кормления cat_fed_at: «виртуальное» время сдвигаем так, чтобы полоска встала на нужный процент).
+// Серия кормлений считается по дням: вчера кормили — +1, сегодня уже кормили — без изменений, иначе с 1.
+// Всё одним UPDATE: порции нет или котик не голоден — ничего не меняется.
+export async function feedCat(kind: CatFood): Promise<{ ok: boolean; reason?: 'empty' | 'full'; streak?: number; left?: number; satiety?: number }> {
     const session = await auth()
     const userId = session?.user?.id
     if (!userId || !(kind in CAT_FOOD)) return { ok: false }
     const today = sql`(now() AT TIME ZONE 'Europe/Moscow')::date`
-    const streak = sql`CASE WHEN cat_fed_date = ${today} - 1 THEN cat_feed_streak + 1 ELSE 1 END`
+    const streak = sql`CASE WHEN cat_fed_date = ${today} THEN cat_feed_streak WHEN cat_fed_date = ${today} - 1 THEN cat_feed_streak + 1 ELSE 1 END`
+    const sat = sql`COALESCE(GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / 86400), 0)`
+    const gain = CAT_FOOD[kind].gain / 100
     const col = FOOD_COLUMN[kind]
     const r = (await db.execute(sql`UPDATE user_progress SET ${col} = ${col} - 1, cat_feed_streak = ${streak},
-        cat_feed_best = GREATEST(cat_feed_best, ${streak}), cat_fed_date = ${today}, cat_fed_at = now()
-        WHERE user_id = ${userId} AND ${col} > 0 AND cat_fed_date IS DISTINCT FROM ${today} RETURNING cat_feed_streak AS s, ${col} AS n`)) as unknown as { s: number; n: number }[]
-    if (r.length > 0) return { ok: true, streak: Number(r[0].s), left: Number(r[0].n) }
-    const cur = (await db.execute(sql`SELECT cat_fed_date = ${today} AS fed FROM user_progress WHERE user_id = ${userId}`)) as unknown as { fed: boolean }[]
-    return { ok: false, reason: cur[0]?.fed ? 'fed' : 'empty' }
+        cat_feed_best = GREATEST(cat_feed_best, ${streak}), cat_fed_date = ${today},
+        cat_fed_at = now() - make_interval(secs => (1 - LEAST(1, ${sat} + ${gain}::float8)) * 86400)
+        WHERE user_id = ${userId} AND ${col} > 0 AND ${sat} < ${CAT_FEED_BELOW}::float8
+        RETURNING cat_feed_streak AS s, ${col} AS n, GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / 86400) AS sat`)) as unknown as { s: number; n: number; sat: number }[]
+    if (r.length > 0) return { ok: true, streak: Number(r[0].s), left: Number(r[0].n), satiety: Number(r[0].sat) }
+    const cur = (await db.execute(sql`SELECT ${sat} >= ${CAT_FEED_BELOW}::float8 AS full FROM user_progress WHERE user_id = ${userId}`)) as unknown as { full: boolean }[]
+    return { ok: false, reason: cur[0]?.full ? 'full' : 'empty' }
 }

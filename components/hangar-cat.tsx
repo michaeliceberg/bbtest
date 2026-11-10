@@ -516,8 +516,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const t = setInterval(upd, 60_000)
         return () => clearInterval(t)
     }, [fedAt, stage])
-    // покормили — полоска не прыгает в 100%: стоит на прежнем значении, пока котик не начнёт есть, и наполняется за CAT_EAT_MS
-    const [fill, setFill] = useState<{ from: number; start: number | null } | null>(null)
+    // покормили — полоска не прыгает сразу: стоит на прежнем значении, пока котик не начнёт есть, и за CAT_EAT_MS поднимается до нового (from → to)
+    const [fill, setFill] = useState<{ from: number; to: number; start: number | null } | null>(null)
     const [, setTick] = useState(0)
     // коробка Шрёдингера — один раз: открыли сами (ачивка «Кот Шрёдингера») — котик выпрыгнул, коробка исчезла навсегда
     const [sboxGone, setSboxGone] = useState(sboxDone)
@@ -539,7 +539,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const t = setInterval(() => setTick((n) => n + 1), 400)
         return () => clearInterval(t)
     }, [fill, meal])
-    const shownSatiety = fill ? (fill.start === null ? fill.from : fill.from + (1 - fill.from) * Math.min(1, (Date.now() - fill.start) / CAT_EAT_MS)) : satiety
+    const shownSatiety = fill ? (fill.start === null ? fill.from : fill.from + (fill.to - fill.from) * Math.min(1, (Date.now() - fill.start) / CAT_EAT_MS)) : satiety
     const busyRef = useRef(false) // котик занят едой — новую прогулку не начинать
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
@@ -962,11 +962,11 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && lockSay && <Bubble x={frP.x} y={frP.y - frP.h - 4}>Тсс! Мыши в деле — подожди</Bubble>}
             {shopOpen && typeof document !== 'undefined' && createPortal(
                 <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
-                    fedToday={food.fedDate === moscowToday()} feedStreak={liveFeedStreak(food.fedDate, food.streak)}
-                    onFed={(k: CatFood, left: number, streak: number) => {
+                    satiety={satiety ?? 0} feedStreak={liveFeedStreak(food.fedDate, food.streak)}
+                    onFed={(k: CatFood, left: number, streak: number, sat: number) => {
                         setFood((f) => ({ ...f, [k]: left, fedDate: moscowToday(), streak })); setShopOpen(false)
                         eatKindRef.current = night ? null : k
-                        if (!night) setFill({ from: shownSatiety ?? 0, start: null })
+                        if (!night) setFill({ from: shownSatiety ?? 0, to: sat, start: null })
                         setTimeout(() => { if (night) doReact('happy'); else if (eatNowRef.current && !stroll && sbox === 'idle') eatNowRef.current(); else doReact('happy') }, 400)
                         if (!onHome) { useAchievementUnlockStore.getState().check(); router.refresh() }
                     }}
