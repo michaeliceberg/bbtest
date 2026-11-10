@@ -90,12 +90,12 @@ const Meter = ({ level }: { level: DifficultyLevel }) => {
 }
 
 // «Уровень сигнала»: три столбика растущей высоты.
-const Bars = ({ level }: { level: DifficultyLevel }) => {
+const Bars = ({ level, big }: { level: DifficultyLevel; big?: boolean }) => {
     const color = DIFF_COLORS[level]
     return (
-        <div className="flex items-end gap-1 h-5">
+        <div className={big ? 'flex items-end gap-1.5 h-9' : 'flex items-end gap-1 h-5'}>
             {[1, 2, 3].map((i) => (
-                <motion.span key={i} className="w-2.5 rounded-sm origin-bottom"
+                <motion.span key={i} className={big ? 'w-4 rounded origin-bottom' : 'w-2.5 rounded-sm origin-bottom'}
                     style={{ height: `${i * 33}%`, backgroundColor: i <= level ? color : '#2A363D' }}
                     initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12, delay: 0.1 + i * 0.12 }} />
             ))}
@@ -115,6 +115,17 @@ export const DifficultyBadge = ({ level, variant = 'squares' }: { level: Difficu
             </div>
         )
     }
+    if (variant === 'bars') {
+        // Без рамки: «Сложность» → разделитель → стикер → столбики. Крупно, чтобы читалось и на компьютере.
+        return (
+            <div className="shrink-0 w-[92px] md:w-[110px] flex flex-col items-center gap-2">
+                <span className="text-[11px] md:text-xs font-black uppercase text-[#9AA7B0]">Сложность</span>
+                <div className="w-full h-0.5 rounded-full bg-[#2A363D]" />
+                <Pic level={level} size="w-20 h-20 md:w-24 md:h-24" />
+                <Bars level={level} big />
+            </div>
+        )
+    }
     return (
         <Frame level={level}>
             <Label />
@@ -130,7 +141,6 @@ export const DifficultyBadge = ({ level, variant = 'squares' }: { level: Difficu
             {variant === 'skulls' && <Icons level={level} icon="skull" />}
             {variant === 'flames' && <Icons level={level} icon="flame" />}
             {variant === 'meter' && <Meter level={level} />}
-            {variant === 'bars' && <Bars level={level} />}
         </Frame>
     )
 }

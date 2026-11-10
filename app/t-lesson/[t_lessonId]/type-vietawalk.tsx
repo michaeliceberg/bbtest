@@ -91,7 +91,7 @@ const Pop = ({ delay = 0, children, className }: { delay?: number; children: Rea
     </motion.span>
 )
 
-type BigPart = { text: string; color?: string; marker?: string }
+type BigPart = { text: string; color?: string; marker?: string; sticker?: boolean }
 const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -99,7 +99,13 @@ const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; on
             {!typed ? (
                 <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
-                parts.map((p, i) => <span key={i} data-marker={p.marker} style={p.color ? { color: p.color } : undefined}>{withBreaks(p.text)}</span>)
+                parts.map((p, i) => (
+                    <span key={i} data-marker={p.marker}
+                        className={p.sticker ? 'inline-block px-2 py-0.5 rounded-lg' : undefined}
+                        style={p.sticker && p.color ? { color: p.color, backgroundColor: hexToRgba(p.color, 0.16), border: `2px solid ${hexToRgba(p.color, 0.6)}` } : p.color ? { color: p.color } : undefined}>
+                        {withBreaks(p.text)}
+                    </span>
+                ))
             )}
         </div>
     )
@@ -766,6 +772,8 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
     const [showNums, setShowNums] = useState(false)
+    // Варианты перемешиваем (верные в массивах стоят первыми), на каждый этап свой порядок.
+    const [shuffled] = useState(() => ({ 1: shuffle(r.nums), 2: shuffle(r.roots) }))
     useEffect(() => {
         const t = setTimeout(() => setShowNums(true), 1500)
         return () => clearTimeout(t)
@@ -835,27 +843,23 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
             </motion.div>
         )
     }
-    const opts = stage === 1 ? r.nums : r.roots
+    const opts = shuffled[stage]
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            {/* Уравнение и плашка этапа — столбиком по центру, «Сложность» справа от всего блока
-                (не отдельной строкой — иначе растягивает страницу по вертикали). */}
-            <div className="w-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-                <span />
-                <div className="flex flex-col items-center gap-3">
+            {/* Уравнение и плашка этапа — столбиком по центру; «Сложность» стоит справа от вариантов ответа. */}
+            <div className="flex flex-col items-center gap-3">
                 <Eq a={1} b={r.b} c={r.c} colors={colors} />
                 <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
                     <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
                 </div>
-                </div>
-                <span className="justify-self-end"><DifficultyBadge level={rootsLevel(r)} variant="bars" /></span>
             </div>
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
                 {row(1, '+', B_COLOR)}
             </div>
-            <div key={stage} className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[280px] min-h-[122px]">
+            <div className="w-full flex items-start justify-center gap-3">
+            <div key={stage} className="drop-in-options grid grid-cols-3 gap-2.5 flex-1 min-w-0 max-w-[280px] min-h-[122px]">
                 {showNums && opts.map((n) => {
                     const used = vals[active === 0 ? 1 : 0] === n
                     return (
@@ -865,6 +869,8 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                         </button>
                     )
                 })}
+            </div>
+            <DifficultyBadge level={rootsLevel(r)} variant="bars" />
             </div>
         </div>
     )
@@ -1073,7 +1079,7 @@ const A1_LIST: EqSpec[] = [
     ...ZAKREP_ROUNDS.map((r) => ({ a: 1, b: r.b, c: r.c })),
 ]
 const Cf = ({ k, children }: { k: string; children: React.ReactNode }) => <span style={{ color: k }}>{children}</span>
-const VIETA_STICKER = '/remember-stickers/gentelmen-notext.webp'
+const VIETA_STICKER = '/remember-stickers/vieta-kid.webp'
 
 // После закрепа: везде было a = 1 → а если нет? → Теорема Виета (c/a и −b/a).
 // Стрелка от «a» в строке «…делим на a» вверх, вправо и раздваивается на оба знаменателя a в плашке.
@@ -1132,38 +1138,45 @@ const SplitArrowToDens = ({ rootRef }: { rootRef: React.RefObject<HTMLDivElement
 const TheoremScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const rootRef = useRef<HTMLDivElement>(null)
+    // Когда перешли к «a ≠ 1», длинный список с a = 1 бледнеет: внимание туда уже не нужно.
+    const oldDim: React.CSSProperties = phase >= 3 ? { opacity: 0.3, filter: 'grayscale(1)' } : {}
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
-            <TypedBig small onDone={() => setPhase(1)} readMs={300}
-                parts={[{ text: 'Во всех прошлых уравнениях ' }, { text: 'a = 1', color: A_COLOR }]} />
-            {phase >= 1 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <div className="drop-in-options w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
-                        {A1_LIST.map((e, i) => <Eq key={i} {...e} showOne size="text-base md:text-lg" />)}
-                    </div>
-                </DiagramBlock>
+            <TypedBig small onDone={() => setPhase(1)} readMs={200} parts={[{ text: 'Давай теперь кое-что заметим' }]} />
+            {phase >= 1 && <EllipsisPause onDone={() => setPhase((p) => Math.max(p, 2))} />}
+            {phase >= 2 && (
+                <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={oldDim}>
+                    <TypedBig small onDone={() => setPhase((p) => Math.max(p, 3))} readMs={300}
+                        parts={[{ text: 'Во всех прошлых уравнениях ' }, { text: 'a = 1', color: A_COLOR }]} />
+                    {phase >= 3 && (
+                        <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 4))}>
+                            <div className="drop-in-options w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                {A1_LIST.map((e, i) => <Eq key={i} {...e} showOne size="text-base md:text-lg" />)}
+                            </div>
+                        </DiagramBlock>
+                    )}
+                </div>
             )}
-            {phase === 2 && (
-                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                    <button type="button" onClick={() => setPhase(3)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
-                        Действительно везде было a = 1
-                    </button>
-                </motion.div>
-            )}
-            {phase >= 3 && (
-                <TypedBig onDone={() => setPhase(4)} readMs={2000}
+            {phase >= 4 && (
+                <TypedBig onDone={() => setPhase(5)} readMs={800}
                     parts={[{ text: 'Но что если ' }, { text: 'a ≠ 1', color: A_COLOR }, { text: '?' }]} />
             )}
-            {phase >= 4 && <TypedBig small onDone={() => setPhase(5)} readMs={200} parts={[{ text: 'например:' }]} />}
-            {phase >= 5 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 6))}>
+            {phase >= 5 && <TypedBig small onDone={() => setPhase(6)} readMs={200} parts={[{ text: 'например:' }]} />}
+            {phase >= 6 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 7))}>
                     <Eq a={2} b={3} c={-5} colors />
                 </DiagramBlock>
             )}
-            {phase >= 6 && <PauseThen ms={2000} onDone={() => setPhase(7)} />}
-            {phase >= 7 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 8))}>
-                    <RememberPlate title="Привет, Теорема Виета 👋" sticker={VIETA_STICKER}>
+            {phase === 7 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={() => setPhase(8)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                        Вижу a = 2
+                    </button>
+                </motion.div>
+            )}
+            {phase >= 8 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 9))}>
+                    <RememberPlate title="Настоящая теорема Виета" sticker={VIETA_STICKER}>
                         <span data-marker="vieta-body" className="flex flex-col items-center gap-2">
                             <span data-marker="row-1" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
                                 x₁ · x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<span data-marker="den-1"><Cf k={A_COLOR}>a</Cf></span>} />
@@ -1175,15 +1188,15 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                     </RememberPlate>
                 </DiagramBlock>
             )}
-            {phase >= 8 && <PauseThen ms={2000} onDone={() => setPhase(9)} />}
-            {phase >= 9 && (
+            {phase >= 9 && <PauseThen ms={2000} onDone={() => setPhase(10)} />}
+            {phase >= 10 && (
                 <div className="w-full pt-6">
-                    <TypedBig small onDone={() => setPhase(10)} readMs={200}
-                        parts={[{ text: 'Всё то же самое, но теперь ещё делим на ' }, { text: 'a', color: A_COLOR, marker: 'div-a' }]} />
+                    <TypedBig small onDone={() => setPhase(11)} readMs={200}
+                        parts={[{ text: 'Всё то же самое, но теперь ещё ' }, { text: 'делим на a', color: A_COLOR, marker: 'div-a', sticker: true }]} />
                 </div>
             )}
-            {phase >= 10 && <SplitArrowToDens rootRef={rootRef} />}
-            {phase >= 10 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase >= 11 && <SplitArrowToDens rootRef={rootRef} />}
+            {phase >= 11 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </div>
     )
 }
