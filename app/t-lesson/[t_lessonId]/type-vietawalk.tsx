@@ -1490,33 +1490,41 @@ const SummaryScene = ({ spec, video, onSettled }: SceneProps & { spec: CheckSpec
 const SummaryOneScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_ONE} video={STEVE_BLINK_VIDEO} />
 const SummaryMinusScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_MINUS} video={LEGEND_VIDEO} />
 
-// Мини-итог правил: слева «x₁ = 1 → x₂ = c/a», потом справа «x₁ = −1 → x₂ = −c/a», потом бокс (по очереди).
+// Мини-итог правил. Всё по очереди: «Если» → условие → «то x₂ = …» → рамка → пауза → левая половина бледнеет →
+// то же справа → левая снова яркая (видны оба правила) → бокс.
 const BOXING_VIDEO = '/video/boxing.webm'
-const RuleBox = ({ cond, minus }: { cond: string; minus?: boolean }) => (
-    <Pop className="w-full">
-        <div className="w-full flex flex-col items-center gap-2 px-2 py-3 rounded-2xl text-center"
-            style={{ border: '2px solid rgba(232, 182, 54, 0.85)', backgroundColor: 'rgba(232, 182, 54, 0.08)' }}>
-            <span className="text-base md:text-lg font-black text-[#F2F7FB]">Если <span style={{ color: ROOT_COLOR }}>{cond}</span>, то</span>
-            <span className="text-2xl md:text-3xl font-black text-[#F2F7FB]"><X2Formula minus={minus} /></span>
-        </div>
-    </Pop>
+// k: сколько строк уже показано (1 «Если», 2 условие, 3 «то x₂ = …», 4 рамка).
+const RuleCase = ({ cond, minus, k }: { cond: string; minus?: boolean; k: number }) => (
+    <div className="w-full flex flex-col items-center gap-1.5 px-2 py-3 rounded-2xl text-center transition-colors duration-500"
+        style={{ border: `2px solid ${k >= 4 ? 'rgba(232, 182, 54, 0.85)' : 'transparent'}`, backgroundColor: k >= 4 ? 'rgba(232, 182, 54, 0.08)' : 'transparent' }}>
+        {k >= 1 && <Pop><span className="text-lg md:text-xl font-black text-[#F2F7FB]">Если</span></Pop>}
+        {k >= 2 && <Pop><span className="text-2xl md:text-3xl font-black" style={{ color: ROOT_COLOR }}>{cond}</span></Pop>}
+        {k >= 3 && <Pop><span className="text-lg md:text-xl font-black text-[#F2F7FB]">то</span></Pop>}
+        {k >= 3 && <Pop delay={0.15}><span className="text-2xl md:text-3xl font-black text-[#F2F7FB]"><X2Formula minus={minus} /></span></Pop>}
+    </div>
 )
+const RULES_DELAYS: Record<number, number> = { 1: 500, 2: 600, 3: 700, 4: 1000, 5: 400, 6: 500, 7: 600, 8: 700, 9: 900, 10: 1000, 11: 1200 }
 const RulesBoxingScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const next = (n: number) => () => setPhase((p) => Math.max(p, n))
+    const [step, setStep] = useState(0)
+    useEffect(() => {
+        if (step < 1) return
+        const t = setTimeout(() => (step >= 11 ? onSettled?.() : setStep(step + 1)), RULES_DELAYS[step])
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step])
+    const leftDim: React.CSSProperties = step >= 5 && step < 10 ? { opacity: 0.3, filter: 'grayscale(1)' } : {}
     return (
         <>
-            <TypedBig small onDone={next(1)} readMs={300} parts={[{ text: 'Запомни два случая' }]} />
-            {phase >= 1 && (
+            <TypedBig small onDone={() => setStep((x) => Math.max(x, 1))} readMs={300} parts={[{ text: 'Запомни два случая:' }]} />
+            {step >= 1 && (
                 <div className="w-full grid grid-cols-2 gap-3 items-start">
-                    <RuleBox cond="x₁ = 1" />
-                    <div>{phase >= 3 && <RuleBox cond="x₁ = −1" minus />}</div>
+                    <div className="transition-all duration-500" style={leftDim}>
+                        <RuleCase cond="x₁ = 1" k={Math.min(step, 4)} />
+                    </div>
+                    <RuleCase cond="x₁ = −1" minus k={Math.max(0, Math.min(step - 5, 4))} />
                 </div>
             )}
-            {phase >= 1 && <PauseThen ms={900} onDone={next(2)} />}
-            {phase >= 2 && <PauseThen ms={300} onDone={next(3)} />}
-            {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
-            {phase >= 4 && (
+            {step >= 11 && (
                 <div className="w-full flex justify-center">
                     <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                         className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
@@ -1524,7 +1532,6 @@ const RulesBoxingScene = ({ onSettled }: SceneProps) => {
                     </motion.div>
                 </div>
             )}
-            {phase >= 4 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -1584,7 +1591,11 @@ const RootRoundView = ({ r, onSolved }: { r: RootRound; onSolved: () => void }) 
             <motion.div animate={result === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-6 text-2xl md:text-3xl font-black text-[#F2F7FB]">
                 <span className="inline-flex items-center gap-2">x₁ = <RootSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={result} onClick={() => !result && setActive(0)} /></span>
-                <span className="inline-flex items-center gap-2">x₂ = <RootSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={result} onClick={() => !result && setActive(1)} /></span>
+                {/* Пока ищем x₁, правая часть бледная: внимание — только на текущем, но справа уже «что-то ждёт». */}
+                <span className="inline-flex items-center gap-2 transition-all duration-500"
+                    style={vals[1] === null && active === 0 && !result ? { opacity: 0.3, filter: 'grayscale(1)' } : undefined}>
+                    x₂ = <RootSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={result} onClick={() => !result && setActive(1)} />
+                </span>
             </motion.div>
             <div className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[300px]">
                 {tiles.map((v) => {
@@ -1680,7 +1691,7 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [Guess56Scene, 'Круто! Решили без дискриминанта!'],
     [TheoremScene, 'Запомнил!'],
     [SummaryMinusScene, 'Шарю'],
-    [RulesBoxingScene, 'Амиго, я все понял'],
+    [RulesBoxingScene, 'Понял оба случая, Амиго!'],
     [CheckOneScene, 'ГАААААЗ'],
     [CheckMinusScene, 'ГАААААЗ'],
     [MixPracticeScene, 'Я что крейзи?'],
