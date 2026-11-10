@@ -728,7 +728,7 @@ const useIsLatestFeedback = () => {
 }
 
 // Подбадривающий Мигель вместо Lottie-огоньков (их из приложения убрали): случайная поза, прилетает с отскоком + конфетти.
-const FIERY_MIGUELS = ['happy', 'bullseye', 'dance', 'proud', 'fire', 'combo', 'salute-stars', 'trophy', 'victory', 'pizza'].map((n) => `/miguel/miguel-${n}.webp`)
+const FIERY_MIGUELS = ['happy', 'bullseye', 'dance', 'proud', 'fire', 'combo', 'salute-stars', 'trophy', 'victory', 'pizza', 'confetti', 'lounger', 'business-class', 'gamer', 'cat-mouse', 'judge', 'mvp', 'maracas', 'megaphone-balloons', 'pullup', 'fireworks', 'high-five'].map((n) => `/miguel/miguel-${n}.webp`)
 // Фразы Мигеля на 1-й и каждый 4-й верный ответ: командир подбадривает своего бойца.
 export const MIGUEL_CHEERS = [
     'Чётко, боец!', 'Так держать, новобранец!', 'Амиго, ты в ударе!', 'Вот это выправка!',
