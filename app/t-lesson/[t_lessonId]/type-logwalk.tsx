@@ -585,20 +585,11 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
     )
 }
 
-// ===== Тренировочные задания — новые случайные (a, x, y), нужно кликнуть
-// верный вариант ОТВЕТА (основание + число) среди вариантов. По прямой
-// просьбе пользователя (2026-09-19, "сейчас основание уже показывают
-// какое будет... давай варианты с разными основаниями") — раньше правая
-// часть формулы уже показывала правильное основание готовым (logₐ?, менять
-// нужно было только число x·y) — угадать можно было, даже не заметив, что
-// у обеих частей суммы ОДИНАКОВОЕ основание. Теперь правая часть — ПОЛНОЕ
-// "log?  ?" (и основание, и число — "?" до выбора), а сами варианты ответа
-// — готовые ПАРЫ (основание, число), среди которых есть дистракторы с
-// ЧУЖИМ основанием (не только с неверным числом) — клик по варианту
-// подставляет обе части сразу.
-
-type TrialOption = { base: number; value: number }
-type LogTrial = { a: number; x: number; y: number; options: TrialOption[] }
+// ===== Тренировочные задания — новые случайные (a, x, y). Правая часть «log□ □» собирается в ДВА этапа
+// (по просьбе пользователя, как слоты в теореме Виета): сначала из вариантов выбираем основание, затем число.
+// Активный пропуск — цветной пунктирный квадратик, который «дышит» (увеличивается и уменьшается).
+// Два этапа на задание: сначала выбираем ОСНОВАНИЕ (первый пропуск), потом ЧИСЛО под логарифмом (второй).
+type LogTrial = { a: number; x: number; y: number; baseOptions: number[]; valueOptions: number[] }
 
 const A_POOL = [2, 3, 5, 7, 9] as const
 const XY_POOL = [2, 3, 4, 5, 6, 7, 8, 9] as const
@@ -612,58 +603,14 @@ function shuffle<T>(arr: T[]): T[] {
     return a
 }
 
-const sameOption = (p: TrialOption | null, q: TrialOption): boolean =>
-    p !== null && p.base === q.base && p.value === q.value
-
-// Дистракторы — правдоподобные ошибки школьника, теперь СРАЗУ по двум
-// осям: (1) число — сложил вместо того, чтобы умножить, ошибся на 1 в
-// одном из множителей; (2) основание — самая частая ошибка тут взять
-// основанием один из АРГУМЕНТОВ (x/y) вместо настоящего a. Ровно один
-// вариант из четырёх — полностью верная пара {a, x·y}.
-function makeOptionsFull(a: number, x: number, y: number): TrialOption[] {
+// Дистракторы — типичные ошибки школьника. Основание: взял один из аргументов (x/y) вместо настоящего a.
+// Число: сложил вместо умножения, ошибся на единицу в одном из множителей.
+function makeStageOptions(a: number, x: number, y: number): { baseOptions: number[]; valueOptions: number[] } {
+    const uniq = (list: number[], bad: number) => Array.from(new Set(list)).filter((n) => n > 1 && n !== bad)
+    const baseWrong = shuffle(uniq([x, y, a + 1, a > 2 ? a - 1 : a + 2, a + 3], a)).slice(0, 3)
     const correctValue = x * y
-    const correct: TrialOption = { base: a, value: correctValue }
-
-    const valueCandidates = new Set<number>()
-    valueCandidates.add(x + y)
-    valueCandidates.add(x * (y + 1))
-    valueCandidates.add((x + 1) * y)
-    valueCandidates.delete(correctValue)
-    let valuePool = Array.from(valueCandidates).filter((n) => n > 0)
-    let extraV = correctValue + 6
-    while (valuePool.length < 2) {
-        if (extraV !== correctValue && !valuePool.includes(extraV)) valuePool.push(extraV)
-        extraV++
-    }
-    valuePool = shuffle(valuePool)
-
-    const baseCandidates = shuffle(
-        Array.from(new Set<number>([x, y, a + 1, a > 2 ? a - 1 : a + 2])).filter((n) => n > 1 && n !== a)
-    )
-    let extraB = a + 10
-    while (baseCandidates.length < 2) {
-        if (extraB !== a && !baseCandidates.includes(extraB)) baseCandidates.push(extraB)
-        extraB++
-    }
-
-    const seen = new Set<string>([`${correct.base}:${correct.value}`])
-    const options: TrialOption[] = [correct]
-    const pushUnique = (opt: TrialOption) => {
-        const key = `${opt.base}:${opt.value}`
-        if (seen.has(key)) return
-        seen.add(key)
-        options.push(opt)
-    }
-    pushUnique({ base: baseCandidates[0], value: correctValue })
-    pushUnique({ base: a, value: valuePool[0] })
-    pushUnique({ base: baseCandidates[1], value: valuePool[1] ?? valuePool[0] })
-    let guardBump = 1
-    while (options.length < 4) {
-        const b = baseCandidates[guardBump % baseCandidates.length] ?? a + guardBump
-        pushUnique({ base: b, value: correctValue + guardBump * 5 })
-        guardBump++
-    }
-    return shuffle(options)
+    const valueWrong = shuffle(uniq([x + y, x * (y + 1), (x + 1) * y, correctValue + 6, correctValue - 2], correctValue)).slice(0, 3)
+    return { baseOptions: shuffle([a, ...baseWrong]), valueOptions: shuffle([correctValue, ...valueWrong]) }
 }
 
 const makeTrial = (prev: LogTrial | null): LogTrial => {
@@ -674,7 +621,7 @@ const makeTrial = (prev: LogTrial | null): LogTrial => {
         const x = pick(XY_POOL)
         let y = pick(XY_POOL)
         while (y === x) y = pick(XY_POOL)
-        t = { a, x, y, options: makeOptionsFull(a, x, y) }
+        t = { a, x, y, ...makeStageOptions(a, x, y) }
         guard++
     } while (prev && t.a === prev.a && t.x === prev.x && t.y === prev.y && guard < 8)
     return t
@@ -699,16 +646,39 @@ const pickTrialFeedback = (t: LogTrial): string => {
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
-// selected — заполняется ТОЛЬКО когда пользователь нашёл верный ответ
-// (режим "пробуй, пока не угадаешь" — см. handleOptionClick), поэтому
-// цвет при checked=true всегда "верно".
+// Пропуск-квадратик: пунктирный, активный — цветной и «дышит»; заполненный — число влетает пружиной.
+const TrialSlot = ({ value, active, color, done, small = false }: { value: number | null; active: boolean; color: string; done: boolean; small?: boolean }) => (
+    value === null ? (
+        <span
+            className={cn('inline-block align-middle rounded-md border-2 border-dashed', active && 'animate-slot-breathe')}
+            style={{
+                width: small ? '1.3em' : '0.95em', height: small ? '1.4em' : '1.05em',
+                borderColor: active ? color : '#3A464E',
+                backgroundColor: active ? hexToRgba(color, 0.18) : 'transparent',
+            }}
+        />
+    ) : (
+        <motion.span
+            initial={{ scale: 2.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+            className="inline-block"
+            style={{ color: done ? CORRECT_COLOR : '#F2F7FB' }}
+        >
+            {value}
+        </motion.span>
+    )
+)
+
+const TRIAL_BASE_SLOT_COLOR = BASE_COLOR
+const TRIAL_VALUE_SLOT_COLOR = GGEGE_PALETTE.purple.button
+
 const LogTrialFormula = ({
-    trial, selected, checked,
+    trial, baseDone, valueDone,
 }: {
-    trial: LogTrial; selected: TrialOption | null; checked: boolean
+    trial: LogTrial; baseDone: boolean; valueDone: boolean
 }) => {
     const { a, x, y } = trial
-    const color = checked ? CORRECT_COLOR : '#F2F7FB'
     return (
         <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
             <span className="inline-flex items-baseline whitespace-nowrap">
@@ -724,34 +694,10 @@ const LogTrialFormula = ({
             <span className="inline-flex items-baseline whitespace-nowrap">
                 <Plain>log</Plain>
                 <sub className="ml-0.5">
-                    {selected === null ? (
-                        <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
-                    ) : (
-                        <motion.span
-                            key={`base-${selected.base}`}
-                            initial={{ scale: 2, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-                            style={{ color }}
-                        >
-                            {selected.base}
-                        </motion.span>
-                    )}
+                    <TrialSlot value={baseDone ? a : null} active={!baseDone} color={TRIAL_BASE_SLOT_COLOR} done={valueDone} small />
                 </sub>
                 <span className="ml-1">
-                    {selected === null ? (
-                        <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
-                    ) : (
-                        <motion.span
-                            key={`val-${selected.value}`}
-                            initial={{ scale: 2, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-                            style={{ color }}
-                        >
-                            {selected.value}
-                        </motion.span>
-                    )}
+                    <TrialSlot value={valueDone ? x * y : null} active={baseDone && !valueDone} color={TRIAL_VALUE_SLOT_COLOR} done={valueDone} />
                 </span>
             </span>
         </div>
@@ -773,20 +719,26 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     // LOGCOMBOWALK/LOGDEFWALK/SINWALK) — неверно нажатые пары ТЕКУЩЕГО
     // задания красятся красным и блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ
     // сообщение под вариантами (не гаснет по таймеру).
-    const [wrongTried, setWrongTried] = useState<TrialOption[]>([])
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    // этап текущего задания: false — выбираем основание, true — основание выбрано, выбираем число
+    const [baseDone, setBaseDone] = useState(false)
     const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
-    const currentCorrectOption: TrialOption = {
-        base: trials[trialIndex].a,
-        value: trials[trialIndex].x * trials[trialIndex].y,
-    }
-
-    const handleOptionClick = (option: TrialOption) => {
+    const handleOptionClick = (n: number) => {
         if (checked) return
-        if (wrongTried.some((w) => sameOption(w, option))) return
-        if (sameOption(option, currentCorrectOption)) {
+        if (wrongTried.includes(n)) return
+        const t = trials[trialIndex]
+        const correct = baseDone ? t.x * t.y : t.a
+        if (n === correct) {
             registerCombo(wrongTried.length === 0)
+            if (!baseDone) {
+                // основание на месте → второй этап
+                setBaseDone(true)
+                setWrongTried([])
+                setWrongFlash(null)
+                return
+            }
             showAnswerMeme(true)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
@@ -794,7 +746,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             showAnswerMeme(false)
-            setWrongTried((prev) => [...prev, option])
+            setWrongTried((prev) => [...prev, n])
             setWrongFlash(pickWrongTryPhrase())
         }
     }
@@ -816,6 +768,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setBaseDone(false)
             setWrongTried([])
             setWrongFlash(null)
             setAdvancing(false)
@@ -876,6 +829,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const handleReplay = () => {
         // сцена с растущей формулой проигрывается с самого начала
         if (latestSceneKey === 'step-0') { setStep(0); setStepReady(false) }
+        else { setChecked(false); setBaseDone(false); setWrongTried([]); setWrongFlash(null) }
         bumpNonce(latestSceneKey)
     }
 
@@ -896,6 +850,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
+            setBaseDone(false)
             setWrongTried([])
             setWrongFlash(null)
         } else if (target.startsWith('step-')) {
@@ -920,8 +875,6 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const correctValue = t.x * t.y
-                    const correctOpt: TrialOption = { base: t.a, value: correctValue }
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
@@ -939,31 +892,31 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span>{trials.length}</span>
                                 </div>
                                 <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">
-                                    Выбери правильный ответ:
+                                    {isDone || !isCurrent ? 'Собрали логарифм' : baseDone ? 'Что под логарифмом?' : 'Какое основание?'}
                                 </p>
                             </div>
                             <DiagramBlock>
-                                <LogTrialFormula trial={t} selected={isDone ? correctOpt : null} checked={isDone} />
+                                <LogTrialFormula trial={t} baseDone={isDone || (isCurrent && baseDone)} valueDone={isDone} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
-                                    <div className="drop-in-options flex flex-wrap justify-center gap-3">
-                                        {t.options.map((opt, idx) => {
-                                            const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
+                                    <div key={baseDone ? 'value' : 'base'} className="drop-in-options flex flex-wrap justify-center gap-3">
+                                        {(baseDone ? t.valueOptions : t.baseOptions).map((n) => {
+                                            const isWrongTriedOpt = wrongTried.includes(n)
                                             return (
                                                 <button
-                                                    key={idx}
+                                                    key={n}
                                                     type="button"
-                                                    onClick={() => handleOptionClick(opt)}
+                                                    onClick={() => handleOptionClick(n)}
                                                     disabled={isWrongTriedOpt}
                                                     className={cn(
-                                                        'min-w-[84px] py-3 px-4 rounded-xl border-2 text-lg md:text-xl font-bold transition-colors inline-flex items-baseline justify-center whitespace-nowrap',
+                                                        'min-w-[72px] py-3 px-4 rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-colors inline-flex items-center justify-center',
                                                         isWrongTriedOpt
                                                             ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
                                                             : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
                                                     )}
                                                 >
-                                                    <Plain>log</Plain><sub className="ml-0.5"><Plain>{opt.base}</Plain></sub><span className="ml-1"><Plain>{opt.value}</Plain></span>
+                                                    {n}
                                                 </button>
                                             )
                                         })}
