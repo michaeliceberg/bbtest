@@ -811,8 +811,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] rounded-2xl px-2 py-1.5 border-2 transition-all duration-500"
-                style={focusRow === null ? { borderColor: 'transparent' }
-                    : focusRow === i ? { borderColor: hexToRgba(B_COLOR, 0.55) }
+                style={focusRow === null || focusRow === i ? { borderColor: 'transparent' }
                         : { borderColor: 'transparent', opacity: 0.3, filter: 'grayscale(1)' }}>
                 <span className="w-7" />
                 <PairSlot label="x₁" val={roots[0]} active={stage === 2 && active === 0 && !result} state={stage === 2 ? st : null}
@@ -827,8 +826,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                     {rv !== null
                         ? <motion.span key={rv} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: stage === 1 && st === 'bad' ? BAD_COLOR : color }}>{fmt(rv)}</motion.span>
-                        : <span className={cn('text-xl', active === i && 'animate-slot-label-fast')}
-                            style={{ color: active === i ? B_COLOR : '#5C6B73', ['--slot-c' as string]: B_COLOR }}>?</span>}
+                        : <span className="text-xl" style={{ color: active === i ? B_COLOR : '#5C6B73' }}>?</span>}
                 </button>
                 {/* Галочка/крестик справа после проверки этапа, исчезают вместе со сменой этапа/сбросом. */}
                 <span className="w-7 inline-flex justify-center">
@@ -982,7 +980,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
     const askColor = step === 'c' ? C_COLOR : B_COLOR
     return (
         <>
-            <TypedBig small parts={[{ text: 'Любое квадратное уравнение:' }]} onDone={() => setPhase(1)} readMs={150} />
+            <TypedBig small parts={[{ text: 'Это квадратное уравнение:' }]} onDone={() => setPhase(1)} readMs={150} />
             {phase >= 1 && (
                 <div className="w-full flex items-center justify-center font-black text-3xl md:text-4xl text-[#F2F7FB] whitespace-nowrap py-2">
                     <FallingLetter letter="a" color={A_COLOR} delay={0.2} />x²<span className="mx-1">+</span>
@@ -990,7 +988,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                     <FallingLetter letter="c" color={C_COLOR} delay={1.4} /><span className="ml-1.5">= 0</span>
                 </div>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Найдём их здесь 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Найдём коэффициенты 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && (
                 <Pop>
                     <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-24 pb-1">
