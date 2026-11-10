@@ -5,7 +5,7 @@ import { playSound, preloadSound, RIGHT_CLICK_SOUND } from '@/lib/sound'
 
 // Выбор звука верного ответа: все подходящие короткие звуки, что уже есть в приложении.
 const CANDIDATES = [
-    { src: RIGHT_CLICK_SOUND, name: 'Сейчас: snd-right-click', vol: 0.45 },
+    { src: RIGHT_CLICK_SOUND, name: 'Сейчас: snd-right-bubble', vol: 0.45 },
     { src: '/snd-just-click.mp3', name: 'snd-just-click (клик выбора)', vol: 0.45 },
     { src: '/snd-click-soft.wav', name: 'snd-click-soft (мягкий клик)', vol: 0.45 },
     { src: '/snd-done-mini.mp3', name: 'snd-done-mini (мини-готово)', vol: 0.45 },

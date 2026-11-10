@@ -153,7 +153,7 @@ export const WRONG_ANSWER_SOUND = '/snd-wrong-bonk.m4a'
 // Тихий клик: промежуточные нажатия (выбрал вариант до «ответить», кнопка в формуле из кнопок)
 export const JUST_CLICK_SOUND = '/snd-just-click.mp3'
 // Верный ответ в пошаговых разборах (в обычном тренажёре — /correct.wav)
-export const RIGHT_CLICK_SOUND = '/snd-right-click.mp3'
+export const RIGHT_CLICK_SOUND = '/snd-right-bubble.mp3'
 // Нажали кнопку перехода к следующей сцене разбора («Дальше», «Понял» и т.п.)
 export const DONE_MINI_SOUND = '/snd-done-mini.mp3'
 let lastRightClickAt = 0
