@@ -383,8 +383,8 @@ const guessRound = (a: number, b: number, c: number, root: 1 | -1): Round => {
 type SceneProps = { onSettled?: () => void }
 
 // Слот-кнопка x₁/x₂: обычная кнопка проекта, у активной только буква мягко переливается в белый.
-const PairSlot = ({ label, val, active, state, onClick }: {
-    label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
+const PairSlot = ({ label, val, active, state, onClick, hop = true }: {
+    label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void; hop?: boolean
 }) => {
     // Верно — числа остаются белыми, рамка бледно-зелёная: иначе зелёные 3 и 4 сливались с салатовым c (12).
     const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : '#3A464E'
@@ -392,13 +392,12 @@ const PairSlot = ({ label, val, active, state, onClick }: {
     const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
         <button type="button" onClick={onClick}
-            className={cn('min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors', active && !state && 'animate-slot-hop')}
+            className={cn('min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors', active && !state && hop && 'animate-slot-hop')}
             style={{ borderColor: border, color, backgroundColor: bg }}>
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
-                : <span className={cn('text-xl', active && !state && 'animate-slot-label-fast')}
-                    style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
+                : <span className="text-xl" style={{ color: active ? ROOT_COLOR : '#5C6B73' }}>{label}</span>}
         </button>
     )
 }
@@ -560,14 +559,14 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, rightOverride,
             style={focus && focus !== kind ? DIM_STYLE : undefined}>
             {/* При подсветке своей строки бледнеют числа и «=», ярко — только знак (в маркере) и результат. */}
             <span className="inline-flex transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>
-                <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={rowState(ok)} onClick={() => !result && setActive(0)} />
+                <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} hop={showNums} state={rowState(ok)} onClick={() => !result && setActive(0)} />
             </span>
             <span className="relative inline-flex px-0.5">
                 {op}
                 {focus === kind && <MarkerLoop pad={10} />}
             </span>
             <span className="inline-flex transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>
-                <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
+                <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} hop={showNums} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             </span>
             <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
             <FocusBox on={focus === kind} color={color}>{rightOverride?.[kind] !== undefined
@@ -641,15 +640,18 @@ const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, asse
     // буква гаснет как раз к посадке стикера, а число в строке появляется в тот же кадр, когда стикер исчезает.
     const cell = { gridArea: '1 / 1' } as const
     const fadeAt = (on: boolean, delayMs: number) => ({ ...cell, opacity: on ? 0 : 1, transition: on ? `opacity 400ms ease ${delayMs}ms` : 'none' })
+    // Пока объясняем систему, подпрыгивает то, о чём речь: c (строка произведения), потом −b (строка суммы).
+    const cHop = !!memo && asmStep === 0 && memoStep < 4 && (memoStep <= 1 || !!quickMemo)
+    const sumHop = !!memo && asmStep === 0 && memoStep >= 2 && memoStep < 4
     const memoRight = memo ? {
         prod: (
             <span className="inline-grid justify-items-center">
-                <span data-marker="slot-prod" style={fadeAt(asmStep >= 1, 1800)}>c</span>
+                <span data-marker="slot-prod" className={cHop ? 'animate-slot-hop' : undefined} style={fadeAt(asmStep >= 1, 1800)}>c</span>
                 <span style={{ ...cell, opacity: asmStep >= 2 ? 1 : 0 }}>{c}</span>
             </span>
         ),
         sum: (
-            <span className="inline-flex items-center">
+            <span className={cn('inline-flex items-center', sumHop && 'animate-slot-hop')}>
                 <motion.span className={`relative inline-grid justify-items-center ${asmStep >= 5 ? 'overflow-hidden' : ''}`}
                     initial={false} animate={{ width: asmStep >= 5 ? 0 : 'auto', opacity: asmStep >= 5 ? 0 : 1 }}
                     transition={{ duration: 0.45, ease: 'easeInOut' }}>
@@ -1458,7 +1460,7 @@ const RootSlot = ({ label, val, active, state, onClick }: {
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-flex"><NumText s={val} /></motion.span>
-                : <span className={cn('text-xl', active && !state && 'animate-slot-label-fast')}
+                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
                     style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
         </button>
     )
