@@ -62,7 +62,7 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
-const INTRO_STEPS = 5
+const INTRO_STEPS = 4
 const TRIAL_COUNT = 4
 
 // Основание — синий (та же роль "величина, вводимая отдельно", что уже
@@ -182,7 +182,7 @@ const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, 
     let tokenCount = 0
     const nextDelay = () => (tokenCount++) * 0.13
     return (
-        <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
+        <div className={cn("w-full flex items-center justify-center flex-wrap gap-x-2 text-[19px] min-[400px]:text-2xl md:text-3xl font-extrabold py-1", showProduct ? "gap-y-9" : "gap-y-2")}>
             <Token delay={nextDelay()}>
                 <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} argColor={arg1Color} baseMarker="base1" />
             </Token>
@@ -356,8 +356,15 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
             const pRect = plusEl.getBoundingClientRect()
             const mRect = mulEl.getBoundingClientRect()
             const x1 = pRect.left + pRect.width / 2 - cRect.left
-            const y1 = pRect.top - cRect.top - ARROW_TIP_GAP
             const x2 = mRect.left + mRect.width / 2 - cRect.left
+            if (mRect.top - pRect.top > 12) {
+                // на узком экране «·» перенеслось на вторую строку: стрелка идёт вниз между строками
+                const y1 = pRect.bottom - cRect.top + 4
+                const y2 = mRect.top - cRect.top - ARROW_TIP_GAP
+                setD(buildElbowPath(x1, y1, x2, y2, (y1 + y2) / 2, 8))
+                return
+            }
+            const y1 = pRect.top - cRect.top - ARROW_TIP_GAP
             const y2 = mRect.top - cRect.top - ARROW_TIP_GAP
             const bridgeY = Math.min(y1, y2) - 26
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
@@ -500,80 +507,91 @@ const BASE_MATCH_PAUSE_MS = 900
 // 0.2с delay + 0.8с сама draw-анимация, см. BaseMatchArrow выше).
 const BASE_MATCH_ARROW_DRAW_MS = 1750
 
-// Общая обёртка для шагов 1 и 2 — диаграмма+стрелка мгновенно, текст
-// появляется только ПОСЛЕ того, как стрелка полностью дорисовалась (+
-// пауза). Formula передаётся children'ом (разная у шага 1/2), markers —
-// на какие основания указывает стрелка.
-const BaseMatchScene = ({
-    markers, formula, textBefore, textAfter = '', onSettled,
-}: {
-    markers: string[]
-    formula: React.ReactNode
-    textBefore: string
-    textAfter?: string
-    onSettled?: () => void
-}) => {
-    const [textVisible, setTextVisible] = useState(false)
+// Шаги 0-2 — ОДНА сцена с одной формулой, которая растёт на месте (по просьбе пользователя: не переписывать
+// пример заново в каждой сцене). step приходит от родителя (кнопка «Дальше»), внутри — строгая очередь:
+// 0: пример → «заметим одинаковое основание. Это 2» → двойки становятся стикерами → пауза → двойная стрелка;
+// 1: «поэтому получится логарифм с тем же основанием 2» → справа дописывается «= log₂» → пауза → стрелка с тремя концами;
+// 2: аргументы цветными стикерами и «(3·5)» → пауза → стрелка «+» → «·» → «аргументы надо перемножить».
+// Прошлые строки текста бледнеют (opacity + grayscale), когда пишется новая.
+type MergedArrow = 'none' | 'two' | 'three' | 'args'
+const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void }) => {
+    const [lines, setLines] = useState(0)
+    const [sticks, setSticks] = useState(false)
+    const [rightSide, setRightSide] = useState(false)
+    const [argsOn, setArgsOn] = useState(false)
+    const [arrow, setArrow] = useState<MergedArrow>('none')
     const ref = useRef<HTMLDivElement>(null)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+
     useEffect(() => {
-        const t = setTimeout(() => setTextVisible(true), BASE_MATCH_ARROW_DRAW_MS + BASE_MATCH_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [])
+        const list = timers.current
+        if (step === 0) later(() => setLines(1), 1100)
+        if (step === 1) later(() => setLines(2), 300)
+        if (step === 2) {
+            setArrow('none')
+            setArgsOn(true)
+            later(() => setArrow('args'), 1100)
+            later(() => setLines(3), 1100 + BASE_MATCH_ARROW_DRAW_MS + BASE_MATCH_PAUSE_MS)
+        }
+        return () => { list.forEach(clearTimeout); list.length = 0 }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step])
+
+    const arrowDone = () => later(onSettled, BASE_MATCH_ARROW_DRAW_MS + 300)
+    const dim = (n: number) => lines > n ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' } : { transition: 'opacity 0.4s' }
+    const arg1 = argsOn ? ARG_COLOR_X : undefined
+    const arg2 = argsOn ? ARG_COLOR_Y : undefined
+
     return (
         <>
             <DiagramBlock>
-                <div ref={ref} className="relative w-full pb-9">
-                    {formula}
-                    <BaseMatchArrow containerRef={ref} markers={markers} color={BASE_COLOR} />
+                <div ref={ref} className="relative w-full pt-10 pb-9">
+                    <ExampleFormula baseHighlighted={sticks} arg1Color={arg1} arg2Color={arg2} showRightSide={rightSide} showProduct={argsOn} showResult={false} />
+                    {arrow === 'two' && <BaseMatchArrow key="two" containerRef={ref} markers={['base1', 'base2']} color={BASE_COLOR} />}
+                    {arrow === 'three' && <BaseMatchArrow key="three" containerRef={ref} markers={['base1', 'base2', 'base3']} color={BASE_COLOR} />}
+                    {arrow === 'args' && <ArgumentsArrow containerRef={ref} />}
                 </div>
             </DiagramBlock>
-            {textVisible && (
-                <TypedLineWithSticker
-                    before={textBefore}
-                    stickerValue={2}
-                    stickerColor={BASE_COLOR}
-                    after={textAfter}
-                    onSettled={onSettled}
-                />
+            {lines >= 1 && (
+                <div style={dim(1)}>
+                    <TypedLineWithSticker
+                        before="Заметим, что у них одинаковое основание. Это "
+                        stickerValue={2}
+                        stickerColor={BASE_COLOR}
+                        after="."
+                        onSettled={() => {
+                            setSticks(true)
+                            later(() => { setArrow('two'); arrowDone() }, 1000)
+                        }}
+                    />
+                </div>
             )}
-        </>
-    )
-}
-
-// Шаг 3 — та же строгая последовательность, что и BaseMatchScene выше, по
-// прямой просьбе пользователя: сначала сам пример (формула с уже
-// раскрашенными аргументами, БЕЗ стрелки) → пауза → рисуется стрелка
-// "+"→"·" → пауза → текст-объяснение "перемножить". "pt-10" на контейнере
-// — ArgumentsArrow строит мост ВЫШЕ формулы (в отличие от BaseMatchArrow,
-// который снизу) — без запаса сверху стрелка налезала на текст ПРЕДЫДУЩЕЙ
-// сцены (реальный баг, пойманный пользователем), тот же приём, что уже
-// применён в LOGPOWWALK для того же класса проблемы.
-const ArgumentsScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    const ref = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase(2), BASE_MATCH_ARROW_DRAW_MS + BASE_MATCH_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [phase])
-
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), BASE_MATCH_PAUSE_MS)}>
-                <div ref={ref} className="relative w-full pt-10">
-                    <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showProduct showResult={false} />
-                    {phase >= 1 && <ArgumentsArrow containerRef={ref} />}
+            {lines >= 2 && (
+                <div style={dim(2)}>
+                    <TypedLineWithSticker
+                        before="Поэтому получится логарифм с тем же основанием "
+                        stickerValue={2}
+                        stickerColor={BASE_COLOR}
+                        after="."
+                        onSettled={() => {
+                            setArrow('none')
+                            setRightSide(true)
+                            later(() => { setArrow('three'); arrowDone() }, 1000)
+                        }}
+                    />
                 </div>
-            </DiagramBlock>
-            {phase >= 2 && (
-                <TypedLineWithSticker
-                    before="Так как логарифмы складываются, то аргументы надо "
-                    stickerValue="перемножить"
-                    stickerColor={ATTENTION_COLOR}
-                    after="."
-                    onSettled={onSettled}
-                />
+            )}
+            {lines >= 3 && (
+                <div style={dim(3)}>
+                    <TypedLineWithSticker
+                        before="Так как логарифмы складываются, то аргументы надо "
+                        stickerValue="перемножить"
+                        stickerColor={ATTENTION_COLOR}
+                        after="."
+                        onSettled={onSettled}
+                    />
+                </div>
             )}
         </>
     )
@@ -854,25 +872,28 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — та же схема ключей, что и в SINWALK.
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? (step <= 2 ? 'step-0' : 'step-3') : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
         if (key.startsWith('trial-')) {
             const idx = Number(key.slice('trial-'.length))
-            return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
+            return idx > 0 ? `trial-${idx - 1}` : 'step-3'
         }
         if (key.startsWith('step-')) {
-            const idx = Number(key.slice('step-'.length))
-            return idx > 0 ? `step-${idx - 1}` : null
+            return key === 'step-3' ? 'step-0' : null
         }
         return null
     }
     const contentSettled = phase === 'intro' ? stepReady : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
-    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null || (phase === 'intro' && step > 0)
     // "Повторить" — переигрывает анимацию ТЕКУЩЕЙ сцены заново, не трогая
     // состояние (в отличие от handleBack ниже) — та же пара useReplayNonces,
     // что уже используется для отката.
-    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleReplay = () => {
+        // сцена с растущей формулой проигрывается с самого начала
+        if (latestSceneKey === 'step-0') { setStep(0); setStepReady(false) }
+        bumpNonce(latestSceneKey)
+    }
 
     // "Назад" — реальный откат на предыдущую сцену (не просто "полистать
     // взглядом"): состояние step/trialIndex/phase откатывается на target,
@@ -880,6 +901,10 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     // ПЕРЕМОНТИРУЕТСЯ). Сцены ПОСЛЕ target сами исчезают из DOM.
     const handleBack = () => {
         if (advancing) return
+        if (phase === 'intro' && step > 0 && step <= 2) {
+            bumpNonce('step-0'); setStep(0); setStepReady(false)
+            return
+        }
         const target = prevSceneKeyOf(latestSceneKey)
         if (!target) return
         bumpNonce(target)
@@ -900,69 +925,16 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — просто условие, без текстовой подписи (по прямой
-                    просьбе пользователя убрана целиком). stepReady включает
-                    сама диаграмма (DiagramBlock.onSettled), раз текста
-                    печатать больше не нужно. */}
+                {/* Шаги 0-2 — одна сцена с растущей формулой (MergedScene), шаг 3 — итог. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <DiagramBlock onSettled={() => setStepReady(true)}>
-                            <ExampleFormula baseHighlighted={false} showRightSide={false} showProduct={false} showResult={false} />
-                        </DiagramBlock>
+                        <MergedScene step={Math.min(step, 2)} onSettled={() => setStepReady(true)} />
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — основания (двойки) становятся стикерами; угловая
-                    стрелка снизу с обоими концами на левую и правую двойку
-                    ("2 — 2, одно и то же"); "2" в тексте объяснения — тоже
-                    настоящий стикер. */}
-                {step >= 1 && (
-                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
-                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <BaseMatchScene
-                                markers={['base1', 'base2']}
-                                formula={<ExampleFormula baseHighlighted showRightSide={false} showProduct={false} showResult={false} />}
-                                textBefore="Заметим что у них одинаковое основание - это "
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 2 — справа дописывается "= log₂", то же основание;
-                    угловая стрелка снизу теперь ДЛИННАЯ, с ТРЕМЯ указателями
-                    — на обе левые двойки и на новую третью справа (все они
-                    одно и то же число). */}
-                {step >= 2 && (
-                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
-                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <BaseMatchScene
-                                markers={['base1', 'base2', 'base3']}
-                                formula={<ExampleFormula baseHighlighted showRightSide showProduct={false} showResult={false} />}
-                                textBefore="Поэтому получится логарифм с тем же основанием "
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 3 — аргументы 3 и 5 РАЗНЫМИ цветами, стрелка от "+"
-                    к "·" (сумма превращается в произведение). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <ArgumentsScene onSettled={() => setStepReady(true)} />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 4 — итог. По прямой просьбе пользователя ВСЯ формула
-                    здесь больше НЕ перерисовывается заново (это уже
-                    показано в шаге 3 выше) — просто короткий "Ответ:
-                    log₂15", с конфетти в момент появления. */}
-                {step >= 4 && (
-                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
-                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
                             <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
                             {showAnswerConfetti && <LocalAnswerConfetti />}
                         </Fragment>
