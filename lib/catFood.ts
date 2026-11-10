@@ -9,7 +9,7 @@ export const CAT_FOOD: Record<CatFood, { title: string; price: number; src: stri
     milk: { title: 'Молочко', price: 129, gain: 25, src: '/hangar/life/cat-milk.webp' },
     sausage: { title: 'Колбаска', price: 249, gain: 50, src: '/hangar/life/cat-sausage.webp' },
     sourcream: { title: 'Сметанка', price: 179, gain: 25, src: '/hangar/life/cat-sourcream.webp' },
-    fish: { title: 'Рыбка', price: 299, gain: 50, src: '/hangar/life/cat-fish.webp' },
+    fish: { title: 'Рыбка', price: 375, gain: 75, src: '/hangar/life/cat-fish.webp' },
 }
 // gain — на сколько процентов порция поднимает сытость (полоска над котиком убывает от 100% до 0 за сутки).
 // Кормить можно, пока сытость меньше CAT_FEED_BELOW.
