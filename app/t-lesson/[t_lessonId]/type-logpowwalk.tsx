@@ -1,41 +1,15 @@
 // app/t-lesson/[t_lessonId]/type-logpowwalk.tsx
 //
-// Тип LOGPOWWALK — интерактивный разбор по шагам "степень в основании и
-// аргументе" (log_{a^n} b^m = (m/n)·log_a b) — тот же архитектурный
-// принцип, что у SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK: компонент сам
-// ведёт хореографию и зовёт onAnswer/onComplete РОВНО один раз в конце;
-// общая нижняя кнопка скрыта — своя кнопка "Дальше"/"Готово" на
-// протяжении всего прохождения.
-//
-// Сюжет — прямая инструкция пользователя, на ОДНОМ фиксированном примере
-// с однозначными числами (a=2, n=3, b=5, m=7 — log₂³5⁷). Шаги 1-3
-// (Step1Scene/Step2Scene/Step3Scene) раскрываются СТРОГО последовательно,
-// битами с паузами (та же правка, что и в LOGWALK/LOGSUBWALK, "а не всё
-// разом") — формула → пауза → [стрелка → пауза →] текст:
-// 1. Пишем крупно "log_{2³}5⁷ = ?" — просто условие.
-// 2. Обводим ОБА показателя степени (3 и 7) как стикеры — РАЗНЫМИ
-//    цветами (та же причина, что и у аргументов x/y в LOGWALK —
-//    одинаковый цвет читался бы как "это одно и то же число"): m=7
-//    (показатель аргумента) — teal, n=3 (показатель основания) — raspberry
-//    → пауза → текст "у этого логарифма два показателя степени".
-// 3. "Эти степени можно снести перед логарифмом" — формула ("=7/?logₐb")
-//    → пауза → стрелка от 7-в-степени к 7-в-числителе (реальные
-//    координаты, тот же приём measure+quadratic bezier, что уже в
-//    ArgumentsArrow LOGWALK/LOGSUBWALK) → пауза → текст.
-// 4. "А 3 (показатель основания) становится ЗНАМЕНАТЕЛЕМ" — та же
-//    последовательность, отдельная стрелка от 3-в-степени к
-//    3-в-знаменателе.
-// 5. "Ответ: 7/3 log₂5".
-//
-// После разбора — тренировочные задания с НОВЫМИ случайными числами
-// (log_{a^n} b^m = ?), нужно кликнуть верную формулу-ответ среди 4
-// вариантов (дистракторы — перепутанные числитель/знаменатель, перепутанные
-// основание/аргумент, ошибка на 1) — тот же формат клика по варианту, что
-// у LOGWALK/LOGSUBWALK, только вариант — не число, а компактная формула.
+// Тип LOGPOWWALK — разбор «Степени»: log_{a^n} b^m = (m/n)·log_a b. Устроен как LOGWALK/LOGSUBWALK: одна сцена с одной формулой
+// («текстовыделение 2.0» вместо стикеров, без «= ?» справа):
+// 0: «Вижу степень сверху и снизу» → маркером выделяются 3 и 7, кнопка «Вижу обе степени»;
+// 1: «Верхняя степень идёт НАВЕРХ, а нижняя ВНИЗ» → логарифм плавно уезжает вправо → слева появляется черта дроби →
+//    семёрка (выделенная) перелетает справа налево в числитель → тройка перелетает в знаменатель; на старых местах ничего не остаётся.
+// После разбора — тренировочные задания с НОВЫМИ случайными числами (клик по верной формуле среди 4 вариантов).
 
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -63,7 +37,7 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
-const INTRO_STEPS = 5
+const INTRO_STEPS = 2
 const TRIAL_COUNT = 4
 
 // Фиксированный обучающий пример — a=2 (основание), n=3 (степень
@@ -75,32 +49,22 @@ const N = 3
 const B = 5
 const M = 7
 
-// m — teal, n — синий: те же две "свободные" роли палитры ggege, что
-// уже закреплены в LOGWALK/LOGSUBWALK за двумя РАЗНЫМИ величинами одной
-// формулы (не один общий цвет — иначе читалось бы как "одно и то же число").
-// Раньше n был raspberry (малиновый) — пользователь пожаловался, что
-// стикер "3" сливался с тёмным фоном страницы (малиновый заметно темнее/
-// приглушённее teal на этом фоне); синий даёт заметно выше контраст.
-const M_COLOR = GGEGE_PALETTE.teal.button
-const N_COLOR = GGEGE_PALETTE.blue.button
-
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
 // ===== Общие строительные блоки (HTML+CSS, без KaTeX — та же причина, что
 // и в LOGWALK/LOGSUBWALK: короткая целочисленная запись не требует
 // формульного рендера, а HTML избавляет от KaTeX-сегментирования). =====
 
-const NumSticker = ({ value, color, small = false }: { value: number | string; color: string; small?: boolean }) => (
+// Выделение маркером («текстовыделение 2.0», /test-base-marker): сплошная заливка, тёмная цифра, без рамки и второго уменьшения.
+const MARK_COLOR = GGEGE_PALETTE.blue.button
+const markStyle = { background: MARK_COLOR, color: '#10181C', lineHeight: 1.15 } as const
+const BaseMark = ({ value }: { value: number | string }) => (
     <motion.span
-        initial={{ scale: 2.6, opacity: 0 }}
+        initial={{ scale: 2.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-        className={cn(
-            'inline-flex items-center justify-center rounded-lg border-2 font-extrabold align-middle',
-            small ? 'px-1 text-[0.6em]' : 'px-1.5 py-0.5',
-            'leading-none',
-        )}
-        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+        className="inline-block rounded-[3px] px-[3px] font-extrabold"
+        style={markStyle}
     >
         {value}
     </motion.span>
@@ -110,7 +74,6 @@ const Plain = ({ children }: { children: React.ReactNode }) => (
     <span className="text-[#F2F7FB]">{children}</span>
 )
 
-const QuestionMark = () => <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
 
 // Показатель степени — НЕ нативный <sup> (даёт разный визуальный масштаб/
 // высоту в зависимости от того, вложен он в <sub> или в обычный baseline-
@@ -131,385 +94,185 @@ const Exp = ({ children }: { children: React.ReactNode }) => (
     <span className="relative inline-block ml-px" style={{ fontSize: '0.78em', top: '-0.8em' }}>{children}</span>
 )
 
-// Дробь "числитель / знаменатель" — классическая CSS-подложка (нижняя
-// граница числителя = черта дроби). numMarker/denMarker — опциональные
-// data-marker для измерения реальных координат стрелкой (см. TravelArrow).
-// Размер увеличен 0.62em→0.72em (та же просьба "увеличить пропорционально",
-// см. Exp выше — теперь совпадает по масштабу с самими степенями, единый
-// размер для одной и той же величины до/после переноса).
-// inline-block + align-middle (не inline-flex+items-center) — иначе
-// соседний inline-flex-блок логарифма (LogTerm/лог+аргумент) центрируется
-// по высоте СВОЕГО бокса относительно дроби, а не по общей строке, из-за
-// разницы в фактической высоте блоков (дробь мельче) лог визуально
-// "проваливался" ниже строки (баг, найденный пользователем на "Ответ:").
-// vertical-align:middle — стандартный браузерный механизм именно для
-// этого случая (тот же приём, что и у инлайновых иконок рядом с текстом):
-// центрирует дробь относительно математической оси строки, а соседний
-// лог-терм остаётся на обычной text-baseline — как и должно быть.
-const Fraction = ({
-    num, den, numMarker, denMarker,
-}: { num: React.ReactNode; den: React.ReactNode; numMarker?: string; denMarker?: string }) => (
-    <span className="inline-block align-middle leading-none mr-2" style={{ fontSize: '0.72em' }}>
-        <span data-marker={numMarker} className="block px-1.5 pb-1 border-b-2 border-[#F2F7FB]/70 min-w-[1.5em] text-center">{num}</span>
-        <span data-marker={denMarker} className="block px-1.5 pt-1 min-w-[1.5em] text-center">{den}</span>
-    </span>
-)
-
-// Полная строка примера "log_{a^n} b^m = [7/3] log_a b" — тот же
-// накопительный приём, что у LOGWALK/LOGSUBWALK: на каждом шаге разбора
-// рисуется НОВЫЙ (не мутирующий предыдущий) экземпляр с накопленными
-// флагами. containerRef нужен только тем шагам, где рисуется стрелка (см.
-// TravelArrow) — измеряет data-marker'ы ВНУТРИ этого же экземпляра.
-// a/n/b/m — по умолчанию фиксированный обучающий пример (A/N/B/M), но
-// ТРЕНИРОВОЧНЫЕ задания передают СВОИ случайные числа — без этого
-// параметра вопрос тренировки всегда показывал бы "log₂³5⁷" независимо
-// от реально сгенерированных вариантов ответа (реальный баг, пойманный
-// живьём при первой проверке).
+// Формула «log_{a^n} b^m» без правой части; marked — показатели выделены маркером (в тренировке всегда выделены).
 const PowFormula = ({
-    a = A, n = N, b = B, m = M, exponentsAsStickers, showRHS, numeratorFilled, denominatorFilled, containerRef,
-}: {
-    a?: number; n?: number; b?: number; m?: number
-    exponentsAsStickers: boolean; showRHS: boolean; numeratorFilled: boolean; denominatorFilled: boolean
-    containerRef?: React.Ref<HTMLDivElement>
-}) => (
-    <div ref={containerRef} className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-3 text-2xl md:text-3xl font-extrabold py-1">
+    a = A, n = N, b = B, m = M, marked = true,
+}: { a?: number; n?: number; b?: number; m?: number; marked?: boolean }) => (
+    <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-3 text-2xl md:text-3xl font-extrabold py-1">
         <span className="inline-flex items-baseline whitespace-nowrap">
             <Plain>log</Plain>
             <sub className="ml-0.5 inline-flex items-baseline">
                 <Plain>{a}</Plain>
-                <Exp>
-                    <span data-marker="exp-n">
-                        {/* small снят — Exp УЖЕ даёт масштаб 0.78em, добавочный
-                            "small" (ещё ×0.6) схлопывал степень до крошечного
-                            размера, см. комментарий у Exp выше. */}
-                        {exponentsAsStickers ? <NumSticker value={n} color={N_COLOR} /> : <Plain>{n}</Plain>}
-                    </span>
-                </Exp>
+                <Exp>{marked ? <BaseMark value={n} /> : <Plain>{n}</Plain>}</Exp>
             </sub>
             <span className="ml-1.5 inline-flex items-baseline">
                 <Plain>{b}</Plain>
-                <Exp>
-                    <span data-marker="exp-m">
-                        {exponentsAsStickers ? <NumSticker value={m} color={M_COLOR} /> : <Plain>{m}</Plain>}
-                    </span>
-                </Exp>
+                <Exp>{marked ? <BaseMark value={m} /> : <Plain>{m}</Plain>}</Exp>
             </span>
         </span>
-        <Plain>=</Plain>
-        {showRHS ? (
-            // НЕ flex — inline поток, чтобы у Fraction (align-middle) и у
-            // лог-терма (обычный baseline) сработало обычное браузерное
-            // вертикальное выравнивание относительно ОДНОЙ строки (см.
-            // комментарий у Fraction выше про баг "лог провалился ниже").
-            <span className="whitespace-nowrap">
-                <Fraction
-                    num={numeratorFilled ? <NumSticker value={m} color={M_COLOR} /> : <span className="opacity-30">?</span>}
-                    den={denominatorFilled ? <NumSticker value={n} color={N_COLOR} /> : <span className="opacity-30">?</span>}
-                    numMarker="num-target"
-                    denMarker="den-target"
-                />
-                <span className="inline-flex items-baseline whitespace-nowrap">
-                    <Plain>log</Plain><sub className="ml-0.5"><Plain>{a}</Plain></sub>
-                    <span className="ml-1"><Plain>{b}</Plain></span>
-                </span>
-            </span>
-        ) : (
-            <QuestionMark />
-        )}
     </div>
 )
 
-// "Уголок" (elbow/orthogonal-connector) со скруглёнными углами — по
-// прямой просьбе пользователя вместо гладкой дуги: от точки A едем по
-// вертикали к горизонтальному "мосту", проезжаем по нему, спускаемся/
-// поднимаемся в точку B — тот же приём, что в диаграммных инструментах
-// ("orthogonal routing"), просто без острых 90° — угол сглажен небольшим
-// радиусом. Скругление — квадратичная кривая через САМУ угловую точку как
-// control point (классический трюк "смягчить угол": кривая проходит РЯДОМ
-// с углом, не через него, — не нужно вычислять центр отдельной дуги).
-function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
-    const vDir1 = bridgeY < y1 ? -1 : 1
-    const vDir2 = y2 < bridgeY ? -1 : 1
-    const hDir = x2 >= x1 ? 1 : -1
-    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
-    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
-    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+// Показатель в сцене-разборе: можно спрятать (улетел) и затем схлопнуть по ширине (после приземления соседа не оставляем дыру).
+const SceneExp = ({ marker, value, marked, gone, collapsed }: { marker: string; value: number; marked: boolean; gone: boolean; collapsed: boolean }) => (
+    <motion.span
+        className="relative inline-block ml-px"
+        style={{ fontSize: '0.78em', top: '-0.8em', overflow: collapsed ? 'hidden' : 'visible' }}
+        initial={false}
+        animate={{ width: collapsed ? 0 : 'auto', marginLeft: collapsed ? 0 : 1 }}
+        transition={{ duration: 0.4, ease: 'easeInOut' }}
+    >
+        <span data-marker={marker} className="inline-block" style={{ opacity: gone ? 0 : 1 }}>
+            {marked ? <BaseMark value={value} /> : <Plain>{value}</Plain>}
+        </span>
+    </motion.span>
+)
 
-    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
-    const p3 = `${x1 + hDir * rH} ${bridgeY}`
-    const p4 = `${x2 - hDir * rH} ${bridgeY}`
-    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+type PowFlyer = { n: number; left: number; top: number; fs: number; dx: number; dy: number; arc: number; scale: number }
+const FLIGHT_MS = 1900
 
-    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
-}
+const MergedPowScene = ({ step, onSettled }: { step: number; onSettled: () => void }) => {
+    const [lines, setLines] = useState(0)
+    const [marked, setMarked] = useState(false)
+    const [shift, setShift] = useState<number | null>(null)
+    const [slide, setSlide] = useState(false)
+    const [barOn, setBarOn] = useState(false)
+    const [gone, setGone] = useState({ m: false, n: false })
+    const [collapsed, setCollapsed] = useState({ m: false, n: false })
+    const [landed, setLanded] = useState({ m: false, n: false })
+    const [flyer, setFlyer] = useState<PowFlyer | null>(null)
+    const [done, setDone] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    const rowRef = useRef<HTMLDivElement>(null)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
 
-// Зазор между якорной точкой стрелки и реальным краем элемента — SVG-
-// маркер наконечника (markerWidth=8, refX=6) физически выступает за
-// path-координату конца линии на ~5-6px В НАПРАВЛЕНИИ движения; без
-// отступа якорь ровно на границе элемента даёт видимый наконечник,
-// залезающий НА элемент (класс бага, найденный пользователем в LOGWALK —
-// "нижняя угловая стрелка залезает на цифры со стикерами", НЕ то же самое,
-// что грань-якоря чуть ниже — там про то, ЧЕРЕЗ КАКУЮ грань бокса стрелка
-// не должна проходить насквозь, здесь про отступ ОТ уже верно выбранной
-// грани). Всегда используется так, чтобы отодвинуть якорь ДАЛЬШЕ от
-// элемента.
-const ARROW_TIP_GAP = 8
+    // Пока дробь не показана, логарифм стоит по центру: сдвигаем строку влево на половину ширины невидимой дроби.
+    useLayoutEffect(() => {
+        const measure = (): boolean => {
+            const row = rowRef.current
+            const frac = row?.querySelector<HTMLElement>('[data-marker="fracgrp"]')
+            if (!row || !frac) return false
+            if (!slide) setShift(-Math.round((frac.getBoundingClientRect().width + 8) / 2))
+            return true
+        }
+        const poll = setInterval(() => { if (measure()) clearInterval(poll) }, 60)
+        const onResize = () => { measure() }
+        window.addEventListener('resize', onResize)
+        return () => { clearInterval(poll); window.removeEventListener('resize', onResize) }
+    }, [slide])
 
-// Стрелка от одного data-marker к другому ВНУТРИ containerRef — реальные
-// координаты, направление НЕ подгоняется вручную, обобщена на произвольную
-// пару маркеров + свой цвет — здесь нужны ДВЕ независимые стрелки
-// (числитель/знаменатель) на РАЗНЫХ шагах. curve — куда выгибается
-// горизонтальный "мост" уголка: 'up' (мост ВЫШЕ обоих концов — подходит
-// для шага "в числитель", идём вверх-и-через-верх) или 'down' (мост НИЖЕ
-// обоих концов — обязателен для шага "в знаменатель": знаменатель физически
-// ниже строки, и если мост всё равно тянуть вверх, путь возвращается назад
-// через верх формулы и рисуется ПОВЕРХ чисел — баг, найденный пользователем).
-const TravelArrow = ({
-    containerRef, fromMarker, toMarker, color, curve = 'up',
-}: { containerRef: React.RefObject<HTMLDivElement | null>; fromMarker: string; toMarker: string; color: string; curve?: 'up' | 'down' }) => {
-    const [d, setD] = useState<string | null>(null)
+    // Выделенный показатель отрывается от места, летит по дуге в свою ячейку дроби и садится обычной цифрой.
+    const fly = (key: 'm' | 'n', n: number, up: boolean, onLanded: () => void) => {
+        const c = ref.current
+        const src = c?.querySelector<HTMLElement>(`[data-marker="exp-${key}"]`)
+        const dst = c?.querySelector<HTMLElement>(`[data-marker="slot-${key}"]`)
+        if (!c || !src || !dst) { setLanded((l) => ({ ...l, [key]: true })); onLanded(); return }
+        const cr = c.getBoundingClientRect(), sr = src.getBoundingClientRect(), dr = dst.getBoundingClientRect()
+        const fs = parseFloat(getComputedStyle(src).fontSize)
+        const ds = parseFloat(getComputedStyle(dst).fontSize)
+        setFlyer({
+            n, left: sr.left - cr.left, top: sr.top - cr.top, fs,
+            dx: (dr.left + dr.width / 2) - (sr.left + sr.width / 2), dy: (dr.top + dr.height / 2) - (sr.top + sr.height / 2),
+            arc: up ? -46 : 40, scale: ds / fs,
+        })
+        setGone((g) => ({ ...g, [key]: true }))
+        later(() => {
+            setFlyer(null)
+            setLanded((l) => ({ ...l, [key]: true }))
+            setCollapsed((cl) => ({ ...cl, [key]: true }))
+            onLanded()
+        }, FLIGHT_MS)
+    }
 
     useEffect(() => {
-        const measure = () => {
-            const container = containerRef.current
-            if (!container) return
-            const fromEl = container.querySelector<HTMLElement>(`[data-marker="${fromMarker}"]`)
-            const toEl = container.querySelector<HTMLElement>(`[data-marker="${toMarker}"]`)
-            if (!fromEl || !toEl) return
-            const cRect = container.getBoundingClientRect()
-            const fRect = fromEl.getBoundingClientRect()
-            const tRect = toEl.getBoundingClientRect()
-            const x1 = fRect.left + fRect.width / 2 - cRect.left
-            const x2 = tRect.left + tRect.width / 2 - cRect.left
-            // Якорная точка на КАЖДОМ маркере — та грань бокса, откуда линия
-            // РЕАЛЬНО уходит/приходит, а не его верх/центр всегда. Для 'up'
-            // это верхний край (уезжаем/прилетаем СВЕРХУ, мимо тела маркера).
-            // Для 'down' — нижний край (уезжаем/прилетаем СНИЗУ): раньше здесь
-            // тоже брался верхний край, из-за чего первый и последний отрезки
-            // линии рисовались НАСКВОЗЬ через сам стикер (сверху вниз через
-            // всё его тело) — баг "стрелка налезает на цифры", найденный
-            // пользователем на скриншоте.
-            const y1 = (curve === 'up' ? fRect.top - ARROW_TIP_GAP : fRect.bottom + ARROW_TIP_GAP) - cRect.top
-            const y2 = (curve === 'up' ? tRect.top - ARROW_TIP_GAP : tRect.bottom + ARROW_TIP_GAP) - cRect.top
-            let bridgeY: number
-            if (curve === 'up') {
-                bridgeY = Math.min(y1, y2) - 26
-            } else {
-                // "Вниз" — мост должен быть НИЖЕ реальных НИЖНИХ краёв обоих
-                // боксов (не просто ниже их верхних якорных точек), а
-                // денаменатор к тому же соседствует с "log_a b" того же роста,
-                // что и главный текст формулы — если считать зазор только от
-                // верха, мост едет прямо ПОСЕРЕДИНЕ строки и режет текст.
-                bridgeY = Math.max(y1, y2) + 34
-            }
-            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
+        const list = timers.current
+        if (step === 0) later(() => setLines(1), 1000)
+        if (step === 1) {
+            later(() => setLines(2), 300)
         }
-        // Ждём, пока bounce-стикеры и раскладка осядут, прежде чем мерить
-        // реальные позиции (тот же таймаут, что и в LOGWALK).
-        const t = setTimeout(measure, 750)
-        window.addEventListener('resize', measure)
-        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+        return () => { list.forEach(clearTimeout); list.length = 0 }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [step])
 
-    if (!d) return null
-    const markerId = `logpowwalk-arrowhead-${fromMarker}`
-    return (
-        <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
-            <defs>
-                <marker id={markerId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-                    <path d="M0,0 L8,4 L0,8 Z" fill={color} />
-                </marker>
-            </defs>
-            <motion.path
-                d={d}
-                stroke={color}
-                strokeWidth={2.5}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                markerEnd={`url(#${markerId})`}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
-            />
-        </svg>
-    )
-}
+    const dim = (n: number) => (lines > n || step >= 1 && n < 2) ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' } : { transition: 'opacity 0.4s' }
 
-// Печатаемая строка со СЛОВОМ-стикером внутри текста ("числителем"/
-// "знаменателем") — по прямой просьбе пользователя заменить текстовыделитель
-// (HighlightWord) на тот же боксовый стикер, что и у чисел формулы (единый
-// визуальный язык), тот же приём, что TypedLineWithSticker в type-
-// logdefwalk.tsx. NumSticker уже принимает и число, и строку.
-// leadNumber/leadMid — опциональный ВТОРОЙ (числовой) стикер перед словом
-// (например "аргумента [7] становится [числителем]") — по прямой просьбе
-// пользователя: раньше число стояло голым текстом между длинными тире
-// ("— 7 —"), теперь само число — такой же боксовый стикер, а тире убраны.
-const TypedLineWithSticker = ({
-    before, leadNumber, leadMid = '', word, after = '', color, onSettled,
-}: { before: string; leadNumber?: number; leadMid?: string; word: string; after?: string; color: string; onSettled?: () => void }) => {
-    const [typed, setTyped] = useState(false)
-    const plainLead = leadNumber !== undefined ? `${leadNumber}${leadMid}` : ''
     return (
-        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
-            {!typed ? (
-                <Typewriter
-                    text={`${before}${plainLead}${word}${after}`}
-                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
-                />
-            ) : (
-                <>
-                    {withBreaks(before)}
-                    {leadNumber !== undefined && (
-                        <>
-                            <NumSticker value={leadNumber} color={color} />
-                            {leadMid}
-                        </>
-                    )}
-                    <NumSticker value={word} color={color} />
-                    {withBreaks(after)}
-                </>
-            )}
-        </div>
-    )
-}
-
-// Финальная строка "Ответ: 7/3 log₂5" — та же структура, что у
-// AnswerLine в LOGWALK/LOGSUBWALK, только с дробью вместо одного числа.
-const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
-    const [typed, setTyped] = useState(false)
-    return (
-        <div className="w-full text-base md:text-lg text-[#F2F7FB] flex items-baseline gap-2 flex-wrap">
-            {!typed ? (
-                <Typewriter text="Ответ:" onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 400) }} />
-            ) : (
-                <>
-                    <span>Ответ:</span>
-                    <motion.span
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                        className="font-extrabold text-lg md:text-xl whitespace-nowrap"
-                        style={{ color: CORRECT_COLOR }}
+        <>
+            <DiagramBlock>
+                <div ref={ref} className="relative w-full overflow-x-clip py-12">
+                    <motion.div
+                        ref={rowRef as React.RefObject<HTMLDivElement>}
+                        className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold py-1"
+                        style={{ opacity: shift === null ? 0 : 1 }}
+                        initial={false}
+                        animate={{ x: shift ?? 0 }}
+                        transition={{ duration: slide ? 0.9 : 0, ease: 'easeInOut' }}
                     >
-                        {/* inline-block+align-middle, не flex — та же причина,
-                            что у Fraction/PowFormula выше: иначе лог визуально
-                            "проваливается" ниже дроби (баг, найденный
-                            пользователем) — vertical-align:middle держит дробь
-                            на математической оси, а лог остаётся на обычном
-                            text-baseline. */}
-                        <span className="inline-block align-middle leading-none text-[0.72em] mr-1.5">
-                            <span className="block px-1.5 pb-0.5 border-b-2 border-current text-center">{M}</span>
-                            <span className="block px-1.5 pt-0.5 text-center">{N}</span>
+                        <span data-marker="fracgrp" className="inline-block align-middle leading-none" style={{ fontSize: '0.85em' }}>
+                            <span className="block px-1.5 pb-1 border-b-2 min-w-[1.4em] text-center transition-colors duration-500" style={{ borderColor: barOn ? 'rgba(242,247,251,0.75)' : 'transparent' }}>
+                                <span data-marker="slot-m" className="text-[#F2F7FB]" style={{ opacity: landed.m ? 1 : 0 }}>{M}</span>
+                            </span>
+                            <span className="block px-1.5 pt-1 min-w-[1.4em] text-center">
+                                <span data-marker="slot-n" className="text-[#F2F7FB]" style={{ opacity: landed.n ? 1 : 0 }}>{N}</span>
+                            </span>
                         </span>
                         <span className="inline-flex items-baseline whitespace-nowrap">
-                            log<sub className="ml-0.5">{A}</sub><span className="ml-0.5">{B}</span>
+                            <Plain>log</Plain>
+                            <sub className="ml-0.5 inline-flex items-baseline">
+                                <Plain>{A}</Plain>
+                                <SceneExp marker="exp-n" value={N} marked={marked} gone={gone.n} collapsed={collapsed.n} />
+                            </sub>
+                            <span className="ml-1.5 inline-flex items-baseline">
+                                <Plain>{B}</Plain>
+                                <SceneExp marker="exp-m" value={M} marked={marked} gone={gone.m} collapsed={collapsed.m} />
+                            </span>
                         </span>
-                    </motion.span>
-                </>
-            )}
-        </div>
-    )
-}
-
-// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
-// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1-3
-// этого разбора раскрываются СТРОГО последовательно (формула → пауза →
-// [стрелка → пауза →] текст), не всё разом, как раньше.
-const STEP_PAUSE_MS = 900
-// Столько реально рисуется TravelArrow (750мс задержка измерения + 0.2с
-// delay + 0.8с сама draw-анимация, см. TravelArrow выше).
-const ARROW_DRAW_MS = 1750
-
-// Шаг 1 — формула (степени уже стикерами) появляется сразу, текст —
-// только ПОСЛЕ паузы.
-const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [textVisible, setTextVisible] = useState(false)
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
-                <PowFormula exponentsAsStickers showRHS={false} numeratorFilled={false} denominatorFilled={false} />
-            </DiagramBlock>
-            {textVisible && (
-                <TypedLine
-                    className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text="У этого логарифма два показателя степени — у основания и у аргумента."
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
-// Шаг 2 — формула ("= 7/? logₐb") сразу → пауза → рисуется стрелка от
-// показателя-аргумента к числителю → пауза → текст. pt-10 (как и раньше) —
-// запас сверху, чтобы дуга стрелки (мост выше обоих концов) не налезала на
-// текст ПРЕДЫДУЩЕЙ сцены.
-const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    const ref = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [phase])
-
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
-                <div ref={ref} className="relative w-full pt-10">
-                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled={false} />
-                    {phase >= 1 && <TravelArrow containerRef={ref} fromMarker="exp-m" toMarker="num-target" color={M_COLOR} />}
+                    </motion.div>
+                    {flyer && (
+                        <motion.span
+                            className="absolute inline-block rounded-[3px] px-[3px] font-extrabold"
+                            style={{ ...markStyle, left: flyer.left, top: flyer.top, fontSize: flyer.fs }}
+                            initial={{ x: 0, y: 0, scale: 1 }}
+                            animate={{ x: [0, flyer.dx * 0.5, flyer.dx], y: [0, flyer.dy * 0.5 + flyer.arc, flyer.dy], scale: [1, 1.2, flyer.scale] }}
+                            transition={{ duration: FLIGHT_MS / 1000, times: [0, 0.5, 1], ease: 'easeInOut' }}
+                        >
+                            {flyer.n}
+                        </motion.span>
+                    )}
                 </div>
             </DiagramBlock>
-            {phase >= 2 && (
-                <TypedLineWithSticker
-                    before="Показатели степени можно перенести перед логарифмом. Показатель аргумента "
-                    leadNumber={M}
-                    leadMid=" становится "
-                    word="числителем"
-                    after=" дроби."
-                    color={M_COLOR}
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
-// Шаг 3 — та же последовательность, стрелка от показателя-основания к
-// знаменателю (curve="down"). pb-12 (как и раньше) — запас снизу под мост
-// стрелки + собственный текст ЭТОЙ сцены.
-const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    const ref = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [phase])
-
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
-                <div ref={ref} className="relative w-full pb-12">
-                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled />
-                    {phase >= 1 && <TravelArrow containerRef={ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} curve="down" />}
+            {done && <LocalAnswerConfetti />}
+            {lines >= 1 && (
+                <div style={dim(1)}>
+                    <TypedLine
+                        className="w-full text-base md:text-lg text-[#F2F7FB]"
+                        text="Вижу степень сверху и снизу."
+                        onSettled={() => {
+                            // показатели выделяются маркером → кнопка
+                            setMarked(true)
+                            later(onSettled, 900)
+                        }}
+                    />
                 </div>
-            </DiagramBlock>
-            {phase >= 2 && (
-                <TypedLineWithSticker
-                    before="А показатель основания "
-                    leadNumber={N}
-                    leadMid=" становится "
-                    word="знаменателем"
-                    after="."
-                    color={N_COLOR}
-                    onSettled={onSettled}
-                />
+            )}
+            {lines >= 2 && (
+                <div style={dim(2)}>
+                    <TypedLine
+                        className="w-full text-base md:text-lg text-[#F2F7FB]"
+                        text="Верхняя степень идёт НАВЕРХ, а нижняя ВНИЗ."
+                        onSettled={() => {
+                            // пауза → логарифм плавно вправо → черта дроби → 7 в числитель → 3 в знаменатель → кнопка
+                            later(() => { setSlide(true); setShift(0) }, 900)
+                            later(() => setBarOn(true), 900 + 1000)
+                            later(() => fly('m', M, true, () => {
+                                later(() => fly('n', N, false, () => {
+                                    later(() => { setDone(true); later(onSettled, 1200) }, 500)
+                                }), 1100)
+                            }), 900 + 1000 + 900)
+                        }}
+                    />
+                </div>
             )}
         </>
     )
@@ -628,7 +391,6 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     const [trials, setTrials] = useState<PowTrial[]>(() => makeTrials(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
-    const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
     // Режим "пробуй, пока не угадаешь" (та же механика, что и у
     // LOGCOMBOWALK/LOGDEFWALK/SINWALK/LOGWALK/LOGSUBWALK) — неверно
     // нажатые формулы ТЕКУЩЕГО задания красятся красным и блокируются,
@@ -699,6 +461,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+    const stepLabel = ['Вижу обе степени', 'Степени переехали'][step] ?? introNextLabel
 
     // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
     // содержимого целевой сцены (см. type-sinwalk.tsx).
@@ -707,30 +470,37 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     // Затемнение прошлых сцен + автоскролл к новой — та же схема ключей,
     // что и в LOGWALK/LOGSUBWALK/LOGDEFWALK (см. useSceneFocus в
     // WalkthroughLog.tsx).
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? 'step-0' : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
         if (key.startsWith('trial-')) {
             const idx = Number(key.slice('trial-'.length))
-            return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
+            return idx > 0 ? `trial-${idx - 1}` : 'step-0'
         }
         if (key.startsWith('step-')) {
-            const idx = Number(key.slice('step-'.length))
-            return idx > 0 ? `step-${idx - 1}` : null
+            return null
         }
         return null
     }
     const contentSettled = phase === 'intro' ? stepReady : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
-    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null || (phase === 'intro' && step > 0)
     // "Повторить" — переигрывает анимацию ТЕКУЩЕЙ сцены заново, не трогая
     // состояние (в отличие от handleBack ниже) — та же пара useReplayNonces,
     // что уже используется для отката.
-    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleReplay = () => {
+        // сцена с растущей формулой проигрывается с самого начала
+        if (latestSceneKey === 'step-0') { setStep(0); setStepReady(false) }
+        bumpNonce(latestSceneKey)
+    }
 
     // "Назад" — реальный откат состояния на предыдущую сцену (см.
     // type-logwalk.tsx для подробного комментария).
     const handleBack = () => {
         if (advancing) return
+        if (phase === 'intro' && step > 0) {
+            bumpNonce('step-0'); setStep(0); setStepReady(false)
+            return
+        }
         const target = prevSceneKeyOf(latestSceneKey)
         if (!target) return
         bumpNonce(target)
@@ -751,54 +521,12 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — просто условие "log_{2³}5⁷ = ?", без текста. */}
+                {/* Шаги 0-1 — одна сцена с растущей формулой (MergedPowScene). */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <DiagramBlock onSettled={() => setStepReady(true)}>
-                            <PowFormula exponentsAsStickers={false} showRHS={false} numeratorFilled={false} denominatorFilled={false} />
-                        </DiagramBlock>
+                        <MergedPowScene step={step} onSettled={() => setStepReady(true)} />
                     </Fragment>
                 </SceneWrapper>
-
-                {/* Шаг 1 — показатели степени 3 и 7 становятся стикерами;
-                    формула → пауза → текст (см. Step1Scene). */}
-                {step >= 1 && (
-                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
-                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <Step1Scene onSettled={() => setStepReady(true)} />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 2 — 7 (показатель аргумента) сносится в числитель;
-                    формула → пауза → стрелка → пауза → текст (Step2Scene). */}
-                {step >= 2 && (
-                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
-                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <Step2Scene onSettled={() => setStepReady(true)} />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 3 — 3 (показатель основания) сносится в знаменатель;
-                    формула → пауза → стрелка → пауза → текст (Step3Scene). */}
-                {step >= 3 && (
-                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
-                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <Step3Scene onSettled={() => setStepReady(true)} />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 4 — итог, короткий "Ответ: 7/3 log₂5" с конфетти. */}
-                {step >= 4 && (
-                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
-                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
-                            <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
-                            {showAnswerConfetti && <LocalAnswerConfetti />}
-                        </Fragment>
-                    </SceneWrapper>
-                )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
                     const t = trials[i]
@@ -844,7 +572,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                                 </p>
                             </div>
                             <DiagramBlock>
-                                <PowFormula a={t.a} n={t.n} b={t.b} m={t.m} exponentsAsStickers showRHS={false} numeratorFilled={false} denominatorFilled={false} />
+                                <PowFormula a={t.a} n={t.n} b={t.b} m={t.m} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
@@ -904,7 +632,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
-                        {introNextLabel}
+                        {stepLabel}
                     </button>
                 </div>
             ) : checked ? (
