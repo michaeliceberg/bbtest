@@ -209,7 +209,7 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
     return (
         <>
             <DiagramBlock>
-                <div ref={ref} className="relative w-full py-4 flex items-center justify-center gap-3 text-2xl md:text-3xl font-extrabold">
+                <div ref={ref} className="relative w-full py-4 flex items-center justify-center gap-5 text-2xl md:text-3xl font-extrabold">
                     {ex.left({ marked, dim, fly, sent })}
                     <RightExpr on={rightOn} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
                     {struck && <Strikes containerRef={ref} markers={ex.strike} />}
@@ -438,7 +438,7 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
                                     <>
                                         <DiagramBlock>
                                             <div className="w-full flex items-center justify-center text-2xl md:text-3xl font-extrabold py-1">{cfg.prompt(t.n)}</div>
-                                            <div className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold py-1">
+                                            <div className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold pt-6 pb-1">
                                                 <Plain>=</Plain>
                                                 <span className="inline-flex items-baseline whitespace-nowrap">
                                                     <Plain>log</Plain>
