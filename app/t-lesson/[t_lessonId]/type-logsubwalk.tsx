@@ -592,7 +592,7 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
             {lines >= 3 && (
                 <div style={dim(3)}>
                     <TypedLineWithSticker
-                        before="И, так как ЛОГАРИФМЫ ВЫЧИТАЮТСЯ, то цифры 15 и 5 надо "
+                        before={"И, так как ЛОГАРИФМЫ ВЫЧИТАЮТСЯ,\nто цифры 15 и 5 надо "}
                         stickerValue="РАЗДЕЛИТЬ"
                         stickerColor={ATTENTION_COLOR}
                         after="."
@@ -825,7 +825,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    const stepLabel = ['Ага, одинаковые основания', 'Основание такое же', 'Понял, делим'][step] ?? introNextLabel
+    const stepLabel = ['Вижу 👀 одинаковые основания', 'Основание такое же', 'Понял, делим'][step] ?? introNextLabel
 
     // Счётчики "повторов" — нужны, чтобы "назад" (см. handleBack ниже)
     // мог ПЕРЕМОНТИРОВАТЬ содержимое целевой сцены (Typewriter/
