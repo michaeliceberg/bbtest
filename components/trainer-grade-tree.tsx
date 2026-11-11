@@ -638,8 +638,10 @@ export const StagePath = ({
 
                 // Оформление кнопки — как у уроков Задачника (/learn): круглая кнопка
                 // цвета юнита с «объёмной» нижней гранью и кольцом прогресса вокруг.
+                // Тренировка со звездой: тёмный «обугленный» кружок, нижняя грань ещё темнее, кольцо цвета пламени звезды.
+                const STAR_BG = '#2A1711', STAR_BOTTOM = '#120907', STAR_RING = '#F5821F';
                 const stageBg = isBossExam ? 'transparent'
-                    : accent.button;
+                    : (!isBoss && !isChest && !isMythic && !isStepByStep ? STAR_BG : accent.button);
                 const iconColor = '#FEFEFE';
                 const ringValue = done ? 100 : Math.min(100, Math.max(0, s.percentage));
 
@@ -668,7 +670,7 @@ export const StagePath = ({
                                         <CircularProgressbarWithChildren
                                             value={unlocked ? ringValue : 0}
                                             styles={{
-                                                path: { stroke: accent.button },
+                                                path: { stroke: stageBg === STAR_BG ? STAR_RING : accent.button },
                                                 trail: { stroke: LOCKED_BUTTON_COLOR },
                                             }}
                                         >
@@ -683,7 +685,7 @@ export const StagePath = ({
                                         subtitle={`${topic.title} · этап ${i + 1}`}
                                         accent={accent.button}
                                         className="relative flex w-[70px] h-[70px] rounded-full items-center justify-center border-b-8 active:border-b-0"
-                                        style={isBossExam ? { background: stageBg } : { background: stageBg, borderBottomColor: accent.bottom }}
+                                        style={isBossExam ? { background: stageBg } : { background: stageBg, borderBottomColor: stageBg === STAR_BG ? STAR_BOTTOM : accent.bottom }}
                                         icon={iconEl(iconColor)}
                                     />
                                 ) : (
