@@ -303,13 +303,14 @@ const SwapScene = ({ ex, text, phase, onSettled }: { ex: { a: number; b: number;
     )
 }
 
-// ===== Тренировочные задания — новые случайные (a, b, c), нужно кликнуть
-// верную формулу-ответ (c^{log_b a}) среди 4 вариантов. =====
+// ===== Тренировочные задания — новые случайные (a, b, c) из РАЗНЫХ цифр. Условие «a^{log_b c}», ответ «c^{log_b a}» ученик
+// собирает сам в три этапа: число снаружи (c) → основание логарифма (b) → число под логарифмом (a). На каждом этапе четыре
+// варианта: три цифры условия и одна лишняя, вперемешку. =====
 
-type SwapOption = { outer: number; base: number; arg: number }
-type SwapTrial = { a: number; b: number; c: number; options: SwapOption[] }
-
+type SwapTrial = { a: number; b: number; c: number; options: number[][] }
 const NUM_POOL = [2, 3, 4, 5, 6, 7, 8, 9] as const
+const SWAP_STAGE_PROMPTS = ['Что снаружи?', 'Какое основание?', 'Что под логарифмом?']
+const swapAnswer = (t: SwapTrial) => [t.c, t.b, t.a]
 
 function shuffle<T>(arr: T[]): T[] {
     const a = [...arr]
@@ -320,41 +321,12 @@ function shuffle<T>(arr: T[]): T[] {
     return a
 }
 
-const sameOption = (x: SwapOption, y: SwapOption) => x.outer === y.outer && x.base === y.base && x.arg === y.arg
-
-// Дистракторы — правдоподобные ошибки школьника, не случайный шум: (1) не
-// поменял числа вообще, (2) поменял НЕ ТУ пару (спутал b с одним из
-// чисел), (3) ошибся на 1 в результате.
-function makeOptions(a: number, b: number, c: number): SwapOption[] {
-    const correct: SwapOption = { outer: c, base: b, arg: a }
-    const candidates: SwapOption[] = [
-        { outer: a, base: b, arg: c },
-        { outer: b, base: a, arg: c },
-        { outer: c, base: b, arg: a + 1 },
-    ]
-    const chosen: SwapOption[] = [correct]
-    for (const cand of candidates) {
-        if (!chosen.some((x) => sameOption(x, cand))) chosen.push(cand)
-    }
-    let extraShift = 2
-    while (chosen.length < 4) {
-        const extra: SwapOption = { outer: c, base: b, arg: a + extraShift }
-        if (!chosen.some((x) => sameOption(x, extra))) chosen.push(extra)
-        extraShift++
-    }
-    return shuffle(chosen)
-}
-
 const makeTrial = (prev: SwapTrial | null): SwapTrial => {
     let t: SwapTrial
     let guard = 0
     do {
-        const a = pick(NUM_POOL)
-        let b = pick(NUM_POOL)
-        while (b === a) b = pick(NUM_POOL)
-        let c = pick(NUM_POOL)
-        while (c === a || c === b) c = pick(NUM_POOL)
-        t = { a, b, c, options: makeOptions(a, b, c) }
+        const [a, b, c, extra] = shuffle([...NUM_POOL]).slice(0, 4)
+        t = { a, b, c, options: [0, 1, 2].map(() => shuffle([a, b, c, extra])) }
         guard++
     } while (prev && t.a === prev.a && t.b === prev.b && t.c === prev.c && guard < 8)
     return t
@@ -371,36 +343,58 @@ const makeTrials = (n: number): SwapTrial[] => {
     return out
 }
 
+// Похвала за верный ответ — детерминированно из полей задания (не Math.random() в рендере).
 const pickTrialFeedback = (t: SwapTrial): string => {
-    const seed = t.a * 7 + t.b * 5 + t.c * 3
+    const seed = t.a * 7 + t.b * 3 + t.c
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
-// Кнопка-вариант — компактная формула "outer^(log_base arg)". Нативные
-// sup/sub — тут это статичная кнопка, не анимированная сцена, лишний
-// измерительный Exp не нужен.
-const MiniAnswerButton = ({
-    option, onClick, disabled, state,
-}: { option: SwapOption; onClick?: () => void; disabled?: boolean; state: 'idle' | 'correct' | 'wrong' }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={cn(
-            'flex items-center justify-center py-3 px-3 rounded-xl border-2 text-base md:text-lg font-bold transition-colors',
-            state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
-            state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
-            state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
-        )}
-    >
-        <span className="inline-flex items-baseline whitespace-nowrap">
-            <span>{option.outer}</span>
-            <sup className="ml-0.5 text-[0.62em] inline-flex items-baseline whitespace-nowrap">
-                log<sub className="ml-px">{option.base}</sub><span className="ml-px">{option.arg}</span>
-            </sup>
-        </span>
-    </button>
+// Пропуск-квадратик: пунктирный, активный цветной и «дышит» (animate-slot-breathe), заполненный — число влетает пружиной.
+const SwapSlot = ({ value, active, color, done, small = false }: { value: number | null; active: boolean; color: string; done: boolean; small?: boolean }) => (
+    value === null ? (
+        <span
+            className={cn('inline-block align-middle rounded-md border-2 border-dashed', active && 'animate-slot-breathe')}
+            style={{
+                width: small ? '1.1em' : '0.95em', height: small ? '1.2em' : '1.05em',
+                borderColor: active ? color : '#3A464E',
+                backgroundColor: active ? hexToRgba(color, 0.18) : 'transparent',
+            }}
+        />
+    ) : (
+        <motion.span
+            initial={{ scale: 2.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+            className="inline-block"
+            style={{ color: done ? CORRECT_COLOR : '#F2F7FB' }}
+        >
+            {value}
+        </motion.span>
+    )
 )
+
+// Строка ответа «= □^{log_□ □}»: filled — сколько этапов заполнено (0..3), активный пропуск — filled-й.
+const SwapAnswer = ({ t, filled, done }: { t: SwapTrial; filled: number; done: boolean }) => {
+    const ans = swapAnswer(t)
+    const slot = (i: number, color: string, small = false) => (
+        <SwapSlot value={filled > i ? ans[i] : null} active={filled === i} color={color} done={done} small={small} />
+    )
+    return (
+        <div className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold py-1">
+            <Plain>=</Plain>
+            <span className="inline-flex items-baseline whitespace-nowrap">
+                {slot(0, MARK_COLOR)}
+                <Exp>
+                    <span className="inline-flex items-baseline whitespace-nowrap">
+                        <Plain>log</Plain>
+                        <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slot(1, GGEGE_PALETTE.purple.button, true)}</sub>
+                        <span className="ml-1">{slot(2, GGEGE_PALETTE.purple.button)}</span>
+                    </span>
+                </Exp>
+            </span>
+        </div>
+    )
+}
 
 export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
@@ -417,19 +411,24 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     // LOGCOMBOWALK/LOGDEFWALK/SINWALK/LOGWALK/LOGSUBWALK/LOGPOWWALK) —
     // неверно нажатые формулы ТЕКУЩЕГО задания красятся красным и
     // блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под вариантами.
-    const [wrongTried, setWrongTried] = useState<SwapOption[]>([])
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    // этап сборки ответа в текущем задании: 0 снаружи, 1 основание, 2 под логарифмом
+    const [stage, setStage] = useState(0)
     const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
-    const currentCorrectOption = trials[trialIndex].options.find(
-        (o) => sameOption(o, { outer: trials[trialIndex].c, base: trials[trialIndex].b, arg: trials[trialIndex].a })
-    )!
-
-    const handleOptionClick = (option: SwapOption) => {
+    const handleOptionClick = (n: number) => {
         if (checked) return
-        if (wrongTried.some((w) => sameOption(w, option))) return
-        if (sameOption(option, currentCorrectOption)) {
+        if (wrongTried.includes(n)) return
+        const correct = swapAnswer(trials[trialIndex])[stage]
+        if (n === correct) {
             registerCombo(wrongTried.length === 0)
+            if (stage < 2) {
+                setStage(stage + 1)
+                setWrongTried([])
+                setWrongFlash(null)
+                return
+            }
             showAnswerMeme(true)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
@@ -437,7 +436,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             showAnswerMeme(false)
-            setWrongTried((prev) => [...prev, option])
+            setWrongTried((prev) => [...prev, n])
             setWrongFlash(pickWrongTryPhrase())
         }
     }
@@ -456,6 +455,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setStage(0)
             setWrongTried([])
             setWrongFlash(null)
             setAdvancing(false)
@@ -481,7 +481,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    const stepLabel = ['Давай поменяем местами', 'Мы настоящие жонглеры!', 'Давай ещё раз поменяем', 'Снова жонглёры!'][step] ?? introNextLabel
+    const stepLabel = ['Давай поменяем местами', 'Мы настоящие жонглеры!', 'Давай ещё раз поменяем', 'Цирк уехал, жонглёры остались!'][step] ?? introNextLabel
 
     // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
     // содержимого целевой сцены (см. type-sinwalk.tsx).
@@ -509,7 +509,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     const handleReplay = () => {
         // сцена примера проигрывается с самого начала
         if (phase === 'intro') { const t = step <= 1 ? 0 : 2; setStep(t); setStepReady(false) }
-        else { setChecked(false); setWrongTried([]); setWrongFlash(null) }
+        else { setChecked(false); setStage(0); setWrongTried([]); setWrongFlash(null) }
         bumpNonce(latestSceneKey)
     }
 
@@ -530,6 +530,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
+            setStage(0)
             setWrongTried([])
             setWrongFlash(null)
         } else if (target.startsWith('step-')) {
@@ -563,9 +564,6 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const correctOption = t.options.find(
-                        (o) => sameOption(o, { outer: t.c, base: t.b, arg: t.a })
-                    )!
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
@@ -598,25 +596,33 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span>{trials.length}</span>
                                 </div>
                                 <p className="text-base md:text-lg text-[#F2F7FB] text-center">
-                                    Выбери правильный ответ:
+                                    {isDone || !isCurrent ? 'Собрали ответ' : SWAP_STAGE_PROMPTS[stage]}
                                 </p>
                             </div>
                             <DiagramBlock>
                                 <PowLogExpr a={t.a} b={t.b} c={t.c} />
+                                <SwapAnswer t={t} filled={isDone ? 3 : (isCurrent ? stage : 3)} done={isDone} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
-                                    <div className="drop-in-options grid grid-cols-2 gap-3">
-                                        {t.options.map((opt, oi) => {
-                                            const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
+                                    <div key={stage} className="drop-in-options flex flex-wrap justify-center gap-3">
+                                        {t.options[stage].map((n) => {
+                                            const isWrongTriedOpt = wrongTried.includes(n)
                                             return (
-                                                <MiniAnswerButton
-                                                    key={oi}
-                                                    option={opt}
-                                                    state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                <button
+                                                    key={n}
+                                                    type="button"
+                                                    onClick={() => handleOptionClick(n)}
                                                     disabled={isWrongTriedOpt}
-                                                    onClick={() => handleOptionClick(opt)}
-                                                />
+                                                    className={cn(
+                                                        'min-w-[72px] py-3 px-4 rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-colors inline-flex items-center justify-center',
+                                                        isWrongTriedOpt
+                                                            ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                                            : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                                    )}
+                                                >
+                                                    {n}
+                                                </button>
                                             )
                                         })}
                                     </div>
@@ -631,20 +637,6 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             )}
                             {isDone && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {t.options.map((opt, oi) => {
-                                            const isCorrectOpt = sameOption(opt, correctOption)
-                                            const isWrongTriedOpt = isCurrent && wrongTried.some((w) => sameOption(w, opt))
-                                            return (
-                                                <MiniAnswerButton
-                                                    key={oi}
-                                                    option={opt}
-                                                    disabled
-                                                    state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}
-                                                />
-                                            )
-                                        })}
-                                    </div>
                                     <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
                                         {pickTrialFeedback(t)}
                                     </FieryFeedbackBanner>
