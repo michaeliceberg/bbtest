@@ -2,7 +2,7 @@
 // «Штурм» (lib/storm.ts): плашка с обратным отсчётом — сверху на /trainer и в уроке тренажёра.
 // Пока идут 10 минут: время, сколько уроков из STORM_GOAL, что дадут. Кончилось время — исчезает.
 import { useEffect, useState } from 'react'
-import { Flame } from 'lucide-react'
+import { BurnLottie } from '@/components/burn-lottie'
 import { cn } from '@/lib/utils'
 import { declensionRu } from '@/usefulFunctions'
 
@@ -31,7 +31,7 @@ export const StormPill = ({ storm, className, compact }: { storm: StormInfo | nu
     if (compact) return (
         <div className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black text-white shadow-[0_3px_0_#8A2A10]', className)}
             style={{ background: 'linear-gradient(90deg, #FF5A1F, #FF9A1F)' }}>
-            <Flame className="h-4 w-4 animate-pulse" strokeWidth={2.8} />
+            <BurnLottie kind="oclock" className="-my-1 -ml-1 h-7 w-7 shrink-0" />
             <span className="tabular-nums">{fmtLeft(left)}</span>
             {!storm.rewarded && <span className="opacity-90">· {storm.lessons}/{storm.goal}</span>}
         </div>
@@ -39,7 +39,7 @@ export const StormPill = ({ storm, className, compact }: { storm: StormInfo | nu
     return (
         <div className={cn('flex items-center gap-2 rounded-2xl px-3 py-2 text-white shadow-[0_4px_0_#8A2A10]', className)}
             style={{ background: 'linear-gradient(90deg, #FF5A1F, #FF9A1F)' }}>
-            <Flame className="h-5 w-5 shrink-0 animate-pulse" strokeWidth={2.8} />
+            <BurnLottie kind="oclock" className="-my-1.5 h-9 w-9 shrink-0" />
             <span className="font-black tracking-wide">ШТУРМ</span>
             <span className="font-black tabular-nums">{fmtLeft(left)}</span>
             <span className="ml-auto text-right text-xs font-bold leading-tight">

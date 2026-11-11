@@ -34,6 +34,7 @@ import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, pickCheer } from './trainer-pet';
 import { LessonLabelPreview, hasLessonPreview } from './lesson-label-preview';
+import { BurnLottie } from './burn-lottie';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavMedal } from '@/components/nav-sheet-ui';
@@ -283,17 +284,10 @@ const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
 // (isChest не выставляется на боссовском этапе, см. вычисление ниже)
 // сюда не попадает — тот остаётся 👹, просто с более нарядной подсветкой
 // вокруг квадратика (см. ChestGlow).
-const SkullIcon = ({ dim, hue = 0 }: { dim?: boolean; hue?: number }) => {
-    const [data, setData] = useState<unknown>(null)
-    useEffect(() => {
-        fetch('/Lottie/trainerLessonButtons/fireSkull.json').then((r) => r.json()).then(setData).catch(() => {})
-    }, [])
-    return (
-        <span className={`w-10 h-10 inline-block ${dim ? 'grayscale opacity-50' : ''}`} style={hue && !dim ? { filter: `hue-rotate(${hue}deg)` } : undefined}>
-            {data ? <Lottie animationData={data} loop autoplay /> : null}
-        </span>
-    )
-}
+const SkullIcon = ({ dim, hue = 0 }: { dim?: boolean; hue?: number }) => (
+    // горящая голова демона (burn-boss) вместо прежнего горящего черепа; hue — оттенок по рангу босса
+    <BurnLottie kind="boss" dim={dim} className="w-10 h-10" style={hue && !dim ? { filter: `hue-rotate(${hue}deg)` } : undefined} />
+)
 
 const StageIcon = ({
     accent = '#EF9F27',
@@ -651,9 +645,14 @@ export const StagePath = ({
 
                 // Внутри кружка — порядковый номер урока в теме (1, 2, 3…): что это за урок, показывает анимация/название справа.
                 // Особые этапы (босс-экзамен, мифический, сундук, босс) оставляют свои иконки.
-                const numbered = !isBossExam && !isMythic && !isChest && !isBoss;
+                const regular = !isBossExam && !isMythic && !isChest && !isBoss;
+                const numbered = regular && isStepByStep;
+                // Тренировка (не урок-разбор): вместо номера горящая звезда (burn-star).
+                const starred = regular && !isStepByStep;
                 const iconEl = (c: string, dim = false) => numbered ? (
                     <span className={`text-[30px] font-black leading-none tabular-nums transition-colors duration-300 ${dim ? 'opacity-70' : ''}`} style={{ color: c }}>{i + 1}</span>
+                ) : starred ? (
+                    <BurnLottie kind="star" dim={dim} className="w-[54px] h-[54px]" />
                 ) : (
                     <span className="inline-flex scale-[1.45]">
                         <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={skullHue} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={null} Icon={Icon} color={c} dim={dim} />
