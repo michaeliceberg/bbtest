@@ -758,34 +758,19 @@ export const FieryMiguel = () => {
     )
 }
 
-export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
-    // зелёная фраза уже есть — облачко-мем над кнопкой не нужно (свой мем справа или Lottie)
+// Плашка с фидбеком на верный ответ тренировочного задания: зелёная фраза и справа покачивающийся стикер-мем из пака (SideMeme).
+// Prop fiery оставлен ради совместимости вызовов: слева Мигеля больше не показываем (2026-11-11, по просьбе пользователя) —
+// он пропадал при переходе к следующему заданию и вместо него появлялся бледный мем справа. Милестоуны (1-е и каждое 4-е) ничем не выделяем.
+export const FieryFeedbackBanner = ({ children }: { children: React.ReactNode; fiery?: boolean }) => {
+    // зелёная фраза уже есть — облачко-мем над кнопкой не нужно (свой мем справа)
     useEffect(() => { cancelPendingRightMeme() }, [])
     const latest = useIsLatestFeedback()
-    if (!fiery) {
-        return (
-            <div className="w-full flex items-center gap-2">
-                <div className="flex-1 min-w-0 flex items-center gap-2 rounded-xl px-4 py-2 font-bold justify-center bg-[#A1D15122] text-[#A1D151]">
-                    {children}
-                </div>
-                {latest && <SideMeme mood="yay" />}
-            </div>
-        )
-    }
     return (
-        <div className="flex flex-row items-center gap-3 w-full">
-            <FieryMiguel />
-            <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
-                {/* flex items-center — children здесь обычно "иконка +
-                    текст" (например <Check/> + фраза), а Tailwind preflight
-                    ставит svg { display:block } по умолчанию: без flex
-                    иконка переносилась бы на свою строку (блочный элемент),
-                    отсюда и баг "галочка сверху-слева, текст отдельно
-                    снизу-по центру" — та же раскладка, что уже у обычной
-                    (не fiery) ветки этого компонента выше. */}
-                <span className="flex items-center gap-2 text-[#A1D151] font-bold text-base md:text-lg break-words">{children}</span>
-                <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
+        <div className="w-full flex items-center gap-2">
+            <div className="flex-1 min-w-0 flex items-center gap-2 rounded-xl px-4 py-2 font-bold justify-center bg-[#A1D15122] text-[#A1D151]">
+                {children}
             </div>
+            {latest && <SideMeme mood="yay" />}
         </div>
     )
 }

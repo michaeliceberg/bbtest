@@ -362,20 +362,8 @@ const OptionsHint = ({ wrongFlash }: { wrongFlash: string | null }) => (
 // напрямую, т.к. у LOGDEFWALK уже своя локальная Lottie-инфраструктура
 // (см. paperPolice/Lottie выше) и своя форма feedback-баннера (correct/
 // correctText вместо детей).
-const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { correct: boolean; correctText?: string; seed: number; fiery?: boolean }) => {
+const FeedbackBanner = ({ correct, correctText = '', seed }: { correct: boolean; correctText?: string; seed: number; fiery?: boolean }) => {
     const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
-    if (fiery && correct) {
-        cancelPendingRightMeme()
-        return (
-            <div className="flex flex-row items-center gap-3 w-full">
-                <FieryMiguel />
-                <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
-                    <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{text}</span>
-                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
-                </div>
-            </div>
-        )
-    }
     if (correct) return <FieryFeedbackBanner>{text}</FieryFeedbackBanner>
     return (
         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
