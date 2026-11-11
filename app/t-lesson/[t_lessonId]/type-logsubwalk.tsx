@@ -242,7 +242,7 @@ const TypedLineWithSticker = ({
             ) : (
                 <>
                     {withBreaks(before)}
-                    {stickerValue !== '' && (stickerColor === BASE_COLOR ? <BaseMark value={stickerValue} /> : <NumSticker value={stickerValue} color={stickerColor} />)}
+                    {stickerValue !== '' && <BaseMark value={stickerValue} />}
                     {withBreaks(after)}
                 </>
             )}
@@ -554,8 +554,8 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
                     {flyers?.map((f) => (
                         <motion.span
                             key={f.n + f.left}
-                            className="absolute whitespace-nowrap font-extrabold text-[min(1.875rem,4.2vw)]"
-                            style={{ left: f.left, top: f.top, height: f.h, lineHeight: `${f.h}px`, color: ATTENTION_COLOR }}
+                            className="absolute whitespace-nowrap font-extrabold text-[min(1.875rem,4.2vw)] text-[#F2F7FB]"
+                            style={{ left: f.left, top: f.top, height: f.h, lineHeight: `${f.h}px` }}
                             initial={{ x: 0, y: 0 }}
                             animate={{ x: [0, 0, 0, f.dx, f.dx], y: [0, -f.lift, -f.lift, -f.lift, f.dy] }}
                             transition={{ duration: 2.6, delay: f.delay, times: [0, 0.15, 0.4, 0.8, 1], ease: 'easeInOut' }}
