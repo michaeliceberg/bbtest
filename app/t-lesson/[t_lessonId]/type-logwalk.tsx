@@ -143,16 +143,16 @@ const Token = ({ delay, children }: { delay: number; children: React.ReactNode }
 // всегда (безвредно там, где стрелка не рисуется), тот же приём, что уже
 // применён для "plus"/"multiply" в ExampleFormula.
 const LogTerm = ({
-    base, arg, baseHighlighted, baseMarker, argMarker,
+    base, arg, baseHighlighted, baseMarker, argMarker, ghost = false,
 }: {
-    base: number; arg: number; baseHighlighted: boolean; baseMarker?: string; argMarker?: string
+    base: number; arg: number; baseHighlighted: boolean; baseMarker?: string; argMarker?: string; ghost?: boolean
 }) => (
     <span className="inline-flex items-baseline whitespace-nowrap">
         <Plain>log</Plain>
         <sub className="ml-0.5" data-marker={baseMarker}>
             {baseHighlighted ? <NumSticker value={base} color={BASE_COLOR} small /> : <Plain>{base}</Plain>}
         </sub>
-        <span className="ml-1" data-marker={argMarker}>
+        <span className="ml-1" data-marker={argMarker} style={{ opacity: ghost ? 0.28 : 1, transition: 'opacity 0.4s' }}>
             <Plain>{arg}</Plain>
         </span>
     </span>
@@ -167,13 +167,15 @@ type FormulaState = {
     // сдвиг всей строки по X: пока справа ничего нет, левая часть стоит по центру (правая часть уже занимает место, но невидима)
     shift: number | null
     slide: boolean
+    // вариант «числа летят»: ghost — исходные числа бледные, skeleton — скобки и знак справа, landed — числа сели на место; null — вариант со стрелками
+    carry: { ghost: boolean; skeleton: boolean; landed: boolean } | null
 }
 
 // Строка примера «log₂3 + log₂5 = log₂(3·5)» — ОДНА на весь разбор, растёт на месте (MergedScene). Правая часть присутствует
 // с самого начала невидимой, чтобы ничего не прыгало: левая часть сначала стоит по центру за счёт сдвига, потом плавно
 // уезжает влево (slide), и справа проявляется «= log₂».
 // data-marker: base1/2/3 — основания (BaseMatchArrow), arg3/arg5 и prod — аргументы и «(3·5)» (ProductArrows), rightgrp — правая часть.
-const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift, slide }: FormulaState) => {
+const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift, slide, carry }: FormulaState) => {
     let tokenCount = 0
     const nextDelay = () => (tokenCount++) * 0.13
     return (
@@ -186,13 +188,13 @@ const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift
             transition={{ duration: slide ? 0.9 : 0, ease: 'easeInOut' }}
         >
             <Token delay={nextDelay()}>
-                <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} baseMarker="base1" argMarker="arg3" />
+                <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} baseMarker="base1" argMarker="arg3" ghost={!!carry?.ghost} />
             </Token>
             <Token delay={nextDelay()}>
                 <span className="text-[#F2F7FB]">+</span>
             </Token>
             <Token delay={nextDelay()}>
-                <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} baseMarker="base2" argMarker="arg5" />
+                <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} baseMarker="base2" argMarker="arg5" ghost={!!carry?.ghost} />
             </Token>
             <span data-marker="rightgrp" className="inline-flex items-center gap-x-2" style={{ opacity: showRightSide ? 1 : 0, transition: 'opacity 0.35s' }}>
                 <Plain>=</Plain>
@@ -203,14 +205,24 @@ const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift
                     </sub>
                     {/* внешняя обёртка неподвижна — по ней стрелки меряют место, куда упадёт «(3·5)» */}
                     <span data-marker="prod" className="ml-1 inline-flex">
-                        <motion.span
-                            className="inline-flex items-baseline gap-1 whitespace-nowrap text-[#F2F7FB]"
-                            initial={false}
-                            animate={product === 'shown' ? { y: 0, opacity: 1 } : { y: -70, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 260, damping: 11 }}
-                        >
-                            (3<span>·</span>5)
-                        </motion.span>
+                        {carry ? (
+                            <span className="inline-flex items-baseline gap-1 whitespace-nowrap text-[#F2F7FB]">
+                                <span style={{ opacity: carry.skeleton || carry.landed ? 1 : 0, transition: 'opacity 0.4s' }}>(</span>
+                                <span data-marker="pn1" style={{ opacity: carry.landed ? 1 : 0 }}>3</span>
+                                <span style={{ opacity: carry.skeleton || carry.landed ? 1 : 0, transition: 'opacity 0.4s' }}>·</span>
+                                <span data-marker="pn2" style={{ opacity: carry.landed ? 1 : 0 }}>5</span>
+                                <span style={{ opacity: carry.skeleton || carry.landed ? 1 : 0, transition: 'opacity 0.4s' }}>)</span>
+                            </span>
+                        ) : (
+                            <motion.span
+                                className="inline-flex items-baseline gap-1 whitespace-nowrap text-[#F2F7FB]"
+                                initial={false}
+                                animate={product === 'shown' ? { y: 0, opacity: 1 } : { y: -70, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 260, damping: 11 }}
+                            >
+                                (3<span>·</span>5)
+                            </motion.span>
+                        )}
                     </span>
                 </span>
             </span>
@@ -454,6 +466,10 @@ const ARROW_DRAW_MS = 1150
 // 2: прошлый текст бледнеет → «И, так как логарифмы складываются, то цифры 3 и 5 надо перемножить» → две стрелки вверху →
 //    «(3·5)» падает баунсом;
 // 3: прошлое бледнеет → с новой строки по центру «= log₂15» + конфетти.
+// Как показываем «числа переезжают вправо»: 'carry' — числа поднимаются, летят над строкой и опускаются в скобки;
+// 'arrows' — прежний вариант с двумя угловыми стрелками (ProductArrows), оставлен на случай, если к нему вернёмся.
+const ARGS_ANIM: 'carry' | 'arrows' = 'carry'
+type Flyer = { n: string; left: number; top: number; h: number; dx: number; dy: number; lift: number; delay: number }
 type MergedArrow = 'none' | 'two' | 'three' | 'args'
 const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void }) => {
     const [lines, setLines] = useState(0)
@@ -464,6 +480,10 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
     const [shift, setShift] = useState<number | null>(null)
     const [slide, setSlide] = useState(false)
     const [answer, setAnswer] = useState(false)
+    const [ghost, setGhost] = useState(false)
+    const [skeleton, setSkeleton] = useState(false)
+    const [landed, setLanded] = useState(false)
+    const [flyers, setFlyers] = useState<Flyer[] | null>(null)
     const ref = useRef<HTMLDivElement>(null)
     const rowRef = useRef<HTMLDivElement>(null)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -503,6 +523,24 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step])
 
+    // Числа поднимаются над строкой (исходные остаются бледными), пауза, летят вправо и опускаются в скобки.
+    const startCarry = () => {
+        const c = ref.current
+        const q = (m: string) => c?.querySelector<HTMLElement>(`[data-marker="${m}"]`) ?? null
+        const pairs: [string, string, string, number][] = [['arg3', 'pn1', '3', 0], ['arg5', 'pn2', '5', 0.12]]
+        if (!c || pairs.some(([a, b]) => !q(a) || !q(b))) { setLanded(true); later(onSettled, 600); return }
+        const cr = c.getBoundingClientRect()
+        const list: Flyer[] = pairs.map(([a, b, n, delay]) => {
+            const ra = q(a)!.getBoundingClientRect(), rb = q(b)!.getBoundingClientRect()
+            return { n, left: ra.left - cr.left, top: ra.top - cr.top, h: ra.height, dx: rb.left - ra.left, dy: rb.top - ra.top, lift: ra.height * 1.1, delay }
+        })
+        setGhost(true)
+        setFlyers(list)
+        later(() => setSkeleton(true), 1300)
+        later(() => { setLanded(true); setFlyers(null) }, 2900)
+        later(onSettled, 3900)
+    }
+
     const dim = (n: number) => (lines > n || step >= 2 && n < 3 || step >= 3)
         ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' }
         : { transition: 'opacity 0.4s' }
@@ -511,7 +549,7 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
         <>
             <DiagramBlock>
                 <div ref={ref} className="relative w-full overflow-x-clip pt-12 pb-9">
-                    <ExampleFormula baseHighlighted={sticks} showRightSide={rightSide} product={product} rowRef={rowRef} shift={shift} slide={slide} />
+                    <ExampleFormula baseHighlighted={sticks} showRightSide={rightSide} product={product} rowRef={rowRef} shift={shift} slide={slide} carry={ARGS_ANIM === 'carry' ? { ghost, skeleton, landed } : null} />
                     {answer && (
                         <motion.div
                             className="w-full text-center text-[min(1.875rem,4.5vw)] font-extrabold py-1"
@@ -523,6 +561,18 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
                             = log<sub className="ml-0.5">2</sub><span className="ml-1">15</span>
                         </motion.div>
                     )}
+                    {flyers?.map((f) => (
+                        <motion.span
+                            key={f.n + f.left}
+                            className="absolute whitespace-nowrap font-extrabold text-[min(1.875rem,4.2vw)]"
+                            style={{ left: f.left, top: f.top, height: f.h, lineHeight: `${f.h}px`, color: ATTENTION_COLOR }}
+                            initial={{ x: 0, y: 0 }}
+                            animate={{ x: [0, 0, 0, f.dx, f.dx], y: [0, -f.lift, -f.lift, -f.lift, f.dy] }}
+                            transition={{ duration: 2.6, delay: f.delay, times: [0, 0.15, 0.4, 0.8, 1], ease: 'easeInOut' }}
+                        >
+                            {f.n}
+                        </motion.span>
+                    ))}
                     {arrow === 'two' && <BaseMatchArrow key="two" containerRef={ref} markers={['base1', 'base2']} color={BASE_COLOR} />}
                     {arrow === 'three' && <BaseMatchArrow key="three" containerRef={ref} markers={['base1', 'base2', 'base3']} color={BASE_COLOR} />}
                     {arrow === 'args' && <ProductArrows containerRef={ref} />}
@@ -568,11 +618,12 @@ const MergedScene = ({ step, onSettled }: { step: number; onSettled: () => void 
             {lines >= 3 && (
                 <div style={dim(3)}>
                     <TypedLineWithSticker
-                        before="И, так как логарифмы складываются, то цифры 3 и 5 надо "
-                        stickerValue="перемножить"
+                        before="И, так как ЛОГАРИФМЫ СКЛАДЫВАЮТСЯ, то цифры 3 и 5 надо "
+                        stickerValue="ПЕРЕМНОЖИТЬ"
                         stickerColor={ATTENTION_COLOR}
                         after="."
                         onSettled={() => {
+                            if (ARGS_ANIM === 'carry') { later(startCarry, 600); return }
                             // две стрелки сверху → «(3·5)» падает баунсом → кнопка
                             later(() => setArrow('args'), 600)
                             later(() => setProduct('shown'), 600 + ARROW_MEASURE_MS + ARROW_DRAW_MS + 500)
