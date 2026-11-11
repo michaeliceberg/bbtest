@@ -23,6 +23,7 @@ type Props = {
     walking?: boolean
     arrived?: boolean
     flip?: boolean
+    bubbleSide?: 'top' | 'left' | 'right' // где рисовать облачко относительно гуся (выбирает карта по свободному месту)
     poseKey?: number
 }
 
@@ -166,7 +167,7 @@ export const PetBust = ({ src, size, width, bob = false, flip = false }: { src: 
     </div>
 )
 
-export const TrainerPet = ({ streak, hasExtendedToday, setDone, away = false, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, poseKey = 0 }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, setDone, away = false, dayKey, compact = false, row = false, cheer = null, walking, arrived = true, flip = false, bubbleSide = 'top', poseKey = 0 }: Props) => {
     const bustRef = useRef<HTMLDivElement>(null)
     const [bustHidden, setBustHidden] = useState(false)
     // Час сверяем только после монтирования (часовой пояс браузера).
@@ -185,17 +186,23 @@ export const TrainerPet = ({ streak, hasExtendedToday, setDone, away = false, da
     const big = ALL_POSES.some((p) => p.big && p.src === mood.src)
 
     if (compact && cheer && walking !== undefined) {
-        // Мигель идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу
+        // Мигель идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу.
+        // Облачко рисуем сбоку или сверху от гуся (сторону выбирает карта по свободному месту), не меняя размер блока:
+        // так гусь стоит ровно там, где посчитано, а облачко не наезжает на кнопки и названия уроков.
+        const pos = bubbleSide === 'left' ? 'right-full top-1/2 -translate-y-[70%] mr-1'
+            : bubbleSide === 'right' ? 'left-full top-1/2 -translate-y-[70%] ml-1'
+            : 'bottom-full left-1/2 -translate-x-1/2 mb-1'
         return (
-            <div className="flex flex-col items-center gap-1 w-[170px]">
-                <div className="min-h-[36px] flex items-end">
-                    {arrived && !walking && (
-                        <motion.div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-1.5 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center"
+            <div className="relative w-32 h-32">
+                {arrived && !walking && (
+                    // позиционирование (translate) — на статичной обёртке, анимация scale — на внутреннем motion.div
+                    <div className={`absolute ${pos} z-10`}>
+                        <motion.div className="w-[170px] rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-1.5 text-[15px] font-extrabold text-[#F2F7FB] leading-tight text-center"
                             initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.5 }}>
                             {cheer.text}
                         </motion.div>
-                    )}
-                </div>
+                    </div>
+                )}
                 <GooseWalker walking={walking} flip={flip} className="w-32 h-32" />
             </div>
         )

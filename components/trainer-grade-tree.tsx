@@ -13,7 +13,7 @@
 'use client';
 
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Egg, Shield, Sword, Crown, Gift, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen, Baby, Swords } from 'lucide-react';
@@ -386,11 +386,11 @@ const mulberry32 = (seed: number) => () => {
 };
 const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-const StagePath = ({
+export const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
     revealId = null, revealWalk = false, revealRef, cheerPet, petRow,
 }: {
-    cheerPet?: (cheer: { src: string; text: string }, walk: { walking: boolean; arrived: boolean; flip: boolean }) => React.ReactNode;
+    cheerPet?: (cheer: { src: string; text: string }, walk: { walking: boolean; arrived: boolean; flip: boolean; side: 'top' | 'left' | 'right' }) => React.ReactNode;
     // Только что пройденный этап: гусь «идёт» от него к следующему (следы появляются по очереди).
     revealId?: number | null;
     revealWalk?: boolean;
@@ -506,34 +506,62 @@ const StagePath = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [revealId],
     );
-    // Где встанет гусь рядом с кружком k: перебираем места вокруг и берём то, где он (с облачком) меньше всего
-    // перекрывает названия уроков (справа от каждого кружка) и сами кружки; при равенстве — ближе к кружку.
-    const cheerSpot = (k: number) => {
-        const GW = 170, GH = 175 // гусь + облачко
-        const rects: { x0: number; x1: number; y0: number; y1: number; w: number }[] = []
-        pts.forEach((q) => {
-            rects.push({ x0: q.x + 50, x1: PATH_W, y0: q.y - 50, y1: q.y + 50, w: 3 }) // название урока
-            rects.push({ x0: q.x - 38, x1: q.x + 38, y0: q.y - 38, y1: q.y + 38, w: 2 }) // кружок
-        })
-        const p = pts[k]
-        let best = { x: clampNum(p.x < 150 ? p.x + 100 : p.x - 100, 78, PATH_W - 78), y: p.y - 92 }
-        let bestCost = Infinity
-        for (let cx = GW / 2 - 10; cx <= PATH_W - GW / 2 + 10; cx += 15) {
-            for (let cy = p.y - 170; cy <= p.y + 170; cy += 10) {
-                let cost = 0
-                for (const r of rects) {
-                    const ox = Math.min(cx + GW / 2, r.x1) - Math.max(cx - GW / 2, r.x0)
-                    const oy = Math.min(cy + GH / 2, r.y1) - Math.max(cy - GH / 2, r.y0)
-                    if (ox > 0 && oy > 0) cost += ox * oy * r.w
+    // Где встанет гусь рядом с кружком k и с какой стороны от него нарисовать облачко. Кружки и подписи уроков имеют
+    // фиксированный размер в пикселях, а позиции масштабируются с шириной карты, поэтому места считаем по реальным
+    // прямоугольникам из DOM (data-stage-circle / data-stage-label): перебираем положения гуся и сторону облачка
+    // (слева, справа, сверху) и берём то, где гусь вместе с облачком меньше всего перекрывает подписи и кружки.
+    const rootRef = useRef<HTMLDivElement>(null);
+    type CheerSpot = { x: number; y: number; side: 'top' | 'left' | 'right' };
+    const [measured, setMeasured] = useState<{ from: CheerSpot; to: CheerSpot } | null>(null);
+    const fallbackSpot = (k: number): CheerSpot => {
+        const p = pts[k];
+        return { x: clampNum(p.x < 150 ? p.x + 100 : p.x - 100, 78, PATH_W - 78), y: p.y - 92, side: 'top' };
+    };
+    useLayoutEffect(() => {
+        const root = rootRef.current;
+        if (!root || ri < 0) { setMeasured(null); return; }
+        const rr = root.getBoundingClientRect();
+        if (rr.width < 50) return;
+        const sc = rr.width / PATH_W;
+        type R = { x0: number; x1: number; y0: number; y1: number; w: number };
+        const rel = (el: Element, w: number): R => { const r = el.getBoundingClientRect(); return { x0: r.left - rr.left, x1: r.right - rr.left, y0: r.top - rr.top, y1: r.bottom - rr.top, w }; };
+        const obst: R[] = [
+            ...Array.from(root.querySelectorAll('[data-stage-label]')).map((el) => rel(el, 3)),
+            ...Array.from(root.querySelectorAll('[data-stage-circle]')).map((el) => rel(el, 2)),
+        ];
+        const GOOSE = 128, BW = 170, BH = 80, GAP = 4;
+        const overlap = (a: R, b: R) => { const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0); const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return ox > 0 && oy > 0 ? ox * oy : 0; };
+        const spotFor = (k: number): CheerSpot => {
+            const px = pts[k].x * sc, py = pts[k].y * sc;
+            let best: CheerSpot = fallbackSpot(k);
+            let bestCost = Infinity;
+            for (let cx = GOOSE / 2; cx <= rr.width - GOOSE / 2; cx += 16) {
+                for (let cy = py - 260; cy <= py + 260; cy += 16) {
+                    const g: R = { x0: cx - GOOSE / 2, x1: cx + GOOSE / 2, y0: cy - GOOSE / 2, y1: cy + GOOSE / 2, w: 1 };
+                    for (const side of ['left', 'right', 'top'] as const) {
+                        const bub: R = side === 'top'
+                            ? { x0: cx - BW / 2, x1: cx + BW / 2, y0: g.y0 - GAP - BH, y1: g.y0 - GAP, w: 1 }
+                            : side === 'left'
+                                ? { x0: g.x0 - GAP - BW, x1: g.x0 - GAP, y0: cy - BH / 2 - 20, y1: cy + BH / 2 - 20, w: 1 }
+                                : { x0: g.x1 + GAP, x1: g.x1 + GAP + BW, y0: cy - BH / 2 - 20, y1: cy + BH / 2 - 20, w: 1 };
+                        let cost = 0;
+                        for (const o of obst) cost += (overlap(g, o) + overlap(bub, o)) * o.w;
+                        // облачко не должно уезжать за край карты
+                        if (bub.x0 < 0) cost += -bub.x0 * BH * 6;
+                        if (bub.x1 > rr.width) cost += (bub.x1 - rr.width) * BH * 6;
+                        if (bub.y0 < 0) cost += -bub.y0 * BW * 6;
+                        cost += Math.hypot(cx - px, cy - py) * 8 + (side === 'top' ? 400 : 0);
+                        if (cost < bestCost) { bestCost = cost; best = { x: cx / sc, y: cy / sc, side }; }
+                    }
                 }
-                cost += Math.hypot(cx - p.x, cy - p.y) * 20
-                if (cost < bestCost) { bestCost = cost; best = { x: cx, y: cy } }
             }
-        }
-        return best
-    }
-    const cheerFrom = ri >= 0 ? cheerSpot(ri) : null;
-    const cheerTo = ri >= 0 && ri + 1 < n ? cheerSpot(ri + 1) : cheerFrom;
+            return best;
+        };
+        setMeasured({ from: spotFor(ri), to: spotFor(ri + 1 < n ? ri + 1 : ri) });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ri, n, revealId]);
+    const cheerFrom = ri >= 0 ? (measured?.from ?? fallbackSpot(ri)) : null;
+    const cheerTo = ri >= 0 ? (measured?.to ?? fallbackSpot(ri + 1 < n ? ri + 1 : ri)) : null;
     const walkSec = ri >= 0 && ri + 1 < n ? gooseWalkSeconds(pts[ri], segs[ri].c1, segs[ri].c2, pts[ri + 1]) : 0;
     // Га-Га перебирает лапами, пока едет к следующему кружку; дошёл — встаёт
     // Фразу говорит, только когда дошёл (последний урок темы — идти некуда, сразу говорит)
@@ -550,7 +578,7 @@ const StagePath = ({
     const cheerFlip = !!(cheerFrom && cheerTo && cheerTo.x < cheerFrom.x);
 
     return (
-        <div className="relative w-full" style={{ aspectRatio: `${PATH_W} / ${H}` }}>
+        <div ref={rootRef} className="relative w-full" style={{ aspectRatio: `${PATH_W} / ${H}` }}>
             <svg viewBox={`0 0 ${PATH_W} ${H}`} className="absolute inset-0 w-full h-full overflow-visible" aria-hidden>
                 {pts.slice(0, -1).map((a, i) => {
                     const b = pts[i + 1];
@@ -628,7 +656,7 @@ const StagePath = ({
                 return (
                     <React.Fragment key={s.id}>
                         <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(pt.x, PATH_W), top: pct(pt.y, H) }}>
-                            <div className="relative w-[92px] h-[92px] flex items-center justify-center">
+                            <div data-stage-circle className="relative w-[92px] h-[92px] flex items-center justify-center">
                                 {!isBossExam && (
                                     <div className="absolute inset-0 pointer-events-none">
                                         <CircularProgressbarWithChildren
@@ -667,7 +695,7 @@ const StagePath = ({
                             className="absolute -translate-y-1/2 pointer-events-none"
                             style={{ top: pct(pt.y, H), left: `calc(${pct(pt.x, PATH_W)} + 52px)`, right: 4 }}
                         >
-                            <div>
+                            <div data-stage-label className="w-fit max-w-full">
                                 {s.proLocked && <ProBadge className={cn("mb-1", !unlocked && "opacity-60")} />}
                                 {s.isStepByStep && (
                                     <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -716,7 +744,9 @@ const StagePath = ({
             })}
             {cheer && cheerPet && cheerFrom && cheerTo && (
                 <motion.div
-                    className="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    className="absolute z-20 pointer-events-none"
+                    // центрирование — через framer (x/y в %), иначе его transform перетирает Tailwind-translate и гусь сползает вправо-вниз
+                    style={{ x: '-50%', y: '-50%' }}
                     initial={{ left: pct(cheerFrom.x, PATH_W), top: pct(cheerFrom.y, H), opacity: 0, scale: 0.6 }}
                     animate={revealWalk
                         ? { left: pct(cheerTo.x, PATH_W), top: pct(cheerTo.y, H), opacity: 1, scale: 1 }
@@ -725,7 +755,7 @@ const StagePath = ({
                         ? { left: { duration: walkSec, ease: 'easeInOut' }, top: { duration: walkSec, ease: 'easeInOut' }, scale: { type: 'spring', bounce: 0.55, duration: 0.6 } }
                         : { duration: 0.4 }}
                 >
-                    {cheerPet(cheer, { walking: cheerWalking, arrived: cheerArrived, flip: cheerFlip })}
+                    {cheerPet(cheer, { walking: cheerWalking, arrived: cheerArrived, flip: cheerFlip, side: cheerTo.side })}
                 </motion.div>
             )}
         </div>
@@ -1191,7 +1221,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                         doneGlow={doneGlow}
                                         pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
                                         petRow={petHere && petProps ? <TrainerPet {...petProps} compact row /> : null}
-                                        cheerPet={petProps ? (c, w) => <TrainerPet {...petProps} compact cheer={c} walking={w.walking} arrived={w.arrived} flip={w.flip} /> : undefined}
+                                        cheerPet={petProps ? (c, w) => <TrainerPet {...petProps} compact cheer={c} walking={w.walking} arrived={w.arrived} flip={w.flip} bubbleSide={w.side} /> : undefined}
                                         revealId={pendingRevealId}
                                         revealWalk={connectorRevealed}
                                         revealRef={topic.stages.some((st) => st.id === pendingRevealId) ? targetStageRef : undefined}
