@@ -1,37 +1,17 @@
 // app/t-lesson/[t_lessonId]/type-logswapwalk.tsx
 //
-// Тип LOGSWAPWALK — интерактивный разбор по шагам "логарифм в степени"
-// (a^{log_b c} = c^{log_b a} — числа a и c можно менять местами, b —
-// основание логарифма — остаётся на месте) — тот же архитектурный принцип,
-// что у SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK: компонент сам
-// ведёт хореографию и зовёт onAnswer/onComplete РОВНО один раз в конце;
-// общая нижняя кнопка скрыта — своя кнопка "Дальше"/"Готово" на
-// протяжении всего прохождения.
-//
-// Сюжет — прямая инструкция пользователя, на ДВУХ фиксированных примерах.
-// Шаги 1/2/4 (SwapArrowScene/SwapResultScene) раскрываются СТРОГО
-// последовательно, битами с паузами (по прямой просьбе пользователя, "а
-// не пачкой") — формула → пауза → [стрелка → пауза →] текст:
-// 1. "8^(log₂3) = ?" — просто условие.
-// 2. То же самое, но 8 и 3 — стикеры РАЗНЫХ цветов → пауза → угловая
-//    двусторонняя стрелка между ними → пауза → текст "можно менять
-//    местами".
-// 3. "Получается: 3^(log₂8)." → пауза → текст — те же цвета, просто на
-//    новых местах.
-// 4-6. То же самое на примере "25^(log₅4) = ? → 4^(log₅25)" (шаг 5 не
-//    менялся — пользователь описал только 1/2/4).
-//
-// После разбора — тренировочные задания с НОВЫМИ случайными числами
-// (a^{log_b c} = ?), нужно кликнуть верную формулу-ответ среди 4
-// вариантов (дистракторы — не поменяли вообще, поменяли не ту пару,
-// ошибка на 1) — тот же формат клика по варианту, что у LOGWALK/
-// LOGSUBWALK/LOGPOWWALK.
+// Тип LOGSWAPWALK — разбор «Логарифм в степени»: a^{log_b c} = c^{log_b a} (числа a и c можно менять местами, b остаётся).
+// Два примера (8^{log₂3} и 25^{log₅4}), каждый — одна сцена с одной формулой, «текстовыделение 2.0»:
+// 0: формула → маркером выделяются 8 и 3 → «числа 8 и 3 можно поменять местами» → двойная стрелка → кнопка «Давай поменяем местами»;
+// 1: анимация обмена: тройка летит вниз-налево на место восьмёрки, восьмёрка огибает логарифм сверху и опускается на место
+//    тройки (маркер к концу растворяется) → кнопка «Мы настоящие жонглеры!».
+// После разбора — тренировочные задания (a^{log_b c} = ?), клик по верной формуле среди 4 вариантов.
 
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -64,7 +44,7 @@ const EX1 = { a: 8, b: 2, c: 3 }
 const EX2 = { a: 25, b: 5, c: 4 }
 
 // 3 сцены на каждый пример (условие → стикеры+стрелка → результат) × 2.
-const INTRO_STEPS = 6
+const INTRO_STEPS = 4
 const TRIAL_COUNT = 4
 
 // a — teal, c — фиолетовый: те же "свободные" роли палитры ggege, что уже
@@ -72,26 +52,22 @@ const TRIAL_COUNT = 4
 // одной формулы (не один общий цвет — иначе читалось бы как "одно и то же
 // число"). b (основание лога) остаётся НЕподсвеченным — оно никуда не
 // двигается, ему не нужен акцент.
-const A_COLOR = GGEGE_PALETTE.teal.button
-const C_COLOR = GGEGE_PALETTE.purple.button
-
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
 // ===== Общие строительные блоки (HTML+CSS, без KaTeX — та же причина, что
 // и в LOGPOWWALK: короткая целочисленная запись не требует формульного
 // рендера, а HTML избавляет от KaTeX-сегментирования). =====
 
-const NumSticker = ({ value, color, small = false }: { value: number | string; color: string; small?: boolean }) => (
+// Выделение маркером («текстовыделение 2.0», /test-base-marker): сплошная заливка, тёмная цифра, без рамки и второго уменьшения.
+const MARK_COLOR = GGEGE_PALETTE.blue.button
+const markStyle = { background: MARK_COLOR, color: '#10181C', lineHeight: 1.15 } as const
+const BaseMark = ({ value }: { value: number | string }) => (
     <motion.span
-        initial={{ scale: 2.6, opacity: 0 }}
+        initial={{ scale: 2.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-        className={cn(
-            'inline-flex items-center justify-center rounded-lg border-2 font-extrabold align-middle',
-            small ? 'px-1 text-[0.6em]' : 'px-1.5 py-0.5',
-            'leading-none',
-        )}
-        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+        className="inline-block rounded-[3px] px-[3px] font-extrabold"
+        style={markStyle}
     >
         {value}
     </motion.span>
@@ -111,24 +87,22 @@ const Exp = ({ children }: { children: React.ReactNode }) => (
     <span className="relative inline-block ml-px" style={{ fontSize: '0.78em', top: '-0.8em' }}>{children}</span>
 )
 
-// "a^{log_b c}" — вся формула. outerColor/argColor — по умолчанию
-// undefined (обычный текст, без стикера); передаются явно на сценах со
-// стикерами/стрелкой/результатом. data-marker="outer"/"arg" — точки для
-// измерения стрелкой (см. DoubleArrow).
+// «a^{log_b c}» — вся формула. marked — 8 и 3 выделены маркером; hideOuter/hideArg — число улетело (место остаётся).
+// data-marker="outer"/"arg" — точки для стрелки и перелёта.
 const PowLogExpr = ({
-    a, b, c, outerColor, argColor,
-}: { a: number; b: number; c: number; outerColor?: string; argColor?: string }) => (
+    a, b, c, marked = false, hideOuter = false, hideArg = false,
+}: { a: number; b: number; c: number; marked?: boolean; hideOuter?: boolean; hideArg?: boolean }) => (
     <div className="w-full flex items-center justify-center text-2xl md:text-3xl font-extrabold py-1">
         <span className="inline-flex items-baseline whitespace-nowrap">
-            <span data-marker="outer">
-                {outerColor ? <NumSticker value={a} color={outerColor} /> : <Plain>{a}</Plain>}
+            <span data-marker="outer" className="inline-block" style={{ opacity: hideOuter ? 0 : 1 }}>
+                {marked ? <BaseMark value={a} /> : <Plain>{a}</Plain>}
             </span>
             <Exp>
                 <span className="inline-flex items-baseline whitespace-nowrap">
                     <Plain>log</Plain>
                     <sub className="ml-0.5"><Plain>{b}</Plain></sub>
-                    <span className="ml-0.5" data-marker="arg">
-                        {argColor ? <NumSticker value={c} color={argColor} /> : <Plain>{c}</Plain>}
+                    <span data-marker="arg" className="ml-0.5 inline-block" style={{ opacity: hideArg ? 0 : 1 }}>
+                        {marked ? <BaseMark value={c} /> : <Plain>{c}</Plain>}
                     </span>
                 </span>
             </Exp>
@@ -174,6 +148,8 @@ function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY:
 // отступа наконечник залезает НА маркер (класс бага, найденный
 // пользователем в LOGWALK — "стрелка залезает на цифры со стикерами").
 const ARROW_TIP_GAP = 8
+const ARROW_MEASURE_MS = 400
+const ARROW_DRAW_MS = ARROW_MEASURE_MS + 1000
 
 const DoubleArrow = ({
     containerRef, fromMarker, toMarker, color,
@@ -199,7 +175,7 @@ const DoubleArrow = ({
         }
         // Ждём, пока bounce-стикеры и раскладка осядут, прежде чем мерить
         // реальные позиции (тот же таймаут, что и в LOGPOWWALK).
-        const t = setTimeout(measure, 750)
+        const t = setTimeout(measure, ARROW_MEASURE_MS)
         window.addEventListener('resize', measure)
         return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,68 +211,93 @@ const DoubleArrow = ({
     )
 }
 
-// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
-// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1/4
-// (пример → стрелка → текст) и шаг 2 (результат → текст) раскрываются
-// СТРОГО последовательно, не всё разом, как раньше.
-const STEP_PAUSE_MS = 900
-// Столько реально рисуется DoubleArrow (750мс задержка измерения + 0.2с
-// delay + 0.8с сама draw-анимация, см. DoubleArrow выше).
-const ARROW_DRAW_MS = 1750
+type SwapFlyer = { n: number; left: number; top: number; fs: number; dx: number; dy: number; arc: number; scale: number }
+const FLIGHT_MS = 2400
 
-// Шаги 1/4 — формула (числа уже стикерами) сразу → пауза → рисуется
-// двусторонняя стрелка → пауза → текст "можно менять местами". pt-10 (как
-// и раньше) — запас сверху, чтобы дуга стрелки не налезала на условие
-// ПРЕДЫДУЩЕЙ сцены.
-const SwapArrowScene = ({
-    a, b, c, text, onSettled,
-}: { a: number; b: number; c: number; text: string; onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
+// Летящее число: один плавный прогресс p (разгон и торможение одной кривой), движение по параболе (прямая + дуга 4·p·(1−p)),
+// в конце маркер растворяется и число становится обычным белым.
+const SwapFlyerView = ({ f }: { f: SwapFlyer }) => {
+    const p = useMotionValue(0)
+    useEffect(() => {
+        const c = animate(p, 1, { duration: FLIGHT_MS / 1000, ease: [0.45, 0, 0.25, 1] })
+        return () => c.stop()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const x = useTransform(p, (v) => f.dx * v)
+    const y = useTransform(p, (v) => f.dy * v + f.arc * 4 * v * (1 - v))
+    const scale = useTransform(p, (v) => 1 + (f.scale - 1) * v)
+    const bg = useTransform(p, [0.7, 1], [hexToRgba(MARK_COLOR, 1), hexToRgba(MARK_COLOR, 0)])
+    const color = useTransform(p, [0.7, 1], ['rgb(16, 24, 28)', 'rgb(242, 247, 251)'])
+    return (
+        <motion.span
+            className="absolute inline-block rounded-[3px] px-[3px] font-extrabold"
+            style={{ left: f.left, top: f.top, fontSize: f.fs, lineHeight: 1.15, x, y, scale, backgroundColor: bg, color, zIndex: 5 }}
+        >
+            {f.n}
+        </motion.span>
+    )
+}
+
+// Сцена одного примера: phase 0 — выделение, текст, двойная стрелка; phase 1 — обмен местами.
+const SwapScene = ({ ex, text, phase, onSettled }: { ex: { a: number; b: number; c: number }; text: string; phase: number; onSettled: () => void }) => {
+    const [marked, setMarked] = useState(false)
+    const [textOn, setTextOn] = useState(false)
+    const [arrow, setArrow] = useState(false)
+    const [swapped, setSwapped] = useState(false)
+    const [hidden, setHidden] = useState(false)
+    const [flyers, setFlyers] = useState<SwapFlyer[] | null>(null)
     const ref = useRef<HTMLDivElement>(null)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
 
     useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
-        return () => clearTimeout(t)
+        const list = timers.current
+        if (phase === 0) {
+            later(() => setMarked(true), 1100)
+            later(() => setTextOn(true), 2200)
+        } else {
+            // обмен: тройка вниз-налево на место восьмёрки, восьмёрка огибает логарифм сверху на место тройки
+            setArrow(false)
+            const c = ref.current
+            const outer = c?.querySelector<HTMLElement>('[data-marker="outer"]')
+            const arg = c?.querySelector<HTMLElement>('[data-marker="arg"]')
+            if (c && outer && arg) {
+                const cr = c.getBoundingClientRect(), or = outer.getBoundingClientRect(), ar = arg.getBoundingClientRect()
+                const fsO = parseFloat(getComputedStyle(outer).fontSize), fsA = parseFloat(getComputedStyle(arg).fontSize)
+                const oc = { x: or.left + or.width / 2, y: or.top + or.height / 2 }, ac = { x: ar.left + ar.width / 2, y: ar.top + ar.height / 2 }
+                setFlyers([
+                    { n: ex.c, left: ar.left - cr.left, top: ar.top - cr.top, fs: fsA, dx: oc.x - ac.x, dy: oc.y - ac.y, arc: 34, scale: fsO / fsA },
+                    { n: ex.a, left: or.left - cr.left, top: or.top - cr.top, fs: fsO, dx: ac.x - oc.x, dy: ac.y - oc.y, arc: -96, scale: fsA / fsO },
+                ])
+                setHidden(true)
+                later(() => { setFlyers(null); setSwapped(true); setHidden(false); setMarked(false) }, FLIGHT_MS)
+                later(onSettled, FLIGHT_MS + 900)
+            } else { setSwapped(true); later(onSettled, 500) }
+        }
+        return () => { list.forEach(clearTimeout); list.length = 0 }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
 
     return (
         <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
-                <div ref={ref} className="relative w-full pt-10">
-                    <PowLogExpr a={a} b={b} c={c} outerColor={A_COLOR} argColor={C_COLOR} />
-                    {phase >= 1 && <DoubleArrow containerRef={ref} fromMarker="outer" toMarker="arg" color={ACTIVE_COLOR} />}
+            <DiagramBlock>
+                <div ref={ref} className="relative w-full pt-12 pb-6">
+                    <PowLogExpr
+                        a={swapped ? ex.c : ex.a} b={ex.b} c={swapped ? ex.a : ex.c}
+                        marked={marked} hideOuter={hidden} hideArg={hidden}
+                    />
+                    {arrow && <DoubleArrow containerRef={ref} fromMarker="outer" toMarker="arg" color={ACTIVE_COLOR} />}
+                    {flyers?.map((f) => <SwapFlyerView key={`${f.n}-${f.left}`} f={f} />)}
                 </div>
             </DiagramBlock>
-            {phase >= 2 && (
-                <TypedLine
-                    className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text={text}
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
-// Шаг 2 — формула-результат сразу → пауза → текст. Шаг 5 (аналогичная
-// сцена второго примера) НЕ трогался — пользователь описал только шаги
-// 1/2/4.
-const SwapResultScene = ({
-    a, b, c, text, onSettled,
-}: { a: number; b: number; c: number; text: string; onSettled?: () => void }) => {
-    const [textVisible, setTextVisible] = useState(false)
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
-                <PowLogExpr a={a} b={b} c={c} outerColor={C_COLOR} argColor={A_COLOR} />
-            </DiagramBlock>
-            {textVisible && (
-                <TypedLine
-                    className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text={text}
-                    onSettled={onSettled}
-                />
+            {textOn && (
+                <div style={phase >= 1 ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' } : undefined}>
+                    <TypedLine
+                        className="w-full text-base md:text-lg text-[#F2F7FB]"
+                        text={text}
+                        onSettled={() => { setArrow(true); later(onSettled, ARROW_DRAW_MS + 300) }}
+                    />
+                </div>
             )}
         </>
     )
@@ -480,6 +481,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+    const stepLabel = ['Давай поменяем местами', 'Мы настоящие жонглеры!', 'Давай ещё раз поменяем', 'Снова жонглёры!'][step] ?? introNextLabel
 
     // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
     // содержимого целевой сцены (см. type-sinwalk.tsx).
@@ -487,30 +489,40 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
 
     // Затемнение прошлых сцен + автоскролл к новой — та же схема ключей,
     // что и в LOGWALK/LOGSUBWALK/LOGDEFWALK/LOGPOWWALK.
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? (step <= 1 ? 'step-0' : 'step-2') : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
         if (key.startsWith('trial-')) {
             const idx = Number(key.slice('trial-'.length))
-            return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
+            return idx > 0 ? `trial-${idx - 1}` : 'step-2'
         }
         if (key.startsWith('step-')) {
-            const idx = Number(key.slice('step-'.length))
-            return idx > 0 ? `step-${idx - 1}` : null
+            return key === 'step-2' ? 'step-0' : null
         }
         return null
     }
     const contentSettled = phase === 'intro' ? stepReady : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
-    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null || (phase === 'intro' && step > 0)
     // "Повторить" — переигрывает анимацию ТЕКУЩЕЙ сцены заново, не трогая
     // состояние (в отличие от handleBack ниже) — та же пара useReplayNonces,
     // что уже используется для отката.
-    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleReplay = () => {
+        // сцена примера проигрывается с самого начала
+        if (phase === 'intro') { const t = step <= 1 ? 0 : 2; setStep(t); setStepReady(false) }
+        else { setChecked(false); setWrongTried([]); setWrongFlash(null) }
+        bumpNonce(latestSceneKey)
+    }
 
     // "Назад" — реальный откат состояния на предыдущую сцену (см.
     // type-logpowwalk.tsx для подробного комментария).
     const handleBack = () => {
         if (advancing) return
+        if (phase === 'intro' && step > 0) {
+            // шаг 1 → начало примера 1; шаг 2 → пример 1 с начала; шаг 3 → начало примера 2
+            const t = step === 3 ? 2 : 0
+            bumpNonce(`step-${t}`); setStep(t); setStepReady(false)
+            return
+        }
         const target = prevSceneKeyOf(latestSceneKey)
         if (!target) return
         bumpNonce(target)
@@ -531,81 +543,18 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — условие примера 1: "8^(log₂3) = ?", без текста. */}
+                {/* Пример 1: шаги 0 (выделение, стрелка) и 1 (обмен). */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <DiagramBlock onSettled={() => setStepReady(true)}>
-                            <PowLogExpr a={EX1.a} b={EX1.b} c={EX1.c} />
-                        </DiagramBlock>
+                        <SwapScene ex={EX1} text="Числа 8 и 3 можно поменять местами." phase={Math.min(step, 1)} onSettled={() => setStepReady(true)} />
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — 8 и 3 становятся стикерами, двусторонняя стрелка,
-                    объяснение "можно менять местами". */}
-                {step >= 1 && (
-                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
-                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <SwapArrowScene
-                                a={EX1.a} b={EX1.b} c={EX1.c}
-                                text="Числа 8 и 3 можно поменять местами."
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 2 — результат: "3^(log₂8)", те же цвета на новых
-                    местах (3 теперь снаружи фиолетовым, 8 теперь в
-                    показателе теал-цветом). */}
+                {/* Пример 2: шаги 2 и 3. */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <SwapResultScene
-                                a={EX1.c} b={EX1.b} c={EX1.a}
-                                text="Хоп — 8 и 3 поменялись местами (и это законно)."
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 3 — условие примера 2: "25^(log₅4) = ?". */}
-                {step >= 3 && (
-                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
-                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <PowLogExpr a={EX2.a} b={EX2.b} c={EX2.c} />
-                            </DiagramBlock>
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 4 — 25 и 4 становятся стикерами, двусторонняя
-                    стрелка, то же объяснение. */}
-                {step >= 4 && (
-                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
-                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
-                            <SwapArrowScene
-                                a={EX2.a} b={EX2.b} c={EX2.c}
-                                text="Аналогично можно поменять местами 25 и 4."
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 5 — результат: "4^(log₅25)". */}
-                {step >= 5 && (
-                    <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
-                        <Fragment key={`step-5-${nonceFor('step-5')}`}>
-                            <DiagramBlock>
-                                <PowLogExpr a={EX2.c} b={EX2.b} c={EX2.a} outerColor={C_COLOR} argColor={A_COLOR} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Хоба! И так можно делать."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <SwapScene ex={EX2} text="Аналогично можно поменять местами 25 и 4." phase={step - 2} onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
@@ -713,7 +662,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
-                        {introNextLabel}
+                        {stepLabel}
                     </button>
                 </div>
             ) : checked ? (
