@@ -649,7 +649,12 @@ export const StagePath = ({
                 const iconColor = '#FEFEFE';
                 const ringValue = done ? 100 : Math.min(100, Math.max(0, s.percentage));
 
-                const iconEl = (c: string, dim = false) => (
+                // Внутри кружка — порядковый номер урока в теме (1, 2, 3…): что это за урок, показывает анимация/название справа.
+                // Особые этапы (босс-экзамен, мифический, сундук, босс) оставляют свои иконки.
+                const numbered = !isBossExam && !isMythic && !isChest && !isBoss;
+                const iconEl = (c: string, dim = false) => numbered ? (
+                    <span className={`text-[30px] font-black leading-none tabular-nums transition-colors duration-300 ${dim ? 'opacity-70' : ''}`} style={{ color: c }}>{i + 1}</span>
+                ) : (
                     <span className="inline-flex scale-[1.45]">
                         <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={skullHue} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={null} Icon={Icon} color={c} dim={dim} />
                     </span>
