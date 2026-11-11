@@ -7,7 +7,7 @@ import { StagePath, type SkillTopic } from '@/components/trainer-grade-tree'
 import { TrainerPet } from '@/components/trainer-pet'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 
-const titles = ['Как складывать логарифмы?', 'Как вычитать логарифмы?', 'Сумма и разность логарифмов — тренировка', 'Степень в основании и аргументе', 'Деление логарифмов', 'К-к-комбо логарифмов', 'Перевёртыш', 'Босс-экзамен: Логарифмы']
+const titles = ['Как складывать логарифмы?', 'Как вычитать логарифмы?', 'Сумма и разность логарифмов — тренировка', 'Степень в основании и аргументе', 'Деление логарифмов', 'К-к-комбо логарифмов', 'Что такое логарифм?', 'Босс-экзамен: Логарифмы']
 const topic: SkillTopic = {
     id: 16, title: 'Логарифмы', percentage: 40,
     stages: titles.map((t, i) => ({ id: 900 + i, title: t, percentage: i < 3 ? 100 : 0, isStepByStep: i !== 2 && i !== 7, egePart: i % 2 === 0 ? 1 : 2, badge: i === 0 ? 'log₂ 1/8 = −3' : null } as SkillTopic['stages'][number])),

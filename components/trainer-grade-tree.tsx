@@ -33,6 +33,7 @@ import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, pickCheer } from './trainer-pet';
+import { LessonLabelPreview, hasLessonPreview } from './lesson-label-preview';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavMedal } from '@/components/nav-sheet-ui';
@@ -184,8 +185,9 @@ export type SkillStage = {
 
 // Плашка части ЕГЭ рядом с «Урок»: база — малыш, вторая часть — мечи (сложный уровень).
 const EgePartPill = ({ part, dim }: { part?: number | null; dim?: boolean }) => {
-    if (part !== 1 && part !== 2) return null
-    const two = part === 2
+    // «База» на карте не показываем (меньше слов); оставляем только «Часть 2»
+    if (part !== 2) return null
+    const two = true
     const c = two ? '#FF6B8A' : '#8FD3A8'
     const Icon = two ? Swords : Baby
     return (
@@ -711,7 +713,9 @@ export const StagePath = ({
                                     className="text-[15px] font-extrabold leading-tight line-clamp-3"
                                     style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.75)', textShadow: LABEL_SHADOW }}
                                 >
-                                    {s.title}
+                                    {hasLessonPreview(s.title)
+                                        ? <LessonLabelPreview title={s.title} color={unlocked ? accent.button : 'rgba(114,131,141,0.75)'} />
+                                        : s.title}
                                 </div>
                                 {s.badge && (
                                     <div className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.75) : 'rgba(114,131,141,0.6)', textShadow: LABEL_SHADOW }}>
