@@ -110,6 +110,20 @@ const NumSticker = ({ value, color, small = false }: { value: number | string; c
     </motion.span>
 )
 
+// Основание, выделенное маркером (вариант «сплошной маркер, тёмная цифра», /test-base-marker): без рамки и без
+// второго уменьшения — размер задаёт только индекс.
+const BaseMark = ({ value }: { value: number | string }) => (
+    <motion.span
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-block rounded-[3px] px-[3px] font-extrabold"
+        style={{ background: BASE_COLOR, color: '#10181C', lineHeight: 1.15 }}
+    >
+        {value}
+    </motion.span>
+)
+
 const Plain = ({ children }: { children: React.ReactNode }) => (
     <span className="text-[#F2F7FB]">{children}</span>
 )
@@ -150,7 +164,7 @@ const LogTerm = ({
     <span className="inline-flex items-baseline whitespace-nowrap">
         <Plain>log</Plain>
         <sub className="ml-0.5" data-marker={baseMarker}>
-            {baseHighlighted ? <NumSticker value={base} color={BASE_COLOR} small /> : <Plain>{base}</Plain>}
+            {baseHighlighted ? <BaseMark value={base} /> : <Plain>{base}</Plain>}
         </sub>
         <span className="ml-1" data-marker={argMarker} style={{ opacity: ghost ? 0.28 : 1, transition: 'opacity 0.4s' }}>
             <Plain>{arg}</Plain>
@@ -201,7 +215,7 @@ const ExampleFormula = ({ baseHighlighted, showRightSide, product, rowRef, shift
                 <span className="inline-flex items-baseline whitespace-nowrap">
                     <Plain>log</Plain>
                     <sub className="ml-0.5" data-marker="base3">
-                        <NumSticker key={showRightSide ? 'on' : 'off'} value={2} color={BASE_COLOR} small />
+                        <BaseMark key={showRightSide ? 'on' : 'off'} value={2} />
                     </sub>
                     {/* внешняя обёртка неподвижна — по ней стрелки меряют место, куда упадёт «(3·5)» */}
                     <span data-marker="prod" className="ml-1 inline-flex">
@@ -254,7 +268,7 @@ const TypedLineWithSticker = ({
             ) : (
                 <>
                     {withBreaks(before)}
-                    {stickerValue !== '' && <NumSticker value={stickerValue} color={stickerColor} />}
+                    {stickerValue !== '' && (stickerColor === BASE_COLOR ? <BaseMark value={stickerValue} /> : <NumSticker value={stickerValue} color={stickerColor} />)}
                     {withBreaks(after)}
                 </>
             )}
@@ -382,10 +396,12 @@ const BaseMatchArrow = ({
             const cRect = container.getBoundingClientRect()
             const points = markers
                 .map((m) => {
-                    const el = container.querySelector<HTMLElement>(`[data-marker="${m}"]`)
-                    if (!el) return null
+                    const host = container.querySelector<HTMLElement>(`[data-marker="${m}"]`)
+                    if (!host) return null
+                    // маркер основания — первый ребёнок индекса; низ считаем от центра и высоты вёрстки, чтобы анимация scale не мешала
+                    const el = (host.firstElementChild as HTMLElement | null) ?? host
                     const r = el.getBoundingClientRect()
-                    return { x: r.left + r.width / 2 - cRect.left, y: r.bottom - cRect.top + ARROW_TIP_GAP }
+                    return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 + el.offsetHeight / 2 - cRect.top + ARROW_TIP_GAP }
                 })
                 .filter((p): p is { x: number; y: number } => p !== null)
                 .sort((a, b) => a.x - b.x)
