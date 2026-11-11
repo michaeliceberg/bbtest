@@ -11,7 +11,7 @@
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -129,7 +129,31 @@ const SceneExp = ({ marker, value, marked, gone, collapsed }: { marker: string; 
 )
 
 type PowFlyer = { n: number; left: number; top: number; fs: number; dx: number; dy: number; arc: number; scale: number }
-const FLIGHT_MS = 1900
+const FLIGHT_MS = 2400
+
+// Летящий показатель: один плавный прогресс p от 0 до 1 (разгон и торможение одной кривой), движение по параболе
+// (прямая + дуга 4·p·(1−p)), в конце маркер плавно «растворяется» и цифра становится обычной белой.
+const PowFlyerView = ({ f }: { f: PowFlyer }) => {
+    const p = useMotionValue(0)
+    useEffect(() => {
+        const c = animate(p, 1, { duration: FLIGHT_MS / 1000, ease: [0.45, 0, 0.25, 1] })
+        return () => c.stop()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const x = useTransform(p, (v) => f.dx * v)
+    const y = useTransform(p, (v) => f.dy * v + f.arc * 4 * v * (1 - v))
+    const scale = useTransform(p, (v) => 1 + (f.scale - 1) * v + 0.18 * 4 * v * (1 - v))
+    const bg = useTransform(p, [0.7, 1], [hexToRgba(MARK_COLOR, 1), hexToRgba(MARK_COLOR, 0)])
+    const color = useTransform(p, [0.7, 1], ['rgb(16, 24, 28)', 'rgb(242, 247, 251)'])
+    return (
+        <motion.span
+            className="absolute inline-block rounded-[3px] px-[3px] font-extrabold"
+            style={{ left: f.left, top: f.top, fontSize: f.fs, lineHeight: 1.15, x, y, scale, backgroundColor: bg, color }}
+        >
+            {f.n}
+        </motion.span>
+    )
+}
 
 const MergedPowScene = ({ step, onSettled }: { step: number; onSettled: () => void }) => {
     const [lines, setLines] = useState(0)
@@ -229,17 +253,7 @@ const MergedPowScene = ({ step, onSettled }: { step: number; onSettled: () => vo
                             </span>
                         </span>
                     </motion.div>
-                    {flyer && (
-                        <motion.span
-                            className="absolute inline-block rounded-[3px] px-[3px] font-extrabold"
-                            style={{ ...markStyle, left: flyer.left, top: flyer.top, fontSize: flyer.fs }}
-                            initial={{ x: 0, y: 0, scale: 1 }}
-                            animate={{ x: [0, flyer.dx * 0.5, flyer.dx], y: [0, flyer.dy * 0.5 + flyer.arc, flyer.dy], scale: [1, 1.2, flyer.scale] }}
-                            transition={{ duration: FLIGHT_MS / 1000, times: [0, 0.5, 1], ease: 'easeInOut' }}
-                        >
-                            {flyer.n}
-                        </motion.span>
-                    )}
+                    {flyer && <PowFlyerView key={`${flyer.n}-${flyer.left}`} f={flyer} />}
                 </div>
             </DiagramBlock>
             {done && <LocalAnswerConfetti />}
@@ -278,13 +292,15 @@ const MergedPowScene = ({ step, onSettled }: { step: number; onSettled: () => vo
     )
 }
 
-// ===== Тренировочные задания — новые случайные (a, n, b, m), нужно
-// кликнуть верную формулу-ответ (m/n · log_a b) среди 4 вариантов. =====
+// ===== Тренировочные задания — новые случайные (a, n, b, m) из РАЗНЫХ цифр. Ответ «m/n · log_a b» ученик собирает сам в четыре
+// этапа: числитель → знаменатель → основание → аргумент; на каждом этапе четыре варианта — все четыре цифры условия
+// вперемешку (типичная ошибка: взять не ту цифру). В первых двух заданиях степени в условии выделены маркером, в третьем и
+// четвёртом нет (сложнее). =====
 
-type PowOption = { frac: [number, number]; base: number; arg: number }
-type PowTrial = { a: number; n: number; b: number; m: number; options: PowOption[] }
-
+type PowTrial = { a: number; n: number; b: number; m: number; options: number[][] }
 const NUM_POOL = [2, 3, 4, 5, 6, 7, 8, 9] as const
+const POW_STAGE_PROMPTS = ['Что в числителе?', 'Что в знаменателе?', 'Какое основание?', 'Что под логарифмом?']
+const powAnswer = (t: PowTrial) => [t.m, t.n, t.a, t.b]
 
 function shuffle<T>(arr: T[]): T[] {
     const a = [...arr]
@@ -295,42 +311,12 @@ function shuffle<T>(arr: T[]): T[] {
     return a
 }
 
-const sameOption = (x: PowOption, y: PowOption) => x.frac[0] === y.frac[0] && x.frac[1] === y.frac[1] && x.base === y.base && x.arg === y.arg
-
-// Дистракторы — правдоподобные ошибки школьника, не случайный шум:
-// перепутал местами числитель/знаменатель, перепутал местами основание и
-// аргумент лога, ошибся на 1 в числителе.
-function makeOptions(a: number, n: number, b: number, m: number): PowOption[] {
-    const correct: PowOption = { frac: [m, n], base: a, arg: b }
-    const candidates: PowOption[] = [
-        { frac: [n, m], base: a, arg: b },
-        { frac: [m, n], base: b, arg: a },
-        { frac: [m + 1, n], base: a, arg: b },
-    ]
-    const chosen: PowOption[] = [correct]
-    for (const c of candidates) {
-        if (!chosen.some((x) => sameOption(x, c))) chosen.push(c)
-    }
-    let extraShift = 2
-    while (chosen.length < 4) {
-        const extra: PowOption = { frac: [m + extraShift, n], base: a, arg: b }
-        if (!chosen.some((x) => sameOption(x, extra))) chosen.push(extra)
-        extraShift++
-    }
-    return shuffle(chosen)
-}
-
 const makeTrial = (prev: PowTrial | null): PowTrial => {
     let t: PowTrial
     let guard = 0
     do {
-        const a = pick(NUM_POOL)
-        let b = pick(NUM_POOL)
-        while (b === a) b = pick(NUM_POOL)
-        const n = pick(NUM_POOL)
-        let m = pick(NUM_POOL)
-        while (m === n) m = pick(NUM_POOL)
-        t = { a, n, b, m, options: makeOptions(a, n, b, m) }
+        const [a, n, b, m] = shuffle([...NUM_POOL]).slice(0, 4)
+        t = { a, n, b, m, options: [0, 1, 2, 3].map(() => shuffle([a, n, b, m])) }
         guard++
     } while (prev && t.a === prev.a && t.n === prev.n && t.b === prev.b && t.m === prev.m && guard < 8)
     return t
@@ -347,38 +333,59 @@ const makeTrials = (n: number): PowTrial[] => {
     return out
 }
 
+// Похвала за верный ответ — детерминированно из полей задания (не Math.random() в рендере).
 const pickTrialFeedback = (t: PowTrial): string => {
-    const seed = t.a * 7 + t.n * 5 + t.b * 3 + t.m
+    const seed = t.a * 7 + t.n * 3 + t.b + t.m * 5
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
-// Кнопка-вариант — компактная формула "m/n · logₐb". Цвет всей формулы —
-// текущий текстовый цвет кнопки (border-current/наследуемый text color),
-// а НЕ Plain/NumSticker с зашитым белым — иначе состояние correct/wrong
-// не смогло бы перекрасить дробь и лог вместе с рамкой кнопки.
-const MiniAnswerButton = ({
-    option, onClick, disabled, state,
-}: { option: PowOption; onClick?: () => void; disabled?: boolean; state: 'idle' | 'correct' | 'wrong' }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={cn(
-            'flex items-center justify-center gap-1.5 py-3 px-3 rounded-xl border-2 text-base md:text-lg font-bold transition-colors',
-            state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
-            state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
-            state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
-        )}
-    >
-        <span className="inline-flex flex-col items-center leading-none text-[0.7em]">
-            <span className="px-1 pb-0.5 border-b-2 border-current">{option.frac[0]}</span>
-            <span className="px-1 pt-0.5">{option.frac[1]}</span>
-        </span>
-        <span className="inline-flex items-baseline whitespace-nowrap">
-            log<sub className="ml-0.5 text-[0.7em]">{option.base}</sub><span className="ml-0.5">{option.arg}</span>
-        </span>
-    </button>
+// Пропуск-квадратик: пунктирный, активный цветной и «дышит» (animate-slot-breathe), заполненный — число влетает пружиной.
+const PowSlot = ({ value, active, color, done, small = false }: { value: number | null; active: boolean; color: string; done: boolean; small?: boolean }) => (
+    value === null ? (
+        <span
+            className={cn('inline-block align-middle rounded-md border-2 border-dashed', active && 'animate-slot-breathe')}
+            style={{
+                width: small ? '1.2em' : '1em', height: small ? '1.3em' : '1.1em',
+                borderColor: active ? color : '#3A464E',
+                backgroundColor: active ? hexToRgba(color, 0.18) : 'transparent',
+            }}
+        />
+    ) : (
+        <motion.span
+            initial={{ scale: 2.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+            className="inline-block"
+            style={{ color: done ? CORRECT_COLOR : '#F2F7FB' }}
+        >
+            {value}
+        </motion.span>
+    )
 )
+
+const POW_FRAC_COLOR = GGEGE_PALETTE.purple.button
+
+// Строка ответа «= □/□ log_□ □»: filled — сколько этапов уже заполнено (0..4), активный пропуск — filled-й.
+const PowAnswer = ({ t, filled, done }: { t: PowTrial; filled: number; done: boolean }) => {
+    const ans = powAnswer(t)
+    const slot = (i: number, color: string, small = false) => (
+        <PowSlot value={filled > i ? ans[i] : null} active={filled === i} color={color} done={done} small={small} />
+    )
+    return (
+        <div className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold py-1">
+            <Plain>=</Plain>
+            <span className="inline-block align-middle leading-none" style={{ fontSize: '0.85em' }}>
+                <span className="block px-1.5 pb-1 border-b-2 border-[#F2F7FB]/70 min-w-[1.4em] text-center">{slot(0, POW_FRAC_COLOR)}</span>
+                <span className="block px-1.5 pt-1 min-w-[1.4em] text-center">{slot(1, POW_FRAC_COLOR)}</span>
+            </span>
+            <span className="inline-flex items-baseline whitespace-nowrap">
+                <Plain>log</Plain>
+                <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slot(2, MARK_COLOR, true)}</sub>
+                <span className="ml-1.5">{slot(3, POW_FRAC_COLOR)}</span>
+            </span>
+        </div>
+    )
+}
 
 export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
@@ -396,20 +403,25 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     // нажатые формулы ТЕКУЩЕГО задания красятся красным и блокируются,
     // wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под вариантами (не гаснет по
     // таймеру).
-    const [wrongTried, setWrongTried] = useState<PowOption[]>([])
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    // этап сборки ответа в текущем задании: 0 числитель, 1 знаменатель, 2 основание, 3 аргумент
+    const [stage, setStage] = useState(0)
     const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
 
-    const currentCorrectOption = trials[trialIndex].options.find(
-        (o) => sameOption(o, { frac: [trials[trialIndex].m, trials[trialIndex].n], base: trials[trialIndex].a, arg: trials[trialIndex].b })
-    )!
-
-    const handleOptionClick = (option: PowOption) => {
+    const handleOptionClick = (n: number) => {
         if (checked) return
-        if (wrongTried.some((w) => sameOption(w, option))) return
-        if (sameOption(option, currentCorrectOption)) {
+        if (wrongTried.includes(n)) return
+        const correct = powAnswer(trials[trialIndex])[stage]
+        if (n === correct) {
             registerCombo(wrongTried.length === 0)
+            if (stage < 3) {
+                setStage(stage + 1)
+                setWrongTried([])
+                setWrongFlash(null)
+                return
+            }
             showAnswerMeme(true)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
@@ -417,7 +429,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             showAnswerMeme(false)
-            setWrongTried((prev) => [...prev, option])
+            setWrongTried((prev) => [...prev, n])
             setWrongFlash(pickWrongTryPhrase())
         }
     }
@@ -436,6 +448,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setStage(0)
             setWrongTried([])
             setWrongFlash(null)
             setAdvancing(false)
@@ -490,6 +503,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     const handleReplay = () => {
         // сцена с растущей формулой проигрывается с самого начала
         if (latestSceneKey === 'step-0') { setStep(0); setStepReady(false) }
+        else { setChecked(false); setStage(0); setWrongTried([]); setWrongFlash(null) }
         bumpNonce(latestSceneKey)
     }
 
@@ -508,6 +522,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
+            setStage(0)
             setWrongTried([])
             setWrongFlash(null)
         } else if (target.startsWith('step-')) {
@@ -532,9 +547,6 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const correctOption = t.options.find(
-                        (o) => sameOption(o, { frac: [t.m, t.n], base: t.a, arg: t.b })
-                    )!
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
@@ -568,25 +580,33 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span>{trials.length}</span>
                                 </div>
                                 <p className="text-base md:text-lg text-[#F2F7FB] text-center">
-                                    Выбери правильный ответ:
+                                    {isDone || !isCurrent ? 'Собрали ответ' : POW_STAGE_PROMPTS[stage]}
                                 </p>
                             </div>
                             <DiagramBlock>
-                                <PowFormula a={t.a} n={t.n} b={t.b} m={t.m} />
+                                <PowFormula a={t.a} n={t.n} b={t.b} m={t.m} marked={i < 2} />
+                                <PowAnswer t={t} filled={isDone ? 4 : (isCurrent ? stage : 4)} done={isDone} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
-                                    <div className="drop-in-options grid grid-cols-2 gap-3">
-                                        {t.options.map((opt, oi) => {
-                                            const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
+                                    <div key={stage} className="drop-in-options flex flex-wrap justify-center gap-3">
+                                        {t.options[stage].map((n) => {
+                                            const isWrongTriedOpt = wrongTried.includes(n)
                                             return (
-                                                <MiniAnswerButton
-                                                    key={oi}
-                                                    option={opt}
-                                                    state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                <button
+                                                    key={n}
+                                                    type="button"
+                                                    onClick={() => handleOptionClick(n)}
                                                     disabled={isWrongTriedOpt}
-                                                    onClick={() => handleOptionClick(opt)}
-                                                />
+                                                    className={cn(
+                                                        'min-w-[72px] py-3 px-4 rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-colors inline-flex items-center justify-center',
+                                                        isWrongTriedOpt
+                                                            ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                                            : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                                    )}
+                                                >
+                                                    {n}
+                                                </button>
                                             )
                                         })}
                                     </div>
@@ -601,20 +621,6 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                             )}
                             {isDone && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {t.options.map((opt, oi) => {
-                                            const isCorrectOpt = sameOption(opt, correctOption)
-                                            const isWrongTriedOpt = isCurrent && wrongTried.some((w) => sameOption(w, opt))
-                                            return (
-                                                <MiniAnswerButton
-                                                    key={oi}
-                                                    option={opt}
-                                                    disabled
-                                                    state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}
-                                                />
-                                            )
-                                        })}
-                                    </div>
                                     <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
                                         {pickTrialFeedback(t)}
                                     </FieryFeedbackBanner>
