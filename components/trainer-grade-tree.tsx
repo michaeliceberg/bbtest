@@ -716,7 +716,7 @@ export const StagePath = ({
                                     </div>
                                 )}
                                 <div
-                                    className="text-[15px] font-extrabold leading-tight line-clamp-3"
+                                    className={cn("text-[15px] font-extrabold leading-tight", !hasLessonPreview(s.title) && "line-clamp-3")}
                                     style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.75)', textShadow: LABEL_SHADOW }}
                                 >
                                     {hasLessonPreview(s.title)

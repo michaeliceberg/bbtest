@@ -4,7 +4,7 @@
 // о чём урок. Пока готово для двух уроков логарифмов; у остальных остаётся обычное название (previewFor вернёт null).
 // Только transform/opacity, анимации бесконечные и лёгкие (две-три цифры).
 
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 
 const CYCLE = 2.8
@@ -173,10 +173,28 @@ export const hasLessonPreview = (title: string) => norm(title) in PREVIEWS
 
 export const LessonLabelPreview = ({ title, color }: { title: string; color: string }) => {
     const make = PREVIEWS[norm(title)]
+    const outer = useRef<HTMLSpanElement>(null)
+    const inner = useRef<HTMLSpanElement>(null)
+    const [k, setK] = useState(1)
+    // на узком экране картинка шире доступного места: уменьшаем целиком (transform), а не режем многоточием
+    useLayoutEffect(() => {
+        const fit = () => {
+            const o = outer.current, n = inner.current
+            if (!o || !n) return
+            const avail = o.parentElement?.clientWidth ?? o.clientWidth
+            const need = n.offsetWidth - 12
+            setK(avail > 0 && need > avail ? Math.max(0.5, avail / need) : 1)
+        }
+        fit()
+        window.addEventListener('resize', fit)
+        return () => window.removeEventListener('resize', fit)
+    }, [title])
     if (!make) return null
     return (
-        <span className="inline-block py-1" style={{ color }} aria-label={title} title={title}>
-            {make()}
+        <span ref={outer} className="block" style={{ color }} aria-label={title} title={title}>
+            <span ref={inner} className="-ml-3 inline-block px-3 py-2" style={{ transform: `scale(${k})`, transformOrigin: 'left center' }}>
+                {make()}
+            </span>
         </span>
     )
 }
