@@ -86,7 +86,7 @@ const RightExpr = ({ on, base, arg }: { on: boolean; base: number | null; arg: n
 )
 
 // Вычёркивание: меряем элементы с data-marker и рисуем поверх выбранный способ (см. strike-variants.tsx).
-const Strikes = ({ containerRef, markers }: { containerRef: RefObject<HTMLDivElement | null>; markers: string[] }) => {
+const Strikes = ({ containerRef, markers, dim }: { containerRef: RefObject<HTMLDivElement | null>; markers: string[]; dim: boolean }) => {
     const [rects, setRects] = useState<{ x: number; y: number; w: number; h: number }[]>([])
     useEffect(() => {
         const c = containerRef.current
@@ -98,7 +98,8 @@ const Strikes = ({ containerRef, markers }: { containerRef: RefObject<HTMLDivEle
         }))
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    return <>{rects.map((r, i) => <StrikeMark key={i} rect={r} delay={i * 0.45} />)}</>
+    // линии бледнеют вместе с логарифмами
+    return <span style={{ opacity: dim ? 0.3 : 1, transition: 'opacity 0.5s' }}>{rects.map((r, i) => <StrikeMark key={i} rect={r} delay={i * 0.45} />)}</span>
 }
 
 // Летящее число: один прогресс p, парабола (прямая + дуга 4·p·(1−p)), маркер к концу растворяется.
@@ -219,7 +220,7 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
                 <div ref={ref} className="relative w-full py-4 flex items-center justify-center gap-5 text-2xl md:text-3xl font-extrabold">
                     {ex.left({ marked, dim, fly, sent })}
                     <RightExpr on={rightOn} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
-                    {struck && <Strikes containerRef={ref} markers={ex.strike} />}
+                    {struck && <Strikes containerRef={ref} markers={ex.strike} dim={dim} />}
                     {flyers?.map((f) => <FlyerView key={`${f.n}-${f.left}`} f={f} />)}
                 </div>
             </DiagramBlock>
