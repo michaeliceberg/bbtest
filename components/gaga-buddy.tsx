@@ -186,16 +186,19 @@ const BubbleView = ({ s }: { s: Shown }) => {
                     animate={s.shot ? { scale: [1, 0.82, 1.06, 1], rotate: [0, -9, 4, 0], x: [0, -10, 3, 0] } : { scale: 1 }}
                     transition={s.shot ? { delay: SHOT_DELAY, duration: 0.42, times: [0, 0.18, 0.55, 1], ease: 'easeOut' } : undefined}
                 >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <motion.img
-                        src={s.src}
-                        alt={s.joke ? '' : 'Команданте Мигель'}
-                        draggable={false}
-                        className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain"
-                        initial={{ rotate: -14, scale: 0.7 }}
-                        animate={{ rotate: 0, scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
-                    />
+                    {/* Гусь на стикерах смотрит влево, а облачко справа: отражаем, чтобы он «говорил» в облачко (стикер с базукой и мемы-шутки не трогаем) */}
+                    <div className={s.shot || s.joke ? undefined : '-scale-x-100'}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <motion.img
+                            src={s.src}
+                            alt={s.joke ? '' : 'Команданте Мигель'}
+                            draggable={false}
+                            className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain"
+                            initial={{ rotate: -14, scale: 0.7 }}
+                            animate={{ rotate: 0, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
+                        />
+                    </div>
                 </motion.div>
                 {s.shot && !SHOT_HAS_OWN_FLASH && <MuzzleSmoke />}
                 {s.shot && !SHOT_HAS_OWN_FLASH && <MuzzleFlash />}
