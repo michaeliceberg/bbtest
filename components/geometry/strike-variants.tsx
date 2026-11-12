@@ -24,7 +24,7 @@ export const STRIKE_VARIANTS: StrikeVariant[] = [
     { id: 'flat-pink', name: 'Горизонталь, толстая малиновая', color: PINK, width: 5, lines: [[0, 0.5, 1, 0.5]] },
 ]
 
-export const STRIKE_VARIANT = STRIKE_VARIANTS[0]
+export const STRIKE_VARIANT = STRIKE_VARIANTS[3]
 
 // Зачёркивание одного элемента: rect — его координаты в контейнере (px).
 export const StrikeMark = ({ rect, variant = STRIKE_VARIANT, delay = 0 }: { rect: { x: number; y: number; w: number; h: number }; variant?: StrikeVariant; delay?: number }) => {
