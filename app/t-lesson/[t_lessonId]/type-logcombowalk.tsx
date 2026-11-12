@@ -26,7 +26,7 @@ const Combo = ({ a, b, c, o }: { a: number; b: number; c: number; o: LeftOpts })
         <span data-marker="s1" className="ml-1 inline-block" style={{ opacity: o.dim ? 0.3 : 1, transition: 'opacity 0.5s' }}>
             {o.marked ? <Mark value={b} color={COL_MATCH} /> : <Plain>{b}</Plain>}
         </span>
-        <span className="mx-2"><Plain>·</Plain></span>
+        <span className="mx-2" style={{ opacity: o.dim ? 0.3 : 1, transition: 'opacity 0.5s' }}><Plain>·</Plain></span>
         <span data-marker="s2" className="inline-flex items-baseline" style={{ opacity: o.dim ? 0.3 : 1, transition: 'opacity 0.5s' }}>
             <Plain>log</Plain>
             <sub className="ml-0.5">{o.marked ? <Mark value={b} color={COL_MATCH} /> : <Plain>{b}</Plain>}</sub>
@@ -42,8 +42,8 @@ const example = (a: number, b: number, c: number, lines: ChainExample['lines'], 
     kind: 'oval',
     // обводится «3 · log₃»: число под первым логарифмом и основание второго
     strike: ['s1', 's2'],
-    // первое основание — в основание итога, последнее число — под логарифм
-    flyers: [{ from: 'a', to: 'base', n: a, color: COL_BASE, arc: -48 }, { from: 'c', to: 'arg', n: c, color: COL_ARG, arc: -84 }],
+    // первое основание летит по нижней дуге (вниз-вправо и вверх), последнее число — дугой сверху
+    flyers: [{ from: 'a', to: 'base', n: a, color: COL_BASE, arc: 70 }, { from: 'c', to: 'arg', n: c, color: COL_ARG, arc: -60 }],
     lines,
     labels,
 })
@@ -55,17 +55,17 @@ const CFG: ChainWalkConfig = {
                 ['Видишь две тройки?', 'Одна под логарифмом, другая в основании.'],
                 ['Получается вот такая конструкция.'],
                 ['Конструкция исчезает!'],
-                ['Остались двойка и четвёрка.', 'Двойка в основание, четвёрка под логарифм.'],
+                ['Остались двойка и четвёрка.', 'Получился НОВЫЙ логарифм!'],
             ],
-            ['Вижу 👀 одинаковые тройки', 'Конструкцию вижу', 'Конструкция исчезла', 'Края слипаются в один логарифм']),
+            ['Вижу 👀 одинаковые тройки', 'Конструкцию вижу', 'Конструкция исчезла', 'Круто! Получили новый логарифм!']),
         example(5, 7, 3,
             [
                 ['А здесь?', 'Две семёрки рядом.'],
                 ['Снова вот такая конструкция.'],
                 ['Конструкция исчезает!'],
-                ['Пятёрка в основание.', 'Тройка под логарифм.'],
+                ['Нижняя пятёрка вниз.', 'Тройка наверх.'],
             ],
-            ['Вижу 👀 одинаковые семёрки', 'Конструкцию вижу', 'Опять исчезла', 'Комбо собрано']),
+            ['Вижу 👀 одинаковые семёрки', 'Конструкцию вижу', 'Как приведение! 👻', 'Комбо собрано 🍔🍟🥤']),
     ],
     prompt: ([a, b, c]) => <Combo a={a} b={b} c={c} o={{ marked: false, dim: false, fly: false, sent: false }} />,
     answer: ([a, , c]) => [a, c],
