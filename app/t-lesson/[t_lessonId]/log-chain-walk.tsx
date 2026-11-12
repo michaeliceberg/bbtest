@@ -207,7 +207,7 @@ const Lines = ({ lines, dim, onDone }: { lines: Line[]; dim: boolean; onDone: ()
 
 // Двойная стрелка над парой чисел: «качается» — наконечники по очереди загораются (то у a, то у b), вся стрелка слегка покачивается.
 const SwayArrow = ({ containerRef, from, to, color }: { containerRef: RefObject<HTMLDivElement | null>; from: string; to: string; color: string }) => {
-    const [g, setG] = useState<{ d: string; h1: string; h2: string } | null>(null)
+    const [g, setG] = useState<{ d: string; h1: string; h2: string; px: number; py: number } | null>(null)
     useEffect(() => {
         const c = containerRef.current
         const fe = c?.querySelector<HTMLElement>(`[data-marker="${from}"]`), te = c?.querySelector<HTMLElement>(`[data-marker="${to}"]`)
@@ -224,13 +224,14 @@ const SwayArrow = ({ containerRef, from, to, color }: { containerRef: RefObject<
         }
         // касательные квадратичной кривой на концах
         const a1 = Math.atan2(y1 - cy, x1 - cx), a2 = Math.atan2(y2 - cy, x2 - cx)
-        setG({ d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, h1: head(x1, y1, a1), h2: head(x2, y2, a2) })
+        setG({ d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, h1: head(x1, y1, a1), h2: head(x2, y2, a2), px: cx, py: (y1 + y2) / 2 + 8 })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     if (!g) return null
     return (
-        <motion.svg className="pointer-events-none absolute inset-0" style={{ overflow: 'visible', width: '100%', height: '100%' }}
-            animate={{ y: [0, -3, 0, 3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
+        <motion.svg className="pointer-events-none absolute inset-0" style={{ overflow: 'visible', width: '100%', height: '100%', transformOrigin: `${g.px}px ${g.py}px` }}
+            // качается по и против часовой на небольшой угол вокруг точки между цифрами
+            animate={{ rotate: [-9, 9, -9] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
             <motion.path d={g.d} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round"
                 initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
             <motion.polygon points={g.h1} fill={color} animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', times: [0, 0.5, 1] }} />
