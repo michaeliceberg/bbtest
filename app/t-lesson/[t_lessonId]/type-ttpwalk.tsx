@@ -573,8 +573,8 @@ type SceneProps = { onSettled?: (nextLabel?: string) => void; leaving?: boolean;
 
 const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
 
-// Угол линии на плоскости в первых сценах: чуть-чуть НЕперпендикулярен будущей стреле, на экране почти вертикально (потом ученик сам её повернёт).
-const GROUND_PHI = -25
+// Угол линии на плоскости в первых сценах: перпендикулярна будущей стреле (φ = 0) (потом ученик сам её повернёт).
+const GROUND_PHI = 0
 
 // «Представим, что у нас есть плоскость» → плоскость → «И на плоскости проведена линия» → линия рисуется.
 const GroundScene = ({ onSettled }: SceneProps) => {
@@ -620,8 +620,8 @@ const SpearScene = ({ onSettled }: SceneProps) => {
         if (shotDone.current) return
         shotDone.current = true
         later(() => setPhase(2), 300)
-        later(() => setPhase(3), 1200)
-        later(() => setPhase(4), 1200 + 450 + FLY_MS + 1300)
+        later(() => setPhase(3), 1700)
+        later(() => setPhase(4), 1700 + 450 + FLY_MS + 1300)
     }
     const shoot = () => {
         setBtn(false)
@@ -632,21 +632,18 @@ const SpearScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <div className="relative w-full max-w-[448px] mx-auto" style={{ aspectRatio: '340 / 290', overflowX: 'clip' }}>
-                <motion.div
-                    className="absolute inset-0" style={{ transformOrigin: '0% 50%' }}
-                    initial={false} animate={{ scale: phase >= 2 ? 1 : 0.62 }} transition={{ type: 'spring', bounce: 0.2, duration: 0.9 }}
-                >
+                <motion.div className="absolute inset-0" initial={false} animate={{ opacity: phase >= 2 ? 1 : 0 }} transition={{ duration: 0.6, delay: phase >= 2 ? 0.7 : 0 }}>
                     {phase >= 3
                         ? <Figure key="shot" scene={1} pick={null} fly phi={phi} forceLine />
                         : <Figure key="idle" scene={1} pick={null} spearOn={false} phi={phi} forceLine />}
                 </motion.div>
                 <motion.div
-                    className="absolute bottom-0 right-0 w-[46%]"
+                    className="absolute bottom-0 w-[46%]" style={{ left: '27%' }}
                     initial={{ opacity: 0, scale: 0.7 }}
-                    animate={phase >= 2 ? { opacity: 1, scale: 1, x: '150%' } : { opacity: 1, scale: 1, x: 0 }}
+                    animate={phase >= 2 ? { opacity: 1, scale: 1, x: '260%' } : { opacity: 1, scale: 1, x: 0 }}
                     transition={phase >= 2 ? { duration: 0.7, ease: 'easeIn' } : { type: 'spring', bounce: 0.4, duration: 0.6 }}
                 >
-                    <div style={{ transform: 'rotate(10deg) scaleX(-1)' }}>
+                    <div style={{ transform: 'rotate(25deg) scaleX(-1)' }}>
                         <Lottie
                             lottieRef={lottieRef} animationData={bowAnim}
                             autoplay={false} loop={false} initialSegment={[BOW_FROM, BOW_FROM + 1]}
@@ -665,7 +662,7 @@ const SpearScene = ({ onSettled }: SceneProps) => {
             {phase >= 4 && (
                 <TypedLineWithParts
                     parts={[{ text: 'Стрела воткнулась в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT }, { text: '.' }]}
-                    onSettled={() => onSettled?.()}
+                    onSettled={() => onSettled?.('Стрела попала в линию')}
                 />
             )}
         </SceneBox>
