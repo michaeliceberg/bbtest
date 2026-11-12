@@ -213,10 +213,10 @@ const SwayArrow = ({ containerRef, from, to, color }: { containerRef: RefObject<
         const fe = c?.querySelector<HTMLElement>(`[data-marker="${from}"]`), te = c?.querySelector<HTMLElement>(`[data-marker="${to}"]`)
         if (!c || !fe || !te) return
         const cr = c.getBoundingClientRect(), fr = fe.getBoundingClientRect(), tr = te.getBoundingClientRect()
-        // цифры стоят вплотную: растягиваем стрелку чуть шире пары, чтобы она читалась
-        const x1 = fr.left + fr.width / 2 - cr.left - 10, x2 = tr.left + tr.width / 2 - cr.left + 10
+        // концы стрелки чуть внутри рамок цифр: при качании она не выходит за левый край 8 и правый край 2
+        const x1 = fr.left + fr.width / 2 - cr.left + 2, x2 = tr.left + tr.width / 2 - cr.left - 2
         const y1 = fr.top - cr.top - 8, y2 = tr.top - cr.top - 8
-        const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - 34
+        const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - 26
         const head = (x: number, y: number, ang: number) => {
             const L = 10, W = 5.5
             const p = (dx: number, dy: number) => `${(x + dx * Math.cos(ang) - dy * Math.sin(ang)).toFixed(1)},${(y + dx * Math.sin(ang) + dy * Math.cos(ang)).toFixed(1)}`
@@ -231,7 +231,7 @@ const SwayArrow = ({ containerRef, from, to, color }: { containerRef: RefObject<
     return (
         <motion.svg className="pointer-events-none absolute inset-0" style={{ overflow: 'visible', width: '100%', height: '100%', transformOrigin: `${g.px}px ${g.py}px` }}
             // качается по и против часовой на небольшой угол вокруг точки между цифрами
-            animate={{ rotate: [-9, 9, -9] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
+            animate={{ rotate: [-7, 7, -7] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
             <motion.path d={g.d} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round"
                 initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
             <motion.polygon points={g.h1} fill={color} animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', times: [0, 0.5, 1] }} />
