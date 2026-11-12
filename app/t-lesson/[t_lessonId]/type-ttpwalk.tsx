@@ -1,10 +1,10 @@
 // app/t-lesson/[t_lessonId]/type-ttpwalk.tsx
 //
 // Тип TTPWALK — интерактивный разбор «Теорема о Трёх Перпендикулярах (ТТП)» (стереометрия,
-// ЕГЭ Математика) на метафоре «из жизни»: земля → копьё, воткнувшееся в землю → линия на земле
-// → «копьё ⟂ линии?» → тень копья (ученик сам выбирает точку, откуда падает луч) → угол 90° →
+// ЕГЭ Математика) на метафоре «из жизни»: земля → стрела, воткнувшееся в землю → линия на земле
+// → «стрела ⟂ линии?» → тень стрелы (ученик сам выбирает точку, откуда падает луч) → угол 90° →
 // «по-школьному» (плоскость α, наклонная a, прямая b, проекция a) → вывод ТТП.
-// Цвета: копьё/a — голубой, линия/b — зелёный, тень/проекция — тёмно-зелёный «теневой» (GGEGE_SHADOW), земля/плоскость —
+// Цвета: стрела/a — голубой, линия/b — зелёный, тень/проекция — тёмно-зелёный «теневой» (GGEGE_SHADOW), земля/плоскость —
 // бирюзовый, угол 90° — оранжевый.
 
 'use client'
@@ -27,6 +27,9 @@ import { GGEGE_PALETTE, GGEGE_SHADOW, hexToRgba } from '@/src/constants/lessonBu
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { AlphaVideo } from '@/components/alpha-video'
+import Lottie from '@/components/lottie-player'
+import type { LottieRefCurrentProps } from 'lottie-react'
+import bowAnim from '@/public/Lottie/arrow-bow.json'
 
 type Props = {
     question: QuestionType
@@ -37,13 +40,15 @@ type Props = {
 
 const CONCEPT_PAUSE_MS = 1000
 
-const Sticker = ({ value, color, bg, border }: { value: React.ReactNode; color: string; bg?: string; border?: string }) => (
+// Текстовыделение 2.0: сплошной цветной маркер с тёмным текстом (вместо рамки-стикера).
+const MARK_INK = '#10181C'
+const Sticker = ({ value, color, border }: { value: React.ReactNode; color: string; bg?: string; border?: string }) => (
     <motion.span
         initial={{ scale: 2.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-        className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 font-extrabold align-middle leading-none"
-        style={{ borderColor: border ?? color, backgroundColor: bg ?? hexToRgba(color, 0.18), color }}
+        className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle"
+        style={{ background: border ?? color, color: MARK_INK, lineHeight: 1.15 }}
     >
         {value}
     </motion.span>
@@ -94,8 +99,8 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
         >
-            <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
-            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>{text}</text>
+            <rect x={-12} y={-13} width={24} height={26} rx={3} fill={color} />
+            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={MARK_INK}>{text}</text>
         </motion.g>
     </g>
 )
@@ -122,8 +127,8 @@ const GroundOTag = ({ delay = 0, pale = false }: { delay?: number; pale?: boolea
     return (
         <g transform={groundMatrix(c.x, c.y)} opacity={pale ? 0.3 : 1} style={{ transition: 'opacity 0.25s' }}>
             <motion.g initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}>
-                <rect x={-17} y={-17} width={34} height={34} rx={8} fill={O_FILL} stroke={O_TEXT} strokeWidth={2.5} />
-                <text x={0} y={8} textAnchor="middle" fontSize={23} fontWeight={900} fill={O_TEXT}>O</text>
+                <rect x={-15} y={-17} width={30} height={34} rx={4} fill={O_TEXT} />
+                <text x={0} y={8} textAnchor="middle" fontSize={23} fontWeight={900} fill={MARK_INK}>O</text>
             </motion.g>
         </g>
     )
@@ -140,14 +145,14 @@ const GroundODot = ({ fresh, delay = 0 }: { fresh: boolean; delay?: number }) =>
 )
 
 // ===================================================================
-// ЧЕРТЁЖ: земля (плоскость), копьё (наклонная), линия на земле, тень (проекция)
+// ЧЕРТЁЖ: земля (плоскость), стрела (наклонная), линия на земле, тень (проекция)
 // ===================================================================
-// «Из жизни»: спортсмен метнул копьё — оно воткнулось в землю в точке O, на земле проведена
-// линия b (ученик сам крутит её «примерно перпендикулярно»). Перпендикулярно ли копьё линии?
+// «Из жизни»: лучник выпустил стрелу — она воткнулась в землю в точке O, на земле проведена
+// линия b (ученик сам крутит её «примерно перпендикулярно»). Перпендикулярно ли стрела линии?
 // Проверяем по ТЕНИ (солнце в зените ⇒ тень = проекция). Потом всё то же «по-школьному»:
 // плоскость α, наклонная a, прямая b, проекция a.
 // Косая проекция 3D→2D, сцена повёрнута вокруг вертикали (по часовой, если смотреть сверху).
-// Копьё лежит в плоскости, перпендикулярной оси x; линия b вдоль x (φ = 0) ⟂ копью.
+// Стрела лежит в плоскости, перпендикулярной оси x; линия b вдоль x (φ = 0) ⟂ стреле.
 
 const VB_W = 340, VB_H = 290
 const ANG = (28 * Math.PI) / 180
@@ -166,11 +171,11 @@ const X_COLOR = '#F2F7FB'
 const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
 
-// Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
-const O3 = { x: 5, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное копьё и его тень помещались на площадке
+// Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
+const O3 = { x: 5, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
 const aPoint = (s: number) => ({ x: 5, y: O3.y + s, z: 1.05 * s })
-const S_HIGH = 4.2 // тень верхушки копья ровно на краю площадки (y = 7)
-const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу копья, подальше от O
+const S_HIGH = 4.2 // тень верхушки стрелы ровно на краю площадки (y = 7)
+const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу стрелы, подальше от O
 const DEFAULT_PICK = 3.35
 const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 7], [0, 7]]
 const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
@@ -182,7 +187,7 @@ const rawProj = (x: number, y: number, z: number) => {
     const ry = CYW - dx * Math.sin(ANG) + dy * Math.cos(ANG)
     return { x: rx + 0.75 * ry, y: -(z + 0.5 * ry) }
 }
-// Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + верх копья).
+// Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + верх стрелы).
 const FIT = (() => {
     const top = aPoint(S_HIGH)
     const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), rawProj(top.x, top.y, top.z)]
@@ -203,7 +208,7 @@ const unproject = (sx: number, sy: number) => {
     return { x: CXW + dx * Math.cos(ANG) - dy * Math.sin(ANG), y: CYW + dx * Math.sin(ANG) + dy * Math.cos(ANG) }
 }
 
-// Угол линии b (в градусах, φ=0 — вдоль x, то есть ⟂ копью) приводим к (-90, 90].
+// Угол линии b (в градусах, φ=0 — вдоль x, то есть ⟂ стреле) приводим к (-90, 90].
 const normPhi = (deg: number) => { let d = ((deg % 180) + 180) % 180; if (d > 90) d -= 180; return d }
 // «Немного дискретное» вращение: каждые 15° — «залипание», у прямого угла (0°) — сильнее.
 const detent = (deg: number) => {
@@ -262,8 +267,8 @@ const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0 }: { x: number; y:
                 initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
             >
-                <rect x={-w / 2} y={-13} width={w} height={26} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
-                <text x={0} y={5.5} textAnchor="middle" fontSize={14} fontWeight={800} fill={color}>{text}</text>
+                <rect x={-w / 2} y={-12} width={w} height={24} rx={3} fill={color} />
+                <text x={0} y={5} textAnchor="middle" fontSize={14} fontWeight={800} fill={MARK_INK}>{text}</text>
             </motion.g>
         </g>
     )
@@ -272,7 +277,7 @@ const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0 }: { x: number; y:
 const rightAngleMark = (o: { x: number; y: number; z: number }, d1: [number, number, number], d2: [number, number, number]) =>
     `M${ptStr(o.x + d1[0], o.y + d1[1], o.z + d1[2])} L${ptStr(o.x + d1[0] + d2[0], o.y + d1[1] + d2[1], o.z + d1[2] + d2[2])} L${ptStr(o.x + d2[0], o.y + d2[1], o.z + d2[2])}`
 
-// Копьё: летит справа сверху с ускорением (остриём вперёд) и втыкается в точку O: покачивание,
+// Стрела: летит справа сверху с ускорением (остриём вперёд) и втыкается в точку O: покачивание,
 // кольцо пыли и комочки земли. t — миллисекунды от старта (t<0 — ещё не началось).
 const FLY_MS = 950
 const spearFlight = (t: number) => {
@@ -286,22 +291,22 @@ const spearFlight = (t: number) => {
 
 const DUST = Array.from({ length: 9 }, (_, i) => ({ ang: (i / 9) * Math.PI * 2 + 0.3, dist: 26 + ((i * 37) % 22), rise: 14 + ((i * 53) % 18), r: 2 + (i % 3) }))
 
-// scene: 0 земля · 1 копьё · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
-const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3, bushJoke, forceLine = false, lineFresh = false }: {
+// scene: 0 земля · 1 стрела · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
+const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3, spearOn = true, forceLine = false, lineFresh = false }: {
     scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void
-    // сцена 0: шутка «Если что, это кустик» (стрелка + подпись), true — показать, false — убрать
-    bushJoke?: boolean
+    // false — стрелы ещё нет (она появится позже отдельным экземпляром с fly)
+    spearOn?: boolean
     // сцена 4: 1 — опускается солнце, 2 — с bounce появляется тёмная тень, 3 — можно выбирать точку
     pre?: number
     phi?: number
     rotate?: { onRotate: (rawDeg: number) => void; locked: boolean }
     fly?: boolean
-    // линия на земле уже в сценах 0–1 (с 2026-10-09 линия появляется ДО броска копья)
+    // линия на земле уже в сценах 0–1 (с 2026-10-09 линия появляется ДО броска стрелы)
     forceLine?: boolean
     lineFresh?: boolean
 }) => {
     const school = scene >= 6
-    const hasSpear = scene >= 1
+    const hasSpear = scene >= 1 && spearOn
     const hasB = scene >= 2 || forceLine
     const s = pick ?? (scene >= 5 ? DEFAULT_PICK : null)
     const later = scene > 4
@@ -315,7 +320,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const shadowOn = scene === 4 ? beat >= 3 : scene === 5
     const svgRef = useRef<SVGSVGElement>(null)
 
-    // полёт копья
+    // полёт стрелы
     const [t, setT] = useState(fly ? -1 : 1e9)
     useEffect(() => {
         if (!fly) return
@@ -334,7 +339,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const vx = aTop.x - Op.x, vy = aTop.y - Op.y
     const vLen = Math.hypot(vx, vy)
     const spearRot = (Math.atan2(-vx / vLen, vy / vLen) * 180) / Math.PI
-    const spearW = 12.5 // ширина копья фиксирована: длиннее копьё — картинка тянется только в длину
+    const spearW = vLen / 8.3 // толщина стрелы: пропорция картинки 949×114
 
     // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
     const ph = phi * DEG
@@ -343,10 +348,11 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const bPath = `M${e2.x.toFixed(1)},${e2.y.toFixed(1)} L${e1.x.toFixed(1)},${e1.y.toFixed(1)}`
     const handle = e1.y > e2.y ? e1 : e2
     const tagEnd = e1.y > e2.y ? e2 : e1
-    // подпись «линия» — вдоль линии, ЗА ближним концом (за ручкой): там нет ни копья, ни точки O
+    // подпись «линия» — вдоль линии, ЗА ближним концом (за ручкой): там нет ни стрелы, ни точки O
     let tagAng = (Math.atan2(e1.y - e2.y, e1.x - e2.x) * 180) / Math.PI
     if (tagAng > 90) tagAng -= 180
     if (tagAng < -90) tagAng += 180
+    if (Math.abs(tagAng) > 62) tagAng = 0 // почти вертикальную линию подписываем горизонтально — так читается
     const tdx = handle.x - tagEnd.x, tdy = handle.y - tagEnd.y, tdl = Math.hypot(tdx, tdy) || 1
     const tagPos = { x: handle.x + (tdx / tdl) * 52, y: handle.y + (tdy / tdl) * 52 }
     // линия (с подписью) проходит по стикеру O — рисуем его бледно
@@ -358,11 +364,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const oT = oTagScreen()
     const oTagCrossed = hasB && (segDist(oT, e2, e1) < 22 || (!school && Math.hypot(tagPos.x - oT.x, tagPos.y - oT.y) < 40))
 
-    // куст — у левого угла земли
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
-    const farCorner = cs.reduce((best, c) => (c.x < best.x ? c : best), cs[0])
     const center = P3(CXW, CYW, 0)
-    const bush = { x: farCorner.x + (center.x - farCorner.x) * 0.3, y: farCorner.y + (center.y - farCorner.y) * 0.3 + 4 }
     const alphaCorner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
     const alphaPos = { x: alphaCorner.x + (center.x - alphaCorner.x) * 0.35, y: alphaCorner.y + (center.y - alphaCorner.y) * 0.35 }
 
@@ -418,8 +421,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                                     <text x={0} y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={PROJ_COLOR}>проекция a</text>
                                 ) : (
                                     <>
-                                        <rect x={-22} y={-11} width={44} height={22} rx={6} fill={SH.bg} stroke={SH.border} strokeWidth={2} />
-                                        <text x={0} y={5} textAnchor="middle" fontSize={13} fontWeight={800} fill={SH.color}>тень</text>
+                                        <rect x={-22} y={-11} width={44} height={22} rx={3} fill={SH.border} />
+                                        <text x={0} y={5} textAnchor="middle" fontSize={13} fontWeight={800} fill={MARK_INK}>тень</text>
                                     </>
                                 )}
                             </motion.g>
@@ -453,37 +456,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>α</motion.text>
                 )}
 
-                {/* куст в углу — чтобы было похоже на настоящую площадку (кружки-крона) */}
-                <g transform={`translate(${bush.x},${bush.y}) scale(0.62)`} opacity={0.85}>
-                    <motion.g
-                        initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                    >
-                        <ellipse cx={2} cy={2} rx={34} ry={9} fill="#04080A" opacity={0.28} />
-                        <circle cx={-17} cy={-9} r={15} fill="#3E7D3C" />
-                        <circle cx={19} cy={-8} r={14} fill="#468A42" />
-                        <circle cx={1} cy={-16} r={19} fill="#4F9A4A" />
-                        <circle cx={-6} cy={-22} r={7} fill="#74BD62" opacity={0.7} />
-                    </motion.g>
-                </g>
-                {bushJoke !== undefined && (
-                    <g transform={`translate(${bush.x},${bush.y})`}>
-                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ duration: 0.4 }}>
-                            <motion.path
-                                d="M58,-110 C30,-106 12,-74 8,-28" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
-                                initial={{ pathLength: 0 }} animate={{ pathLength: bushJoke ? 1 : 0 }} transition={{ duration: 0.5 }}
-                            />
-                            <motion.path
-                                d="M0,-38 L8,-26 L17,-37" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
-                                initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ delay: bushJoke ? 0.45 : 0, duration: 0.2 }}
-                            />
-                            <text x={64} y={-106} fontSize={15} fontWeight={800} fill="#F2C35B">Это кустик,</text>
-                            <text x={64} y={-88} fontSize={15} fontWeight={800} fill="#F2C35B">если что</text>
-                        </motion.g>
-                    </g>
-                )}
-
-                {/* тёмная тень копья на земле (bounce) */}
+                {/* тёмная тень стрелы на земле (bounce) */}
                 {shadowOn && (() => {
                     const Hm = P3(5, O3.y + S_HIGH, 0)
                     const dx = Hm.x - Op.x, dy = Hm.y - Op.y
@@ -506,7 +479,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     </>
                 )}
 
-                {/* копьё (картинка): летит и втыкается. Подписей нет — «оно и так копьё» */}
+                {/* стрела (картинка): летит и втыкается. Подписей нет — «оно и так стрела» */}
                 {hasSpear && flight.op > 0 && (
                     <g transform={`translate(${Op.x + vx * 1.5 * flight.f},${Op.y + vy * 1.5 * flight.f})`} opacity={flight.op}>
                         {flight.f > 0.02 && (
@@ -514,7 +487,10 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                         )}
                         <g transform={`rotate(${flight.wob})`}>
                             <g transform={`rotate(${spearRot})`}>
-                                <image href="/lesson-pics/spear.webp" x={-spearW / 2} y={0} width={spearW} height={vLen} preserveAspectRatio="none" />
+                                {/* стрела (949×114, остриё справа): поворачиваем остриём вверх, остриё — в точке O */}
+                                <g transform={`translate(${-spearW / 2},${vLen}) rotate(-90)`}>
+                                    <image href="/ttp-arrow.webp" x={0} y={0} width={vLen} height={spearW} preserveAspectRatio="none" />
+                                </g>
                             </g>
                         </g>
                     </g>
@@ -560,7 +536,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     </g>
                 )}
 
-                {/* точки на копье, из которых можно «опустить луч» */}
+                {/* точки на стреле, из которых можно «опустить луч» */}
                 {scene === 4 && pick == null && onPick && pre >= 3 && CANDIDATES.map((c) => {
                     const p = aPoint(c); const q = P3(p.x, p.y, p.z)
                     return (
@@ -597,85 +573,98 @@ type SceneProps = { onSettled?: (nextLabel?: string) => void; leaving?: boolean;
 
 const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
 
-// Диаграмма появляется ПОСЛЕ печати текста (текст → чертёж → пауза), а потом сцена готова.
-const useAfterTyped = () => {
-    const [typed, setTyped] = useState(false)
-    return { typed, onTyped: () => setTyped(true) }
-}
+// Угол линии на плоскости в первых сценах: чуть-чуть НЕперпендикулярен будущей стреле, на экране почти вертикально (потом ученик сам её повернёт).
+const GROUND_PHI = -25
 
-// Площадка с кустиком (шутка «Если что, это кустик») → «А это линия на земле» — линия под заведомо
-// НЕперпендикулярным к будущему копью углом (32–58° в любую сторону).
+// «Представим, что у нас есть плоскость» → плоскость → «И на плоскости проведена линия» → линия рисуется.
 const GroundScene = ({ onSettled }: SceneProps) => {
     const { setPhi } = useContext(PickCtx)
-    const [initial] = useState(() => (Math.random() < 0.5 ? -1 : 1) * (32 + Math.random() * 26))
-    useEffect(() => { setPhi(initial) }, [setPhi, initial])
-    const { typed, onTyped } = useAfterTyped()
-    const [joke, setJoke] = useState<boolean | undefined>(undefined)
+    useEffect(() => { setPhi(GROUND_PHI) }, [setPhi])
+    const [plane, setPlane] = useState(false)
     const [lineText, setLineText] = useState(false)
     const [line, setLine] = useState(false)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     useEffect(() => () => timers.current.forEach(clearTimeout), [])
-    const afterDiagram = () => {
-        timers.current.push(
-            setTimeout(() => setJoke(true), 500),
-            setTimeout(() => setLineText(true), 2300),
-        )
-    }
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Вот площадка для метания копья 🌿' }]} onSettled={onTyped} />
-            {typed && (
-                <DiagramBlock onSettled={afterDiagram}>
-                    <Figure scene={0} pick={null} bushJoke={joke} phi={initial} forceLine={line} lineFresh />
+            <TypedLineWithParts parts={[{ text: 'Представим, что у нас есть ' }, { sticker: 'плоскость', color: PLANE_COLOR }]} onSettled={() => setPlane(true)} />
+            {plane && (
+                <DiagramBlock onSettled={() => timers.current.push(setTimeout(() => setLineText(true), 1200))}>
+                    <Figure scene={0} pick={null} phi={GROUND_PHI} forceLine={line} lineFresh />
                 </DiagramBlock>
             )}
             {lineText && (
-                <TypedLineWithParts parts={[{ text: 'А это ' }, { sticker: 'линия', color: B_COLOR }, { text: ' на земле' }]}
-                    onSettled={() => { setLine(true); timers.current.push(setTimeout(() => onSettled?.(), 1500)) }} />
+                <TypedLineWithParts
+                    parts={[{ text: 'И на ' }, { sticker: 'плоскости', color: PLANE_COLOR }, { text: ' проведена ' }, { sticker: 'линия', color: B_COLOR }]}
+                    onSettled={() => { setLine(true); timers.current.push(setTimeout(() => onSettled?.('Вижу 👀 плоскость и линию на ней'), 1500)) }}
+                />
             )}
         </SceneBox>
     )
 }
 
-// «Спортсменка бросает копьё..» → видео броска (один раз) → видео убираем, копьё летит и
-// втыкается → «оно воткнулось в землю в точке O.»
+// Лучник (Lottie, зеркально и чуть наклонён вверх) стоит неподвижной картинкой, кнопка запускает ОДИН цикл выстрела.
+// Потом лучник уезжает вправо, плоскость возвращается на место, справа сверху прилетает стрела и втыкается в линию.
+const BOW_FROM = 109, BOW_TO = 214
 const SpearScene = ({ onSettled }: SceneProps) => {
     const { phi } = useContext(PickCtx)
-    // 0 печать · 1 видео · 2 копьё втыкается · 3 подпись про точку O
+    // 0 лучник стоит · 1 стреляет · 2 лучник уехал, плоскость на месте · 3 стрела летит · 4 подпись
     const [phase, setPhase] = useState(0)
-    const videoRef = useRef<HTMLVideoElement>(null)
-    const endedRef = useRef(false)
-    const finishVideo = () => { if (endedRef.current) return; endedRef.current = true; setPhase(2) }
-    useEffect(() => {
-        if (phase !== 1) return
-        const v = videoRef.current
-        if (v) v.play().catch(() => { v.muted = true; v.play().catch(() => null) })
-        const t = setTimeout(finishVideo, 7000) // страховка, если ended не придёт
-        return () => clearTimeout(t)
-    }, [phase])
-    useEffect(() => {
-        if (phase !== 2) return
-        const t = setTimeout(() => setPhase(3), 450 + FLY_MS + 1300)
-        return () => clearTimeout(t)
-    }, [phase])
+    const [btn, setBtn] = useState(false)
+    const lottieRef = useRef<LottieRefCurrentProps>(null)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+    useEffect(() => { later(() => setBtn(true), 700); return () => timers.current.forEach(clearTimeout) }, [])
+    const shotDone = useRef(false)
+    const afterShot = () => {
+        if (shotDone.current) return
+        shotDone.current = true
+        later(() => setPhase(2), 300)
+        later(() => setPhase(3), 1200)
+        later(() => setPhase(4), 1200 + 450 + FLY_MS + 1300)
+    }
+    const shoot = () => {
+        setBtn(false)
+        setPhase(1)
+        lottieRef.current?.playSegments([BOW_FROM, BOW_TO], true)
+        later(afterShot, ((BOW_TO - BOW_FROM) / 60) * 1000 + 400) // страховка, если onComplete не придёт
+    }
     return (
         <SceneBox>
-            <TypedLineWithParts
-                parts={[{ text: 'Спортсменка 🏃 бросает ' }, { sticker: 'копьё', color: A_COLOR }, { text: '..' }]}
-                onSettled={() => setPhase(1)}
-            />
-            {phase === 1 && (
-                <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }} className="w-full flex justify-center">
-                    <video
-                        ref={videoRef} src="/video/spear-throw.mp4" playsInline preload="auto" onEnded={finishVideo}
-                        className="w-full max-w-[360px] rounded-2xl border-2 border-[#3A464E]"
-                    />
+            <div className="relative w-full max-w-[448px] mx-auto" style={{ aspectRatio: '340 / 290', overflowX: 'clip' }}>
+                <motion.div
+                    className="absolute inset-0" style={{ transformOrigin: '0% 50%' }}
+                    initial={false} animate={{ scale: phase >= 2 ? 1 : 0.62 }} transition={{ type: 'spring', bounce: 0.2, duration: 0.9 }}
+                >
+                    {phase >= 3
+                        ? <Figure key="shot" scene={1} pick={null} fly phi={phi} forceLine />
+                        : <Figure key="idle" scene={1} pick={null} spearOn={false} phi={phi} forceLine />}
+                </motion.div>
+                <motion.div
+                    className="absolute bottom-0 right-0 w-[46%]"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={phase >= 2 ? { opacity: 1, scale: 1, x: '150%' } : { opacity: 1, scale: 1, x: 0 }}
+                    transition={phase >= 2 ? { duration: 0.7, ease: 'easeIn' } : { type: 'spring', bounce: 0.4, duration: 0.6 }}
+                >
+                    <div style={{ transform: 'rotate(10deg) scaleX(-1)' }}>
+                        <Lottie
+                            lottieRef={lottieRef} animationData={bowAnim}
+                            autoplay={false} loop={false} initialSegment={[BOW_FROM, BOW_FROM + 1]}
+                            onComplete={() => { if (phase === 1) afterShot() }}
+                        />
+                    </div>
+                </motion.div>
+            </div>
+            {btn && (
+                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="w-full">
+                    <button type="button" onClick={shoot} className={cn('w-full', walkthroughButtonClass(true))} style={walkthroughButtonStyle(true)}>
+                        Лучник, огонь!
+                    </button>
                 </motion.div>
             )}
-            {phase >= 2 && <DiagramBlock><Figure scene={1} pick={null} fly phi={phi} forceLine /></DiagramBlock>}
-            {phase >= 3 && (
+            {phase >= 4 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Оно воткнулось прямо в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: '.' }]}
+                    parts={[{ text: 'Стрела воткнулась в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT }, { text: '.' }]}
                     onSettled={() => onSettled?.()}
                 />
             )}
@@ -684,11 +673,11 @@ const SpearScene = ({ onSettled }: SceneProps) => {
 }
 
 const LineScene = ({ onSettled, onAutoNext }: SceneProps) => {
-    const { phi: _phi, setPhi } = useContext(PickCtx)
+    const { phi: ctxPhi, setPhi } = useContext(PickCtx)
     const [typed, setTyped] = useState(false)
     const [locked, setLocked] = useState(false)
     // стартовый угол — случайный и НЕ перпендикулярный (32–58° в любую сторону)
-    const [initial] = useState(() => (Math.random() < 0.5 ? -1 : 1) * (32 + Math.random() * 26))
+    const [initial] = useState(() => (Math.abs(ctxPhi) >= 15 ? ctxPhi : GROUND_PHI))
     const [target, setTarget] = useState(initial)
     const shown = useEasedAngle(target, initial)
     const [moved, setMoved] = useState(false)
@@ -699,7 +688,7 @@ const LineScene = ({ onSettled, onAutoNext }: SceneProps) => {
                 parts={[
                     { text: 'И пусть через ' }, { bold: 'ЭТУ' }, { text: ' точку проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '.' }, { break: true },
                     { bold: 'Крути её так, чтобы она ПРИМЕРНО стала ' }, { sticker: 'перпендикулярна', color: MARK_COLOR }, { text: ' ' },
-                    { sticker: 'копью', color: A_COLOR }, { text: '.' },
+                    { sticker: 'стреле', color: A_COLOR }, { text: '.' },
                 ]}
                 onSettled={() => setTyped(true)}
             />
@@ -767,21 +756,21 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
         <SceneBox>
             <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
             <TypedLineWithParts
-                parts={[{ text: 'А ' }, { bold: 'перпендикулярно' }, { text: ' ли ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
+                parts={[{ text: 'А ' }, { bold: 'перпендикулярно' }, { text: ' ли ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
                 onSettled={() => setTimeout(() => onSettled?.('Интересненько'), 500)}
             />
         </SceneBox>
     )
 }
 
-// Правило: смотрим на ТЕНЬ копья. Две маленькие картинки: тень ⟂ линии → копьё ⟂; тень не ⟂ → копьё не ⟂.
+// Правило: смотрим на ТЕНЬ стрелы. Две маленькие картинки: тень ⟂ линии → стрела ⟂; тень не ⟂ → стрела не ⟂.
 const MiniCase = ({ phi, ok, delay }: { phi: number; ok: boolean; delay: number }) => (
     <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay, type: 'spring', bounce: 0.4 }}
         className="flex-1 min-w-0 flex flex-col items-center gap-1 rounded-2xl border-2 p-2"
         style={{ borderColor: ok ? hexToRgba('#A1D151', 0.7) : hexToRgba('#DC605B', 0.7), backgroundColor: hexToRgba(ok ? '#A1D151' : '#DC605B', 0.07) }}>
         <div className="w-full"><Figure scene={5} pick={DEFAULT_PICK} phi={phi} /></div>
         <p className="text-center text-xs md:text-sm font-black leading-tight" style={{ color: ok ? '#A1D151' : '#DC605B' }}>
-            {ok ? 'тень ⟂ линии → копьё ⟂ линии ✅' : 'тень НЕ ⟂ линии → копьё НЕ ⟂ ❌'}
+            {ok ? 'тень ⟂ линии → стрела ⟂ линии ✅' : 'тень НЕ ⟂ линии → стрела НЕ ⟂ ❌'}
         </p>
     </motion.div>
 )
@@ -790,18 +779,18 @@ const RuleScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Чтобы понять, надо ответить: а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' копья этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
+                parts={[{ text: 'Чтобы понять, надо ответить: а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' стрелы этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
                 onSettled={() => setStep(1)}
             />
             {step >= 1 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' ⟂.' }]}
+                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂.' }]}
                     onSettled={() => setStep(2)}
                 />
             )}
             {step >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' НЕ ⟂ — то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' НЕ ⟂.' }]}
+                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' НЕ ⟂ — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' НЕ ⟂.' }]}
                     onSettled={() => { setStep(3); setTimeout(() => onSettled?.(), 1600) }}
                 />
             )}
@@ -824,7 +813,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     const [found, setFound] = useState(false) // нажали «Агась» → рисуем тень OH
     // сцена начинается заново — прошлый выбор точки сбрасываем
     useEffect(() => { setPick(null) }, [setPick])
-    // после печати — сразу можно выбирать точку на копье, из которой опустим отвес
+    // после печати — сразу можно выбирать точку на стреле, из которой опустим отвес
     useEffect(() => {
         if (!typed) return
         const t3 = setTimeout(() => setPre(3), 600)
@@ -852,7 +841,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
             )}
             {pre >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Опустим из любой точки ' }, { sticker: 'копья', color: A_COLOR }, { bold: ' ПЕРПЕНДИКУЛЯР' }, { text: ' на землю — как отвес 👇' }, { break: true }, { text: 'Нажми на точку на копье' }]}
+                    parts={[{ text: 'Опустим из любой точки ' }, { sticker: 'стрелы', color: A_COLOR }, { bold: ' ПЕРПЕНДИКУЛЯР' }, { text: ' на землю — как отвес 👇' }, { break: true }, { text: 'Нажми на точку на стреле' }]}
                 />
             )}
             {askOk && (
@@ -868,7 +857,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { bold: 'УРА! Вот она!' }, { break: true },
-                        { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'тень', ...SH }, { text: ' от «копья»' },
+                        { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'тень', ...SH }, { text: ' от «стрелы»' },
                     ]}
                     onSettled={() => setTimeout(() => onSettled?.('Изи катка'), 600)}
                 />
@@ -907,7 +896,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
                     <TypedLineWithParts
                         parts={[
                             { text: 'Теперь ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR },
-                            { text: ' — значит и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' },
+                            { text: ' — значит и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' },
                         ]}
                         onSettled={() => { setParty(true); onSettled?.() }}
                     />
@@ -921,7 +910,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
 // «А теперь по-школьному»: те же объекты, но с настоящими названиями.
 const SCHOOL_ROWS: { life: string; lifeColor: string; school: string; schoolColor: string }[] = [
     { life: 'земля', lifeColor: PLANE_COLOR, school: 'плоскость α', schoolColor: PLANE_COLOR },
-    { life: 'копьё', lifeColor: A_COLOR, school: 'наклонная a', schoolColor: A_COLOR },
+    { life: 'стрела', lifeColor: A_COLOR, school: 'наклонная a', schoolColor: A_COLOR },
     { life: 'линия', lifeColor: B_COLOR, school: 'прямая b', schoolColor: B_COLOR },
     { life: 'тень', lifeColor: PROJ_COLOR, school: 'проекция a', schoolColor: PROJ_COLOR },
 ]
@@ -1139,34 +1128,34 @@ type ConceptQuizItem = {
 }
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
-        renderPrompt: () => <><Sticker value="Копьё" color={A_COLOR} /> воткнулось. Как проверить, перпендикулярно ли оно <Sticker value="линии" color={B_COLOR} /> на земле?</>,
-        renderOptions: () => ['Посмотреть, перпендикулярна ли линии ТЕНЬ копья', 'Измерить длину копья'],
+        renderPrompt: () => <><Sticker value="Стрела" color={A_COLOR} /> воткнулась. Как проверить, перпендикулярна ли она <Sticker value="линии" color={B_COLOR} /> на земле?</>,
+        renderOptions: () => ['Посмотреть, перпендикулярна ли линии ТЕНЬ стрелы', 'Измерить длину стрелы'],
         correct: 0,
-        feedback: 'Тень (солнце над головой) — это проекция копья на землю. Смотрим на неё.',
+        feedback: 'Тень (солнце над головой) — это проекция стрелы на землю. Смотрим на неё.',
     },
     {
-        renderPrompt: () => <><Sticker value="Тень" {...SH} /> копья перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда само <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
+        renderPrompt: () => <><Sticker value="Тень" {...SH} /> стрелы перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда сама <Sticker value="стрела" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['перпендикулярны (90°)', 'параллельны'],
         correct: 0,
-        feedback: 'Тень ⟂ линии — значит и копьё ⟂ линии. Это ТТП!',
+        feedback: 'Тень ⟂ линии — значит и стрела ⟂ линии. Это ТТП!',
     },
     {
-        renderPrompt: () => <><Sticker value="Тень" {...SH} /> <b>НЕ</b> перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
+        renderPrompt: () => <><Sticker value="Тень" {...SH} /> <b>НЕ</b> перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда <Sticker value="стрела" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['не перпендикулярны', 'всё равно перпендикулярны'],
         correct: 0,
-        feedback: 'Работает в обе стороны: нет 90° у тени — нет 90° и у копья.',
+        feedback: 'Работает в обе стороны: нет 90° у тени — нет 90° и у стрелы.',
     },
     {
-        renderPrompt: () => <>Как «тень копья» называется <b>по-школьному</b>?</>,
+        renderPrompt: () => <>Как «тень стрелы» называется <b>по-школьному</b>?</>,
         renderOptions: () => ['Проекция наклонной', 'Диагональ плоскости'],
         correct: 0,
-        feedback: 'Копьё — наклонная, земля — плоскость, тень — проекция наклонной.',
+        feedback: 'Стрела — наклонная, земля — плоскость, тень — проекция наклонной.',
     },
     {
         renderPrompt: () => <>Как называется эта теорема?</>,
         renderOptions: () => ['Теорема о Трёх Перпендикулярах (ТТП)', 'Теорема о Трёх Медведях'],
         correct: 0,
-        feedback: 'ТТП: перпендикуляр к плоскости, проекция (тень) и наклонная (копьё).',
+        feedback: 'ТТП: перпендикуляр к плоскости, проекция (тень) и наклонная (стрела).',
     },
     {
         renderPrompt: () => <>Бонус! Кто теперь чемпион по метанию стереометрии? 🏆</>,
