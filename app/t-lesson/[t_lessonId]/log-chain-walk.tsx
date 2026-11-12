@@ -18,13 +18,15 @@ import { cn } from '@/lib/utils'
 import {
     TypedLine, DiagramBlock,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
-    CORRECT_COLOR, ATTENTION_COLOR,
+    CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
+import { StrikeMark } from '@/components/geometry/strike-variants'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
@@ -51,14 +53,17 @@ export const Mark = ({ value, color }: { value: number | string; color: string }
 )
 
 export type LeftOpts = { marked: boolean; dim: boolean; fly: boolean; sent: boolean }
-type Flyer = { from: string; to: 'base' | 'arg'; n: number; color: string }
+type Flyer = { from: string; to: 'base' | 'arg'; n: number; color: string; arc: number }
 type FlyerRun = { n: number; left: number; top: number; fs: number; dx: number; dy: number; arc: number; scale: number; color: string }
+
+// Строка текста: простая или с вставленным числом-стикером (маркер цвета роли).
+export type Line = string | ({ t: string } | { n: number; color: string })[]
 
 export type ChainExample = {
     left: (o: LeftOpts) => ReactNode
     strike: [string, string]
     flyers: [Flyer, Flyer]
-    lines: [string[], string[], string[]]
+    lines: [Line[], Line[], Line[]]
     labels: [string, string, string]
 }
 
@@ -80,33 +85,20 @@ const RightExpr = ({ on, base, arg }: { on: boolean; base: number | null; arg: n
     </span>
 )
 
-// Линия-вычёркивание поверх элемента с data-marker (рисуется слева направо).
+// Вычёркивание: меряем элементы с data-marker и рисуем поверх выбранный способ (см. strike-variants.tsx).
 const Strikes = ({ containerRef, markers }: { containerRef: RefObject<HTMLDivElement | null>; markers: string[] }) => {
-    const [rects, setRects] = useState<{ x: number; y: number; w: number }[]>([])
+    const [rects, setRects] = useState<{ x: number; y: number; w: number; h: number }[]>([])
     useEffect(() => {
         const c = containerRef.current
         if (!c) return
         const cr = c.getBoundingClientRect()
         setRects(markers.map((m) => {
             const r = c.querySelector<HTMLElement>(`[data-marker="${m}"]`)?.getBoundingClientRect()
-            return r ? { x: r.left - cr.left - 3, y: r.top - cr.top + r.height / 2, w: r.width + 6 } : { x: 0, y: 0, w: 0 }
+            return r ? { x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height } : { x: 0, y: 0, w: 0, h: 0 }
         }))
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    return (
-        <>
-            {rects.map((r, i) => (
-                <motion.span
-                    key={i}
-                    className="pointer-events-none absolute"
-                    style={{ left: r.x, top: r.y - 1.5, width: r.w, height: 3, borderRadius: 2, background: ATTENTION_COLOR, transformOrigin: 'left center', zIndex: 4 }}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.35 }}
-                />
-            ))}
-        </>
-    )
+    return <>{rects.map((r, i) => <StrikeMark key={i} rect={r} delay={i * 0.45} />)}</>
 }
 
 // Летящее число: один прогресс p, парабола (прямая + дуга 4·p·(1−p)), маркер к концу растворяется.
@@ -132,19 +124,30 @@ const FlyerView = ({ f }: { f: FlyerRun }) => {
     )
 }
 
+// Строка с числом-стикером: Typewriter печатает плоский текст, после печати вид подменяется на размеченный.
+const TypedParts = ({ parts, onSettled }: { parts: Exclude<Line, string>; onSettled: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plain = parts.map((p) => ('t' in p ? p.t : String(p.n))).join('')
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter text={plain} onDone={() => { setTyped(true); setTimeout(onSettled, 450) }} />
+            ) : parts.map((p, i) => ('t' in p ? <span key={i}>{withBreaks(p.t)}</span> : <Mark key={i} value={p.n} color={p.color} />))}
+        </div>
+    )
+}
+
 // Блок коротких строк: печатаются по одной, следующая — после предыдущей.
-const Lines = ({ lines, dim, onDone }: { lines: string[]; dim: boolean; onDone: () => void }) => {
+const Lines = ({ lines, dim, onDone }: { lines: Line[]; dim: boolean; onDone: () => void }) => {
     const [n, setN] = useState(1)
     return (
         <div className="flex flex-col gap-1.5" style={dim ? { opacity: 0.35, filter: 'grayscale(1)', transition: 'opacity 0.4s' } : undefined}>
-            {lines.slice(0, n).map((t, i) => (
-                <TypedLine
-                    key={i}
-                    className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text={t}
-                    onSettled={() => { if (i === lines.length - 1) onDone(); else setN(i + 2) }}
-                />
-            ))}
+            {lines.slice(0, n).map((t, i) => {
+                const settled = () => { if (i === lines.length - 1) onDone(); else setN(i + 2) }
+                return typeof t === 'string'
+                    ? <TypedLine key={i} className="w-full text-base md:text-lg text-[#F2F7FB]" text={t} onSettled={settled} />
+                    : <TypedParts key={i} parts={t} onSettled={settled} />
+            })}
         </div>
     )
 }
@@ -165,43 +168,47 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
     const showText = (p: number) => setShown((s) => s.map((v, i) => v || i === p))
-    const done = (p: number) => () => { if (phaseRef.current === p) setTimeout(onSettled, 300) }
+    // Порядок «текст → действие»: сначала строка печатается, и только потом вычёркивание/перелёт; кнопка — после действия.
+    const launch = () => {
+        const c = ref.current
+        if (!c) { setLanded(true); later(onSettled, 300); return }
+        const cr = c.getBoundingClientRect()
+        const run: FlyerRun[] = []
+        ex.flyers.forEach((f) => {
+            const src = c.querySelector<HTMLElement>(`[data-marker="${f.from}"]`)
+            const dst = c.querySelector<HTMLElement>(`[data-marker="${f.to}"]`)
+            if (!src || !dst) return
+            const sr = src.getBoundingClientRect(), dr = dst.getBoundingClientRect()
+            const fsS = parseFloat(getComputedStyle(src).fontSize), fsD = parseFloat(getComputedStyle(dst).fontSize)
+            run.push({
+                n: f.n, color: f.color, left: sr.left - cr.left, top: sr.top - cr.top, fs: fsS,
+                dx: dr.left + dr.width / 2 - (sr.left + sr.width / 2), dy: dr.top + dr.height / 2 - (sr.top + sr.height / 2),
+                arc: f.arc, scale: fsD / fsS,
+            })
+        })
+        setFlyers(run)
+        setSent(true)
+        later(() => { setFlyers(null); setLanded(true) }, FLIGHT_MS)
+        later(onSettled, FLIGHT_MS + 900)
+    }
+    const typed = (p: number) => () => {
+        if (phaseRef.current !== p) return
+        if (p === 0) later(onSettled, 300)
+        else if (p === 1) {
+            later(() => setStruck(true), 500)
+            later(() => setDim(true), 1700)
+            later(onSettled, 2400)
+        } else {
+            later(() => setRightOn(true), 300)
+            later(() => setFly(true), 900)
+            later(launch, 1800)
+        }
+    }
 
     useEffect(() => {
         const list = timers.current
-        if (phase === 0) {
-            later(() => setMarked(true), 1000)
-            later(() => showText(0), 2100)
-        } else if (phase === 1) {
-            later(() => setStruck(true), 500)
-            later(() => setDim(true), 1700)
-            later(() => showText(1), 2400)
-        } else {
-            later(() => setRightOn(true), 200)
-            later(() => setFly(true), 1000)
-            later(() => {
-                const c = ref.current
-                if (!c) { setLanded(true); showText(2); return }
-                const cr = c.getBoundingClientRect()
-                const run: FlyerRun[] = []
-                ex.flyers.forEach((f, i) => {
-                    const src = c.querySelector<HTMLElement>(`[data-marker="${f.from}"]`)
-                    const dst = c.querySelector<HTMLElement>(`[data-marker="${f.to}"]`)
-                    if (!src || !dst) return
-                    const sr = src.getBoundingClientRect(), dr = dst.getBoundingClientRect()
-                    const fsS = parseFloat(getComputedStyle(src).fontSize), fsD = parseFloat(getComputedStyle(dst).fontSize)
-                    run.push({
-                        n: f.n, color: f.color, left: sr.left - cr.left, top: sr.top - cr.top, fs: fsS,
-                        dx: dr.left + dr.width / 2 - (sr.left + sr.width / 2), dy: dr.top + dr.height / 2 - (sr.top + sr.height / 2),
-                        arc: i === 0 ? -48 : -84, scale: fsD / fsS,
-                    })
-                })
-                setFlyers(run)
-                setSent(true)
-            }, 1900)
-            later(() => { setFlyers(null); setLanded(true) }, 1900 + FLIGHT_MS)
-            later(() => showText(2), 1900 + FLIGHT_MS + 600)
-        }
+        if (phase === 0) { later(() => setMarked(true), 900); later(() => showText(0), 1700) }
+        else showText(phase)
         return () => { list.forEach(clearTimeout); list.length = 0 }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
@@ -217,7 +224,7 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
                 </div>
             </DiagramBlock>
             <div className="flex flex-col gap-2">
-                {[0, 1, 2].map((p) => shown[p] && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={done(p)} />)}
+                {[0, 1, 2].map((p) => shown[p] && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={typed(p)} />)}
             </div>
         </>
     )

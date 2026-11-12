@@ -41,7 +41,7 @@ const example = (a: number, b: number, c: number, lines: ChainExample['lines'], 
     left: (o) => <Combo a={a} b={b} c={c} o={o} />,
     strike: ['s1', 's2'],
     // первое основание — в основание итога, последнее число — под логарифм
-    flyers: [{ from: 'a', to: 'base', n: a, color: COL_BASE }, { from: 'c', to: 'arg', n: c, color: COL_ARG }],
+    flyers: [{ from: 'a', to: 'base', n: a, color: COL_BASE, arc: -48 }, { from: 'c', to: 'arg', n: c, color: COL_ARG, arc: -84 }],
     lines,
     labels,
 })
