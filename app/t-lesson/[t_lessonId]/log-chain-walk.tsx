@@ -10,7 +10,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -65,6 +65,7 @@ export type ChainExample = {
     flyers: [Flyer, Flyer]
     // kind: 'strike' — совпавшее вычёркивается (3 фазы); 'oval' — конструкция обводится маркером и бледнеет (4 фазы);
     // 'flip' — «перевёртыш»: справа вырастает «= 1 / log □ □», числа меняются местами (3 фазы)
+    flip?: { a: number; b: number }   // для kind 'flip': основание и число под логарифмом
     kind: 'strike' | 'oval' | 'flip'
     lines: Line[][]
     labels: string[]
@@ -202,6 +203,94 @@ const Lines = ({ lines, dim, onDone }: { lines: Line[]; dim: boolean; onDone: ()
     )
 }
 
+// ===== «Перевёртыш» (kind 'flip') =====
+
+// Двойная стрелка над парой чисел: «качается» — наконечники по очереди загораются (то у a, то у b), вся стрелка слегка покачивается.
+const SwayArrow = ({ containerRef, from, to, color }: { containerRef: RefObject<HTMLDivElement | null>; from: string; to: string; color: string }) => {
+    const [g, setG] = useState<{ d: string; h1: string; h2: string } | null>(null)
+    useEffect(() => {
+        const c = containerRef.current
+        const fe = c?.querySelector<HTMLElement>(`[data-marker="${from}"]`), te = c?.querySelector<HTMLElement>(`[data-marker="${to}"]`)
+        if (!c || !fe || !te) return
+        const cr = c.getBoundingClientRect(), fr = fe.getBoundingClientRect(), tr = te.getBoundingClientRect()
+        // цифры стоят вплотную: растягиваем стрелку чуть шире пары, чтобы она читалась
+        const x1 = fr.left + fr.width / 2 - cr.left - 10, x2 = tr.left + tr.width / 2 - cr.left + 10
+        const y1 = fr.top - cr.top - 8, y2 = tr.top - cr.top - 8
+        const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - 34
+        const head = (x: number, y: number, ang: number) => {
+            const L = 10, W = 5.5
+            const p = (dx: number, dy: number) => `${(x + dx * Math.cos(ang) - dy * Math.sin(ang)).toFixed(1)},${(y + dx * Math.sin(ang) + dy * Math.cos(ang)).toFixed(1)}`
+            return `${p(0, 0)} ${p(-L, -W)} ${p(-L, W)}`
+        }
+        // касательные квадратичной кривой на концах
+        const a1 = Math.atan2(y1 - cy, x1 - cx), a2 = Math.atan2(y2 - cy, x2 - cx)
+        setG({ d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, h1: head(x1, y1, a1), h2: head(x2, y2, a2) })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    if (!g) return null
+    return (
+        <motion.svg className="pointer-events-none absolute inset-0" style={{ overflow: 'visible', width: '100%', height: '100%' }}
+            animate={{ y: [0, -3, 0, 3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
+            <motion.path d={g.d} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+            <motion.polygon points={g.h1} fill={color} animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', times: [0, 0.5, 1] }} />
+            <motion.polygon points={g.h2} fill={color} animate={{ opacity: [0.25, 1, 0.25] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', times: [0, 0.5, 1] }} />
+        </motion.svg>
+    )
+}
+
+// Правая часть «= 1 / log_b a»: stage 1 — «=» и копия логарифма (по центру строки); 2 — числа меняются местами, логарифм опускается;
+// 3 — рисуется черта дроби; 4 — над чертой появляется 1. Место под дробь зарезервировано, ничего не прыгает.
+const FlipRight = ({ stage, a, b, onWidth }: { stage: number; a: number; b: number; onWidth: (w: number) => void }) => {
+    const rootRef = useRef<HTMLDivElement>(null)
+    const numRef = useRef<HTMLSpanElement>(null)
+    const baseRef = useRef<HTMLSpanElement>(null)
+    const argRef = useRef<HTMLSpanElement>(null)
+    const [dy, setDy] = useState(0)
+    const [swap, setSwap] = useState<{ a: { x: number; y: number; s: number }; b: { x: number; y: number; s: number } } | null>(null)
+    useLayoutEffect(() => {
+        if (rootRef.current) onWidth(rootRef.current.offsetWidth)
+        if (numRef.current) setDy(numRef.current.offsetHeight / 2)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    useEffect(() => {
+        if (stage !== 2) return
+        const be = baseRef.current, ae = argRef.current
+        if (!be || !ae) return
+        const br = be.getBoundingClientRect(), ar = ae.getBoundingClientRect()
+        const fb = parseFloat(getComputedStyle(be).fontSize), fa = parseFloat(getComputedStyle(ae).fontSize)
+        const bc = { x: br.left + br.width / 2, y: br.top + br.height / 2 }, ac = { x: ar.left + ar.width / 2, y: ar.top + ar.height / 2 }
+        setSwap({ a: { x: ac.x - bc.x, y: ac.y - bc.y, s: fa / fb }, b: { x: bc.x - ac.x, y: bc.y - ac.y, s: fb / fa } })
+    }, [stage])
+    const dur = 1.3
+    return (
+        <div ref={rootRef} className="inline-flex items-center" style={{ opacity: stage >= 1 ? 1 : 0, transition: 'opacity 0.5s' }}>
+            <Plain>=</Plain>
+            <span className="ml-3 inline-flex flex-col items-center">
+                <span ref={numRef} className="relative px-2 pb-1">
+                    <motion.span className="inline-block text-[#F2F7FB]" initial={false} animate={{ scale: stage >= 4 ? 1 : 0.2, opacity: stage >= 4 ? 1 : 0 }} transition={{ type: 'spring', stiffness: 320, damping: 15 }}>1</motion.span>
+                    <motion.span className="absolute inset-x-0 bottom-0 h-[2px] bg-[#F2F7FB]" initial={false} animate={{ scaleX: stage >= 3 ? 1 : 0 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+                </span>
+                <motion.span className="inline-flex items-baseline whitespace-nowrap px-2 pt-1" initial={false} animate={{ y: stage >= 2 ? 0 : -dy }} transition={{ duration: stage >= 2 ? dur : 0, ease: 'easeInOut' }}>
+                    <Plain>log</Plain>
+                    <sub className="ml-0.5">
+                        <motion.span ref={baseRef} className="inline-block" initial={false}
+                            animate={swap ? { x: [0, swap.a.x * 0.5, swap.a.x], y: [0, swap.a.y - 26, swap.a.y], scale: [1, 1, swap.a.s] } : { x: 0, y: 0, scale: 1 }}
+                            transition={{ duration: dur, ease: 'easeInOut', times: [0, 0.5, 1] }}>
+                            <Mark value={a} color={COL_BASE} />
+                        </motion.span>
+                    </sub>
+                    <motion.span ref={argRef} className="ml-1 inline-block" initial={false}
+                        animate={swap ? { x: [0, swap.b.x * 0.5, swap.b.x], y: [0, swap.b.y + 22, swap.b.y], scale: [1, 1, swap.b.s] } : { x: 0, y: 0, scale: 1 }}
+                        transition={{ duration: dur, ease: 'easeInOut', times: [0, 0.5, 1] }}>
+                        <Mark value={b} color={COL_ARG} />
+                    </motion.span>
+                </motion.span>
+            </span>
+        </div>
+    )
+}
+
 const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number; onSettled: () => void }) => {
     const [marked, setMarked] = useState(false)
     const [struck, setStruck] = useState(false)
@@ -213,6 +302,11 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
     const [flyers, setFlyers] = useState<FlyerRun[] | null>(null)
     const [landed, setLanded] = useState(false)
     const [shown, setShown] = useState<boolean[]>(() => ex.lines.map(() => false))
+    // «перевёртыш»: стрелка-качалка, сдвиг левой части, этап правой части (0..4), ширина резерва
+    const [arrowOn, setArrowOn] = useState(false)
+    const [shift, setShift] = useState(false)
+    const [flipStage, setFlipStage] = useState(0)
+    const [off, setOff] = useState(0)
     const ref = useRef<HTMLDivElement>(null)
     const phaseRef = useRef(phase)
     phaseRef.current = phase
@@ -245,14 +339,15 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
     const lastPhase = ex.lines.length - 1
     const typed = (p: number) => () => {
         if (phaseRef.current !== p) return
-        if (p === 0) later(onSettled, 300)
+        if (ex.kind === 'flip') {
+            // текст → действие: 0 — маркеры после текста, 1 — стрелка-качалка после текста
+            if (p === 0) { later(() => setMarked(true), 300); later(onSettled, 1200) }
+            else if (p === 1) { later(() => setArrowOn(true), 400); later(onSettled, 2600) }
+        } else if (p === 0) later(onSettled, 300)
         else if (p === lastPhase) {
             later(() => setRightOn(true), 300)
             later(() => setFly(true), 900)
             later(launch, 1800)
-        } else if (ex.kind === 'flip') {
-            later(() => setRightOn(true), 400)
-            later(onSettled, 1800)
         } else if (ex.kind === 'oval') {
             if (p === 1) { later(() => setOval(true), 400); later(onSettled, 1900) }
             else { later(() => setDim(true), 400); later(onSettled, 1500) }
@@ -265,7 +360,20 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
 
     useEffect(() => {
         const list = timers.current
-        if (phase === 0) { later(() => setMarked(true), 900); later(() => showText(0), 1700) }
+        if (ex.kind === 'flip') {
+            if (phase === 0) later(() => showText(0), 500)
+            else if (phase === 1) showText(1)
+            else {
+                // без текста: исходный логарифм съезжает влево, справа такой же; пауза; числа меняются местами и логарифм опускается; черта; единица
+                setArrowOn(false)
+                later(() => setShift(true), 100)
+                later(() => setFlipStage(1), 800)
+                later(() => setFlipStage(2), 2800)
+                later(() => setFlipStage(3), 4400)
+                later(() => setFlipStage(4), 5200)
+                later(onSettled, 6300)
+            }
+        } else if (phase === 0) { later(() => setMarked(true), 900); later(() => showText(0), 1700) }
         else showText(phase)
         return () => { list.forEach(clearTimeout); list.length = 0 }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,16 +382,26 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
     return (
         <>
             <DiagramBlock>
+                {ex.kind === 'flip' && ex.flip ? (
+                    <div ref={ref} className="relative w-full py-6 flex items-center justify-center gap-3 text-2xl md:text-3xl font-extrabold">
+                        <div style={{ transform: `translateX(${shift ? 0 : off}px)`, transition: shift ? 'transform 0.7s ease-in-out' : 'none' }}>
+                            {ex.left({ marked, dim, fly, sent })}
+                        </div>
+                        <FlipRight stage={flipStage} a={ex.flip.a} b={ex.flip.b} onWidth={(w) => setOff((w + 12) / 2)} />
+                        {arrowOn && <SwayArrow containerRef={ref} from="a" to="b" color={COL_MATCH} />}
+                    </div>
+                ) : (
                 <div ref={ref} className="relative w-full py-4 flex items-center justify-center gap-5 text-2xl md:text-3xl font-extrabold">
                     {ex.left({ marked, dim, fly, sent })}
-                    <RightExpr on={rightOn} frac={ex.kind === 'flip'} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
+                    <RightExpr on={rightOn} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
                     {struck && <Strikes containerRef={ref} markers={ex.strike} dim={dim} />}
                     {oval && <HandOval containerRef={ref} markers={ex.strike} dim={dim} />}
                     {flyers?.map((f) => <FlyerView key={`${f.n}-${f.left}`} f={f} />)}
                 </div>
+                )}
             </DiagramBlock>
             <div className="flex flex-col gap-2">
-                {ex.lines.map((_, p) => shown[p] && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={typed(p)} />)}
+                {ex.lines.map((_, p) => shown[p] && ex.lines[p].length > 0 && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={typed(p)} />)}
             </div>
         </>
     )

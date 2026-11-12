@@ -16,21 +16,19 @@ type Props = {
 }
 
 // log_a b: a (основание) — маркер синий, b (число) — зелёный; после взлёта оригиналы бледнеют.
-const Flip = ({ a, b, o }: { a: number; b: number; o: LeftOpts }) => {
-    const mk = o.marked || o.fly
-    const fade = { opacity: o.sent ? 0.3 : 1, transition: 'opacity 0.5s' }
-    return (
-        <span className="inline-flex items-baseline whitespace-nowrap">
-            <Plain>log</Plain>
-            <sub className="ml-0.5"><span data-marker="a" className="inline-block" style={fade}>{mk ? <Mark value={a} color={COL_BASE} /> : <Plain>{a}</Plain>}</span></sub>
-            <span data-marker="b" className="ml-1 inline-block" style={fade}>{mk ? <Mark value={b} color={COL_ARG} /> : <Plain>{b}</Plain>}</span>
-        </span>
-    )
-}
+// log_a b: a (основание) — маркер синий, b (число) — зелёный; маркер появляется после текста (marked).
+const Flip = ({ a, b, o }: { a: number; b: number; o: LeftOpts }) => (
+    <span className="inline-flex items-baseline whitespace-nowrap">
+        <Plain>log</Plain>
+        <sub className="ml-0.5"><span data-marker="a" className="inline-block">{o.marked ? <Mark value={a} color={COL_BASE} /> : <Plain>{a}</Plain>}</span></sub>
+        <span data-marker="b" className="ml-1 inline-block">{o.marked ? <Mark value={b} color={COL_ARG} /> : <Plain>{b}</Plain>}</span>
+    </span>
+)
 
 const example = (a: number, b: number, lines: ChainExample['lines'], labels: ChainExample['labels']): ChainExample => ({
     left: (o) => <Flip a={a} b={b} o={o} />,
     kind: 'flip',
+    flip: { a, b },
     strike: ['a', 'b'],
     // основание уходит под логарифм и наоборот: одно число по нижней дуге, другое по верхней
     flyers: [{ from: 'b', to: 'base', n: b, color: COL_ARG, arc: 34 }, { from: 'a', to: 'arg', n: a, color: COL_BASE, arc: -50 }],
@@ -43,18 +41,18 @@ const CFG: ChainWalkConfig = {
     examples: [
         example(8, 2,
             [
-                ['Смотрим на логарифм.', [{ t: 'Основание — ' }, { n: 8, color: COL_BASE }], [{ t: 'Под логарифмом — ' }, { n: 2, color: COL_ARG }]],
-                ['Логарифм любит кувыркаться.', 'Единицу пишем наверх.'],
-                ['Основание и число меняются местами.', 'Получили перевёртыш!'],
+                ['Видим цифры 8 и 2'],
+                ['А что если мы захотим', 'поменять их местами?'],
+                [],
             ],
-            ['Вижу 👀 основание и число', 'Единица наверху', 'Какой кульбит!']),
+            ['Ага вижу 👀 обе цифры', 'Как поменять местами?', 'Перевёртыш готов!']),
         example(9, 3,
             [
-                ['А здесь?', [{ t: 'Основание — ' }, { n: 9, color: COL_BASE }], [{ t: 'Под логарифмом — ' }, { n: 3, color: COL_ARG }]],
-                ['Снова единицу наверх.'],
-                ['Меняем местами.', 'Опять кувырок!'],
+                ['А здесь цифры 9 и 3'],
+                ['Снова хотим', 'поменять их местами.'],
+                [],
             ],
-            ['Снова вижу 👀 два числа', 'Единица наверху', 'Перевёртыш готов 🙃']),
+            ['Снова вижу 👀 обе цифры', 'Как поменять местами?', 'Кульбит повторён!']),
     ],
     prompt: ([a, b]) => <Flip a={a} b={b} o={{ marked: false, dim: false, fly: false, sent: false }} />,
     answer: ([a, b]) => [b, a],
