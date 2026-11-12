@@ -268,7 +268,7 @@ const FlipRight = ({ stage, a, b, onWidth }: { stage: number; a: number; b: numb
         <div ref={rootRef} className="inline-flex items-center" style={{ opacity: stage >= 1 ? 1 : 0, transition: 'opacity 0.5s' }}>
             <Plain>=</Plain>
             <span className="ml-3 inline-flex flex-col items-center">
-                <span ref={numRef} className="relative px-2 pb-1">
+                <span ref={numRef} className="relative self-stretch px-2 pb-1 text-center">
                     <motion.span className="inline-block text-[#F2F7FB]" initial={false} animate={{ scale: stage >= 4 ? 1 : 0.2, opacity: stage >= 4 ? 1 : 0 }} transition={{ type: 'spring', stiffness: 320, damping: 15 }}>1</motion.span>
                     <motion.span className="absolute inset-x-0 bottom-0 h-[2px] bg-[#F2F7FB]" initial={false} animate={{ scaleX: stage >= 3 ? 1 : 0 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
                 </span>
@@ -289,6 +289,22 @@ const FlipRight = ({ stage, a, b, onWidth }: { stage: number; a: number; b: numb
                 </motion.span>
             </span>
         </div>
+    )
+}
+
+// Дробь в тренировке: до «броска» логарифм стоит один; после — опускается, рисуется черта на всю его длину, сверху 1.
+const TrialFrac = ({ thrown, children }: { thrown: boolean; children: ReactNode }) => {
+    const numRef = useRef<HTMLSpanElement>(null)
+    const [dy, setDy] = useState(0)
+    useLayoutEffect(() => { if (numRef.current) setDy(numRef.current.offsetHeight / 2) }, [])
+    return (
+        <span className="inline-flex flex-col items-center">
+            <span ref={numRef} className="relative self-stretch px-2 pb-1 text-center">
+                <motion.span className="inline-block text-[#F2F7FB]" initial={false} animate={{ scale: thrown ? 1 : 0.2, opacity: thrown ? 1 : 0 }} transition={{ type: 'spring', stiffness: 320, damping: 15, delay: thrown ? 1.5 : 0 }}>1</motion.span>
+                <motion.span className="absolute inset-x-0 bottom-0 h-[2px] bg-[#F2F7FB]" initial={false} animate={{ scaleX: thrown ? 1 : 0 }} transition={{ duration: 0.6, ease: 'easeOut', delay: thrown ? 0.9 : 0 }} />
+            </span>
+            <motion.span className="px-2 pt-1" initial={false} animate={{ y: thrown ? 0 : -dy }} transition={{ duration: thrown ? 1 : 0, ease: 'easeInOut' }}>{children}</motion.span>
+        </span>
     )
 }
 
@@ -452,7 +468,9 @@ export type ChainWalkConfig = {
     prompt: (n: [number, number, number]) => ReactNode
     answer: (n: [number, number, number]) => [number, number]
     stagePrompts: [string, string]
-    frac?: boolean          // ответ вида «1 / log □ □»
+    frac?: boolean          // ответ вида «1 / log □ □»: ученик сам «кидает» логарифм в знаменатель
+    throwPrompt?: string
+    throwOptions?: [string, string][]   // по паре на задание: верный первым, шуточный вторым
     joke: ChoiceExtra
 }
 
@@ -475,7 +493,9 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
     const total = NUM_TRIALS + extras.length
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
-    const [stage, setStage] = useState(0)
+    const [stage, setStage] = useState(cfg.frac ? -1 : 0)
+    const [fracReady, setFracReady] = useState(false)
+    const [throwOrder] = useState(() => (cfg.throwOptions ?? []).map((o) => shuffle([...o])))
     const [wrongTried, setWrongTried] = useState<(number | string)[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [jokeOrder] = useState(() => extras.map((e) => shuffle(e.options)))
@@ -489,7 +509,7 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
     const totalSteps = lens[0] + lens[1]
     const exIdx = step >= starts[1] ? 1 : 0
     const exPhase = step - starts[exIdx]
-    const resetTrial = () => { setChecked(false); setStage(0); setWrongTried([]); setWrongFlash(null) }
+    const resetTrial = () => { setChecked(false); setStage(cfg.frac ? -1 : 0); setFracReady(false); setWrongTried([]); setWrongFlash(null) }
 
     const finishTrial = () => {
         registerCombo(wrongTried.length === 0)
@@ -511,6 +531,14 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
         if (n !== correct) return onWrong(n)
         if (stage < 1) { registerCombo(wrongTried.length === 0); setStage(stage + 1); setWrongTried([]); setWrongFlash(null); return }
         finishTrial()
+    }
+    const handleThrow = (s: string) => {
+        if (wrongTried.includes(s)) return
+        const [good] = cfg.throwOptions![trialIndex]
+        if (s !== good) return onWrong(s)
+        registerCombo(wrongTried.length === 0)
+        setStage(0); setWrongTried([]); setWrongFlash(null); setFracReady(false)
+        setTimeout(() => setFracReady(true), 2300)
     }
     const handleText = (s: string) => {
         if (checked || wrongTried.includes(s)) return
@@ -620,7 +648,7 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
                                         <span>{i + 1}</span><span className="opacity-50 font-normal">/</span><span>{total}</span>
                                     </div>
                                     <p className="text-base md:text-lg text-[#F2F7FB] text-center px-14">
-                                        {extra ? extra.question : (isDone || !isCurrent ? 'Собрали ответ' : cfg.stagePrompts[stage])}
+                                        {extra ? extra.question : (isDone || !isCurrent ? 'Собрали ответ' : stage < 0 ? cfg.throwPrompt : cfg.stagePrompts[stage])}
                                     </p>
                                 </div>
 
@@ -634,20 +662,17 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
                                                     const logPart = (
                                                         <span className="inline-flex items-baseline whitespace-nowrap">
                                                             <Plain>log</Plain>
-                                                            <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slotText((isDone || !isCurrent || stage > 0) ? ans[0] : null, COL_BASE, isDone, isCurrent && !isDone && stage === 0)}</sub>
+                                                            <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slotText((isDone || !isCurrent || stage > 0) ? ans[0] : null, COL_BASE, isDone, isCurrent && !isDone && stage === 0 && (!cfg.frac || fracReady))}</sub>
                                                             <span className="ml-1">{slotText((isDone || !isCurrent) ? ans[1] : null, COL_ARG, isDone, isCurrent && !isDone && stage === 1)}</span>
                                                         </span>
                                                     )
                                                     return cfg.frac ? (
-                                                        <span className="inline-flex flex-col items-center">
-                                                            <span className="border-b-2 border-[#F2F7FB] px-2 pb-1"><Plain>1</Plain></span>
-                                                            <span className="px-2 pt-1">{logPart}</span>
-                                                        </span>
+                                                        <TrialFrac thrown={isDone || !isCurrent || stage >= 0}>{logPart}</TrialFrac>
                                                     ) : logPart
                                                 })()}
                                             </div>
                                         </DiagramBlock>
-                                        {isCurrent && !checked && (
+                                        {isCurrent && !checked && stage >= 0 && (!cfg.frac || fracReady) && (
                                             <div key={stage} className="drop-in-options flex flex-wrap justify-center gap-3">
                                                 {t.options[stage].map((n) => {
                                                     const bad = wrongTried.includes(n)
@@ -662,6 +687,21 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
                                             </div>
                                         )}
                                     </>
+                                )}
+
+                                {t && cfg.frac && isCurrent && !checked && stage < 0 && (
+                                    <div className="drop-in-options grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {throwOrder[i].map((o) => {
+                                            const bad = wrongTried.includes(o)
+                                            return (
+                                                <button key={o} type="button" onClick={() => handleThrow(o)} disabled={bad}
+                                                    className={cn('py-3 px-4 rounded-xl border-2 text-base md:text-lg font-bold transition-colors',
+                                                        bad ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                                    {o}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
                                 )}
 
                                 {extra && isCurrent && !checked && (
