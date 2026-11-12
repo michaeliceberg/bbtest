@@ -159,7 +159,7 @@ const ANG = (28 * Math.PI) / 180
 const CXW = 5, CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.blue.button
-const B_COLOR = GGEGE_PALETTE.green.button
+const B_COLOR = GGEGE_PALETTE.purple.button // линия: фиолетовый — не сливается ни с плоскостью (бирюзовой), ни с зелёной кнопкой
 const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сама тень
 // стикер слова «тень» — тёмная плашка, как тень
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
@@ -446,8 +446,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
             <g transform={`translate(${shake},0)`}>
                 {/* земля: заливка без яркой обводки (обводка — только «по-школьному») */}
                 <motion.polygon
-                    points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)}
-                    stroke={hexToRgba(PLANE_COLOR, school ? 0.95 : 0.22)} strokeWidth={school ? 3 : 1.5} strokeLinejoin="round"
+                    points={planePts} fill={hexToRgba(PLANE_COLOR, 0.4)}
+                    stroke={hexToRgba(PLANE_COLOR, school ? 0.95 : 0.5)} strokeWidth={school ? 3 : 1.5} strokeLinejoin="round"
                     initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}
                 />
                 {school && <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh dur={0.9} />}
@@ -627,7 +627,8 @@ const SpearScene = ({ onSettled }: SceneProps) => {
         setBtn(false)
         setPhase(1)
         lottieRef.current?.playSegments([BOW_FROM, BOW_TO], true)
-        later(afterShot, ((BOW_TO - BOW_FROM) / 60) * 1000 + 400) // страховка, если onComplete не придёт
+        // ждём, пока отыграет весь цикл (кадры BOW_FROM…BOW_TO при 60 к/с), и только потом уводим лучника
+        later(afterShot, ((BOW_TO - BOW_FROM) / 60) * 1000 + 300)
     }
     return (
         <SceneBox>
@@ -646,8 +647,7 @@ const SpearScene = ({ onSettled }: SceneProps) => {
                     <div style={{ transform: 'rotate(25deg) scaleX(-1)' }}>
                         <Lottie
                             lottieRef={lottieRef} animationData={bowAnim}
-                            autoplay={false} loop={false} initialSegment={[BOW_FROM, BOW_FROM + 1]}
-                            onComplete={() => { if (phase === 1) afterShot() }}
+                            autoplay={false} loop={false} onDOMLoaded={() => lottieRef.current?.goToAndStop(BOW_FROM, true)}
                         />
                     </div>
                 </motion.div>
