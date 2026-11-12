@@ -37,6 +37,7 @@ const Frac = ({ a, x, y, o }: { a: number; x: number; y: number; o: LeftOpts }) 
 
 const example = (a: number, x: number, y: number, lines: ChainExample['lines'], labels: ChainExample['labels']): ChainExample => ({
     left: (o) => <Frac a={a} x={x} y={y} o={o} />,
+    kind: 'strike',
     strike: ['s1', 's2'],
     // нижнее число — в основание, верхнее — под логарифм
     // нижнее число сначала уходит вниз-вправо и поднимается к основанию; верхнее — дугой над дробью

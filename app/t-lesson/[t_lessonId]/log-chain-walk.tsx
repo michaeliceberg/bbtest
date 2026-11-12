@@ -63,8 +63,10 @@ export type ChainExample = {
     left: (o: LeftOpts) => ReactNode
     strike: [string, string]
     flyers: [Flyer, Flyer]
-    lines: [Line[], Line[], Line[]]
-    labels: [string, string, string]
+    // kind: 'strike' — совпавшее вычёркивается (3 фазы); 'oval' — конструкция обводится маркером и бледнеет (4 фазы)
+    kind: 'strike' | 'oval'
+    lines: Line[][]
+    labels: string[]
 }
 
 const Slot = ({ value, color }: { value: number | null; color: string }) => (
@@ -100,6 +102,40 @@ const Strikes = ({ containerRef, markers, dim }: { containerRef: RefObject<HTMLD
     }, [])
     // линии бледнеют вместе с логарифмами
     return <span style={{ opacity: dim ? 0.3 : 1, transition: 'opacity 0.5s' }}>{rects.map((r, i) => <StrikeMark key={i} rect={r} delay={i * 0.45} />)}</span>
+}
+
+// Обводка «от руки»: овал вокруг группы элементов (union data-marker), чуть наклонён сверху-слева вправо-вниз, концы не сходятся ровно.
+const HandOval = ({ containerRef, markers, dim }: { containerRef: RefObject<HTMLDivElement | null>; markers: string[]; dim: boolean }) => {
+    const [d, setD] = useState<string | null>(null)
+    useEffect(() => {
+        const c = containerRef.current
+        if (!c) return
+        const cr = c.getBoundingClientRect()
+        const rs = markers.map((m) => c.querySelector<HTMLElement>(`[data-marker="${m}"]`)?.getBoundingClientRect()).filter(Boolean) as DOMRect[]
+        if (!rs.length) return
+        const l = Math.min(...rs.map((r) => r.left)), r2 = Math.max(...rs.map((r) => r.right))
+        const t = Math.min(...rs.map((r) => r.top)), b = Math.max(...rs.map((r) => r.bottom))
+        const cx = (l + r2) / 2 - cr.left, cy = (t + b) / 2 - cr.top
+        const rx = (r2 - l) / 2 * 1.1 + 5, ry = (b - t) / 2 * 1.5 + 6
+        const rot = (11 * Math.PI) / 180
+        const pts: string[] = []
+        const N = 64, start = Math.PI * 0.9, total = Math.PI * 2 * 1.1
+        for (let i = 0; i <= N; i++) {
+            const a = start + (total * i) / N
+            const k = 0.95 + 0.1 * (i / N) + 0.025 * Math.sin(a * 3 + 1)
+            const x = rx * k * Math.cos(a), y = ry * k * Math.sin(a)
+            pts.push(`${(cx + x * Math.cos(rot) - y * Math.sin(rot)).toFixed(1)},${(cy + x * Math.sin(rot) + y * Math.cos(rot)).toFixed(1)}`)
+        }
+        setD('M' + pts.join(' L'))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    if (!d) return null
+    return (
+        <svg className="pointer-events-none absolute inset-0" style={{ overflow: 'visible', width: '100%', height: '100%', opacity: dim ? 0.3 : 1, transition: 'opacity 0.5s', zIndex: 3 }}>
+            <motion.path d={d} fill="none" stroke={COL_MATCH} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
+        </svg>
+    )
 }
 
 // Летящее число: один прогресс p, парабола (прямая + дуга 4·p·(1−p)), маркер к концу растворяется.
@@ -156,13 +192,14 @@ const Lines = ({ lines, dim, onDone }: { lines: Line[]; dim: boolean; onDone: ()
 const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number; onSettled: () => void }) => {
     const [marked, setMarked] = useState(false)
     const [struck, setStruck] = useState(false)
+    const [oval, setOval] = useState(false)
     const [dim, setDim] = useState(false)
     const [rightOn, setRightOn] = useState(false)
     const [fly, setFly] = useState(false)
     const [sent, setSent] = useState(false)
     const [flyers, setFlyers] = useState<FlyerRun[] | null>(null)
     const [landed, setLanded] = useState(false)
-    const [shown, setShown] = useState<boolean[]>([false, false, false])
+    const [shown, setShown] = useState<boolean[]>(() => ex.lines.map(() => false))
     const ref = useRef<HTMLDivElement>(null)
     const phaseRef = useRef(phase)
     phaseRef.current = phase
@@ -192,17 +229,21 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
         later(() => { setFlyers(null); setLanded(true) }, FLIGHT_MS)
         later(onSettled, FLIGHT_MS + 900)
     }
+    const lastPhase = ex.lines.length - 1
     const typed = (p: number) => () => {
         if (phaseRef.current !== p) return
         if (p === 0) later(onSettled, 300)
-        else if (p === 1) {
-            later(() => setStruck(true), 500)
-            later(() => setDim(true), 1700)
-            later(onSettled, 2400)
-        } else {
+        else if (p === lastPhase) {
             later(() => setRightOn(true), 300)
             later(() => setFly(true), 900)
             later(launch, 1800)
+        } else if (ex.kind === 'oval') {
+            if (p === 1) { later(() => setOval(true), 400); later(onSettled, 1900) }
+            else { later(() => setDim(true), 400); later(onSettled, 1500) }
+        } else {
+            later(() => setStruck(true), 500)
+            later(() => setDim(true), 1700)
+            later(onSettled, 2400)
         }
     }
 
@@ -221,11 +262,12 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
                     {ex.left({ marked, dim, fly, sent })}
                     <RightExpr on={rightOn} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
                     {struck && <Strikes containerRef={ref} markers={ex.strike} dim={dim} />}
+                    {oval && <HandOval containerRef={ref} markers={ex.strike} dim={dim} />}
                     {flyers?.map((f) => <FlyerView key={`${f.n}-${f.left}`} f={f} />)}
                 </div>
             </DiagramBlock>
             <div className="flex flex-col gap-2">
-                {[0, 1, 2].map((p) => shown[p] && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={typed(p)} />)}
+                {ex.lines.map((_, p) => shown[p] && <Lines key={p} lines={ex.lines[p]} dim={phase > p} onDone={typed(p)} />)}
             </div>
         </>
     )
@@ -305,8 +347,12 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
 
-    const exIdx = Math.floor(step / 3)
-    const exPhase = step % 3
+    // у примера 3 или 4 фазы (см. kind): считаем начало каждого примера
+    const lens = cfg.examples.map((e) => e.lines.length)
+    const starts = [0, lens[0]]
+    const totalSteps = lens[0] + lens[1]
+    const exIdx = step >= starts[1] ? 1 : 0
+    const exPhase = step - starts[exIdx]
     const resetTrial = () => { setChecked(false); setStage(0); setWrongTried([]); setWrongFlash(null) }
 
     const finishTrial = () => {
@@ -357,7 +403,7 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            if (step + 1 >= 6) setPhase('practice')
+            if (step + 1 >= totalSteps) setPhase('practice')
             else { setStep((s) => s + 1); setStepReady(false) }
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
@@ -373,22 +419,22 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
     const canGoBack = phase === 'practice' || step > 0
 
     const handleReplay = () => {
-        if (phase === 'intro') { setStep(exIdx * 3); setStepReady(false) } else resetTrial()
+        if (phase === 'intro') { setStep(starts[exIdx]); setStepReady(false) } else resetTrial()
         bumpNonce(latestSceneKey)
     }
     const handleBack = () => {
         if (advancing) return
         if (phase === 'intro') {
             if (step === 0) return
-            const t = exPhase > 0 ? exIdx * 3 : (exIdx - 1) * 3
-            bumpNonce(`step-${Math.floor(t / 3)}`); setStep(t); setStepReady(false)
+            const t = exPhase > 0 ? starts[exIdx] : starts[exIdx - 1]
+            bumpNonce(`step-${exPhase > 0 ? exIdx : exIdx - 1}`); setStep(t); setStepReady(false)
             return
         }
         const target = prevSceneKeyOf(latestSceneKey)
         if (!target) return
         bumpNonce(target)
         if (target.startsWith('trial-')) { setTrialIndex(Number(target.slice(6))); resetTrial() }
-        else { setPhase('intro'); setStep(Number(target.slice(5)) * 3 + 2); setStepReady(false) }
+        else { setPhase('intro'); setStep(starts[Number(target.slice(5))] + lens[Number(target.slice(5))] - 1); setStepReady(false) }
     }
 
     const slotText = (n: number | null, color: string, done: boolean, active: boolean) => (
@@ -405,10 +451,10 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {[0, 1].map((i) => step >= i * 3 && (
+                {[0, 1].map((i) => step >= starts[i] && (
                     <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                         <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                            <ChainScene ex={cfg.examples[i]} phase={Math.min(2, Math.max(0, step - i * 3))} onSettled={() => setStepReady(true)} />
+                            <ChainScene ex={cfg.examples[i]} phase={Math.min(lens[i] - 1, Math.max(0, step - starts[i]))} onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 ))}
