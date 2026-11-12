@@ -63,8 +63,9 @@ export type ChainExample = {
     left: (o: LeftOpts) => ReactNode
     strike: [string, string]
     flyers: [Flyer, Flyer]
-    // kind: 'strike' — совпавшее вычёркивается (3 фазы); 'oval' — конструкция обводится маркером и бледнеет (4 фазы)
-    kind: 'strike' | 'oval'
+    // kind: 'strike' — совпавшее вычёркивается (3 фазы); 'oval' — конструкция обводится маркером и бледнеет (4 фазы);
+    // 'flip' — «перевёртыш»: справа вырастает «= 1 / log □ □», числа меняются местами (3 фазы)
+    kind: 'strike' | 'oval' | 'flip'
     lines: Line[][]
     labels: string[]
 }
@@ -77,15 +78,27 @@ const Slot = ({ value, color }: { value: number | null; color: string }) => (
     )
 )
 
-// «= log □ □»: data-marker base/arg — точки приземления.
-const RightExpr = ({ on, base, arg }: { on: boolean; base: number | null; arg: number | null }) => (
-    <span className="inline-flex items-baseline whitespace-nowrap" style={{ opacity: on ? 1 : 0, transition: 'opacity 0.4s' }}>
-        <Plain>=</Plain>
-        <span className="ml-2"><Plain>log</Plain></span>
-        <sub className="ml-0.5" style={{ lineHeight: 0 }}><span data-marker="base" className="inline-block"><Slot value={base} color={COL_BASE} /></span></sub>
-        <span data-marker="arg" className="ml-1 inline-block"><Slot value={arg} color={COL_ARG} /></span>
-    </span>
-)
+// «= log □ □» (или «= 1 / log □ □» при frac): data-marker base/arg — точки приземления.
+const RightExpr = ({ on, base, arg, frac }: { on: boolean; base: number | null; arg: number | null; frac?: boolean }) => {
+    const logPart = (
+        <span className="inline-flex items-baseline whitespace-nowrap">
+            <Plain>log</Plain>
+            <sub className="ml-0.5" style={{ lineHeight: 0 }}><span data-marker="base" className="inline-block"><Slot value={base} color={COL_BASE} /></span></sub>
+            <span data-marker="arg" className="ml-1 inline-block"><Slot value={arg} color={COL_ARG} /></span>
+        </span>
+    )
+    return (
+        <span className="inline-flex items-center whitespace-nowrap" style={{ opacity: on ? 1 : 0, transition: 'opacity 0.4s' }}>
+            <Plain>=</Plain>
+            {frac ? (
+                <span className="ml-2 inline-flex flex-col items-center">
+                    <span className="border-b-2 border-[#F2F7FB] px-2 pb-1"><Plain>1</Plain></span>
+                    <span className="px-2 pt-1">{logPart}</span>
+                </span>
+            ) : <span className="ml-2">{logPart}</span>}
+        </span>
+    )
+}
 
 // Вычёркивание: меряем элементы с data-marker и рисуем поверх выбранный способ (см. strike-variants.tsx).
 const Strikes = ({ containerRef, markers, dim }: { containerRef: RefObject<HTMLDivElement | null>; markers: string[]; dim: boolean }) => {
@@ -237,6 +250,9 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
             later(() => setRightOn(true), 300)
             later(() => setFly(true), 900)
             later(launch, 1800)
+        } else if (ex.kind === 'flip') {
+            later(() => setRightOn(true), 400)
+            later(onSettled, 1800)
         } else if (ex.kind === 'oval') {
             if (p === 1) { later(() => setOval(true), 400); later(onSettled, 1900) }
             else { later(() => setDim(true), 400); later(onSettled, 1500) }
@@ -260,7 +276,7 @@ const ChainScene = ({ ex, phase, onSettled }: { ex: ChainExample; phase: number;
             <DiagramBlock>
                 <div ref={ref} className="relative w-full py-4 flex items-center justify-center gap-5 text-2xl md:text-3xl font-extrabold">
                     {ex.left({ marked, dim, fly, sent })}
-                    <RightExpr on={rightOn} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
+                    <RightExpr on={rightOn} frac={ex.kind === 'flip'} base={landed ? ex.flyers[0].n : null} arg={landed ? ex.flyers[1].n : null} />
                     {struck && <Strikes containerRef={ref} markers={ex.strike} dim={dim} />}
                     {oval && <HandOval containerRef={ref} markers={ex.strike} dim={dim} />}
                     {flyers?.map((f) => <FlyerView key={`${f.n}-${f.left}`} f={f} />)}
@@ -317,6 +333,7 @@ export type ChainWalkConfig = {
     prompt: (n: [number, number, number]) => ReactNode
     answer: (n: [number, number, number]) => [number, number]
     stagePrompts: [string, string]
+    frac?: boolean          // ответ вида «1 / log □ □»
     joke: ChoiceExtra
 }
 
@@ -494,11 +511,21 @@ export const LogChainWalk = ({ cfg, onAnswer, onComplete }: { cfg: ChainWalkConf
                                             <div className="w-full flex items-center justify-center text-2xl md:text-3xl font-extrabold py-1">{cfg.prompt(t.n)}</div>
                                             <div className="w-full flex items-center justify-center gap-x-2 text-2xl md:text-3xl font-extrabold pt-6 pb-1">
                                                 <Plain>=</Plain>
-                                                <span className="inline-flex items-baseline whitespace-nowrap">
-                                                    <Plain>log</Plain>
-                                                    <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slotText((isDone || !isCurrent || stage > 0) ? ans[0] : null, COL_BASE, isDone, isCurrent && !isDone && stage === 0)}</sub>
-                                                    <span className="ml-1">{slotText((isDone || !isCurrent) ? ans[1] : null, COL_ARG, isDone, isCurrent && !isDone && stage === 1)}</span>
-                                                </span>
+                                                {(() => {
+                                                    const logPart = (
+                                                        <span className="inline-flex items-baseline whitespace-nowrap">
+                                                            <Plain>log</Plain>
+                                                            <sub className="ml-0.5" style={{ lineHeight: 0 }}>{slotText((isDone || !isCurrent || stage > 0) ? ans[0] : null, COL_BASE, isDone, isCurrent && !isDone && stage === 0)}</sub>
+                                                            <span className="ml-1">{slotText((isDone || !isCurrent) ? ans[1] : null, COL_ARG, isDone, isCurrent && !isDone && stage === 1)}</span>
+                                                        </span>
+                                                    )
+                                                    return cfg.frac ? (
+                                                        <span className="inline-flex flex-col items-center">
+                                                            <span className="border-b-2 border-[#F2F7FB] px-2 pb-1"><Plain>1</Plain></span>
+                                                            <span className="px-2 pt-1">{logPart}</span>
+                                                        </span>
+                                                    ) : logPart
+                                                })()}
                                             </div>
                                         </DiagramBlock>
                                         {isCurrent && !checked && (
