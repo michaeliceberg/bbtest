@@ -15,7 +15,8 @@ import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { buyCatFood, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
-import { CAT_FOOD, CAT_FOODS, CAT_FEED_BELOW, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { FeedDesignC } from '@/components/cat-feed-designs'
+import { CAT_FOOD, CAT_FEED_BELOW, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
@@ -46,13 +47,18 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, sat
     const [noCoins, setNoCoins] = useState<CatFood | null>(null)
     const [sgTapped, setSgTapped] = useState(false)
     const [feeding, setFeeding] = useState(false)
+    // что сейчас падает в миску: котик «ест» ~1,1 с, потом окно закрывается и котик доедает в ангаре
+    const [eating, setEating] = useState<CatFood | null>(null)
     const full = satiety >= CAT_FEED_BELOW
     const feed = async (kind: CatFood) => {
         if (feeding || full || stock[kind] <= 0) return
         playJustClick()
         setFeeding(true)
-        const r = offline ? { ok: true, streak: feedStreak + 1, left: stock[kind] - 1, satiety: Math.min(1, satiety + CAT_FOOD[kind].gain / 100) } : await feedCat(kind)
-        setFeeding(false)
+        const [r] = await Promise.all([
+            offline ? { ok: true, streak: feedStreak + 1, left: stock[kind] - 1, satiety: Math.min(1, satiety + CAT_FOOD[kind].gain / 100) } : feedCat(kind),
+            (setEating(kind), new Promise((res) => setTimeout(res, 1100))),
+        ])
+        setFeeding(false); setEating(null)
         if (!r.ok || r.left === undefined || r.streak === undefined || r.satiety === undefined) { playSound(WRONG_ANSWER_SOUND); return }
         playSound(CASE_PRIZE_SOUND)
         onFed?.(kind, r.left, r.streak, r.satiety)
@@ -218,30 +224,8 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, sat
                         style={{ inset: 0, clipPath: FRIDGE_CHAMBER_CLIP, background: 'rgba(12,20,32,0.55)', opacity: dark, zIndex: 30 }} />
                 </div>
                 {/* кормление: пока сытость меньше половины; каждая порция добавляет свои проценты; серия — по дням */}
-                <div className="mt-3 rounded-2xl border-2 border-[#3A2A1E] bg-[#FFF6E4] p-2.5 text-center text-[#3A2A1E]">
-                    {full ? (
-                        <>
-                            <div className="font-black">Котик сыт 😺</div>
-                            <div className="mt-0.5 text-xs font-bold text-[#8C6A44]">Покормишь, когда сытость станет меньше половины</div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="font-black">Котик голодный — покорми!</div>
-                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                {CAT_FOODS.map((k) => (
-                                    <button key={k} type="button" disabled={stock[k] <= 0 || feeding} onClick={() => void feed(k)}
-                                        className="flex items-center gap-1.5 rounded-xl border-b-4 border-[#4E8F2A] bg-[#8FD460] py-1 pl-1.5 pr-2 text-sm font-black text-[#1E3A0E] active:border-b-0 disabled:opacity-40">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={CAT_FOOD[k].src} alt="" className="h-7 w-7 object-contain" />
-                                        <span className="min-w-0 flex-1 text-left leading-tight">{CAT_FOOD[k].title} ×{stock[k]}</span>
-                                        <span className="rounded-md bg-[#4E8F2A] px-1 text-xs text-white">+{CAT_FOOD[k].gain}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            {CAT_FOODS.every((k) => stock[k] === 0) && <div className="mt-1.5 text-xs font-bold text-[#8C6A44]">Купи еду на полке ☝️</div>}
-                        </>
-                    )}
-                    {feedStreak > 0 && <div className="mt-1 text-xs font-bold text-[#8C6A44]">Кормишь {feedStreak} {feedStreak % 10 === 1 && feedStreak % 100 !== 11 ? 'день' : [2, 3, 4].includes(feedStreak % 10) && ![12, 13, 14].includes(feedStreak % 100) ? 'дня' : 'дней'} подряд · 10, 50 и 100 дней — награды 🏆</div>}
+                <div className="mt-3">
+                    <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">
