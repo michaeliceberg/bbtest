@@ -58,10 +58,6 @@ function Bar({ sat, color, ghost, h = 14 }: { sat: number; color: string; ghost?
     )
 }
 
-const Streak = ({ n }: { n: number }) => n > 0 ? (
-    <div className="mt-2 text-center text-xs font-bold text-[#8C6A44]">Кормишь {n} дн. подряд · награды за 10, 50 и 100 дней</div>
-) : null
-
 const Shell = ({ children }: { children: React.ReactNode }) => (
     <div className="rounded-2xl border-2 p-3 text-[#3A2A1E]" style={{ borderColor: BROWN, background: CREAM }}>{children}</div>
 )
@@ -96,7 +92,6 @@ export function FeedDesignA(p: FeedDesignProps) {
                     </button>
                 ))}
             </div>
-            <Streak n={p.feedStreak} />
         </Shell>
     )
 }
@@ -148,7 +143,6 @@ export function FeedDesignB(p: FeedDesignProps) {
                     </button>
                 ))}
             </div>
-            <Streak n={p.feedStreak} />
         </Shell>
     )
 }
@@ -195,7 +189,6 @@ export function FeedDesignC(p: FeedDesignProps) {
             {p.satiety >= CAT_FEED_BELOW
                 ? <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Покормишь, когда сытость станет меньше половины</div>
                 : CAT_FOODS.every((k) => p.stock[k] <= 0) && <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Купи еду на полках выше</div>}
-            <Streak n={p.feedStreak} />
         </Shell>
     )
 }
@@ -237,7 +230,6 @@ export function FeedDesignD(p: FeedDesignProps) {
                     </div>
                 ))}
             </div>
-            <Streak n={p.feedStreak} />
         </Shell>
     )
 }

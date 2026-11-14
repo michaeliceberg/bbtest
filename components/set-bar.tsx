@@ -274,10 +274,6 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 {/* отступ сверху — над уровнями висит язычок с колокольчиком */}
                 <div className="mt-4"><ChestLevels setNumber={d.setNumber} /></div>
             </div>
-            <div>
-                {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
-                    : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
-            </div>
             {/* Блюда стоят на столе уровня колокольчика (SET_TABLES; каска зелёного стола подогнана по тону скатерти
                 docs/set-table/helmet_cut.py): вилка с ножом справа внизу — блюда в свободной середине */}
             <motion.div key={shownLvl} className="relative mx-auto mt-2 w-full"
@@ -339,6 +335,10 @@ export function SetPanel({ d, dish, closing, onClose, goVariant = 0, onLoading }
                 </div>
                 )}
             </motion.div>
+            <div>
+                {dish < 2 ? (d.preview && <SetPreviewCard p={d.preview} />)
+                    : <p className="mt-2 text-sm font-bold leading-snug text-[#E8D9B8]">{shout(d, dish)}</p>}
+            </div>
             {party > 0 && createPortal(
                 <div className="pointer-events-none fixed inset-0 z-[200]">
                     <Confetti key={party} width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={240}
