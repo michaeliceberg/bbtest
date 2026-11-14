@@ -506,7 +506,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const sboxStateRef = useRef(sbox) // котик в коробке: домик пуст, мурлыкать там некому
     sboxStateRef.current = sbox
     const [sboxSay, setSboxSay] = useState<string | null>(null)
-    const [lockSay, setLockSay] = useState(false)
+    const [lockSay, setLockSay] = useState<string | null>(null)
     // сытость считаем только в браузере (время клиента) и раз в минуту обновляем
     const [satiety, setSatiety] = useState<number | null>(null)
     useEffect(() => {
@@ -957,9 +957,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : asleep ? () => { playJustClick(); setLockSay(true); setTimeout(() => setLockSay(false), 2200) } : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
-            {/* пока мыши грабят — кормить нельзя: досмотри сцену */}
-            {!bare && lockSay && <Bubble x={frP.x} y={frP.y - frP.h - 4}>Тсс! Мыши в деле — подожди</Bubble>}
+            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : asleep || away ? () => { playJustClick(); setLockSay(away ? 'Котик поймал мышку! Сначала порадуйся за него' : 'Тсс! Мыши в деле — подожди'); setTimeout(() => setLockSay(null), 2600) } : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
+            {/* пока мыши грабят или котик держит пойманную мышку — кормить нельзя: досмотри сцену / нажми на котика */}
+            {!bare && lockSay && <Bubble x={frP.x} y={frP.y - frP.h - 4}>{lockSay}</Bubble>}
             {shopOpen && typeof document !== 'undefined' && createPortal(
                 <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
                     satiety={satiety ?? 0} feedStreak={liveFeedStreak(food.fedDate, food.streak)}
