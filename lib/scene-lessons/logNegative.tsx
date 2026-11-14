@@ -69,7 +69,7 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
 const flip = (b: string, n: string, label: string) => ({ t: 'custom' as const, render: (done: () => void) => <FlipDemo b={b} n={n} label={label} onDone={done} /> })
 
 export const LOG_NEGATIVE: SceneLesson = {
-    question: 'Отрицательные степени в логарифмах',
+    question: 'Минус и дробь в степенях',
     mascot: 'Минус и дробь в степени',
     last: 'Готово, я шарю',
     scenes: [

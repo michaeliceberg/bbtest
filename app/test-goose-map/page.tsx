@@ -8,7 +8,7 @@ import { TrainerPet } from '@/components/trainer-pet'
 import { StormPill } from '@/components/storm-pill'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 
-const titles = ['Что такое логарифм?', 'Отрицательные степени в логарифмах', 'Как складывать логарифмы?', 'Как вычитать логарифмы?', 'Сумма и разность логарифмов — тренировка', 'Степени', 'Логарифм в степени', 'Деление логарифмов', 'К-к-комбо логарифмов', 'Перевёртыш']
+const titles = ['Что такое логарифм?', 'Минус и дробь в степенях', 'Как складывать логарифмы?', 'Как вычитать логарифмы?', 'Сумма и разность логарифмов — тренировка', 'Степени', 'Логарифм в степени', 'Деление логарифмов', 'К-к-комбо логарифмов', 'Перевёртыш']
 const topic: SkillTopic = {
     id: 16, title: 'Логарифмы', percentage: 40,
     stages: titles.map((t, i) => ({ id: 900 + i, title: t, percentage: i < 3 ? 100 : 0, isStepByStep: i !== 2 && i !== 9, isBossExam: i === 9, egePart: i % 2 === 0 ? 1 : 2, badge: i === 0 ? 'log₂ 1/8 = −3' : null } as SkillTopic['stages'][number])),

@@ -15,7 +15,7 @@ import { t_lessons, t_challenges } from "@/db/schema"
 const T_COURSE = 5
 const LOG_UNIT_MAIN = 16
 const NEW = [
-    { title: 'Отрицательные степени в логарифмах', badge: 'log₂ ⅛ = −3', part: 1,
+    { title: 'Минус и дробь в степенях', badge: 'log₂ ⅛ = −3', part: 1,
         hint: 'логарифмы с отрицательными степенями и дробями: a⁻ⁿ = 1/aⁿ, log₂(1/8) = −3, log₈(1/2) = −1/3, log_{1/2} 16 = −4, приведение к одному основанию', place: 'afterFirstTraining', unitTitle: '' },
     { title: 'Логарифмические неравенства', badge: '№16 ЕГЭ', part: 2,
         hint: 'логарифмические неравенства (ЕГЭ №16): знак log_a b по правилу единицы (a и b по одну сторону от 1 — плюс), метод рационализации: log_{f} g ∨ 0 ⇔ f > 0, g > 0, f ≠ 1, (f − 1)(g − 1) ∨ 0', place: 'beforeBoss', unitTitle: 'Логарифмические неравенства' },

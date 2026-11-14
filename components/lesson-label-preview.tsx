@@ -166,7 +166,7 @@ const PREVIEWS: Record<string, () => ReactNode> = {
     'деление логарифмов': () => <LogDivPreview />,
     'к-к-комбо логарифмов': () => <ComboPreview />,
     'перевёртыш': () => <FlipPreview />,
-    'отрицательные степени в логарифмах': () => <NegPowPreview />,
+    'минус и дробь в степенях': () => <NegPowPreview />,
 }
 
 export const hasLessonPreview = (title: string) => norm(title) in PREVIEWS
