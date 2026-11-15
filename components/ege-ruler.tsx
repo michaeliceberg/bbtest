@@ -93,28 +93,30 @@ function Squares({ t, mode, color, onTopic, onLesson, onRambo }: { t: RulerTask;
         ))}</>
     }
     const none = <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
-    // Две строки: уроки задачника (лайм, заливка снизу по доле решённых) и темы тренажёра (цвет медали). Нажал — открылся именно он.
+    // Два столбца (шапка с иконками — над списком): уроки задачника (лайм, заливка снизу по доле решённых)
+    // и темы тренажёра (медали: бронза, серебро от 50%, золото 100%, пустая серая — не начата). Нажал — открылся именно он.
     return (
         <>
-            <span className="flex items-center gap-[4px]">
-                <BookOpen className="h-3 w-3 shrink-0" style={{ color: SKIN.tasks.fill }} strokeWidth={2.6} aria-label="Задачник" />
-                <span className="flex flex-wrap items-center gap-[4px]">
-                    {t.lessons.length ? t.lessons.map((l) => {
-                        const f = pct(Math.min(l.solved, l.total), l.total)
-                        return <Square key={l.id} fill={f} color={color} gold={f >= 1} locked={l.proLocked && f < 1} title={`Задачник · ${l.title}: ${l.solved}/${l.total}`}
-                            onClick={(e) => { e.stopPropagation(); onLesson(t.num) }} />
-                    }) : none}
-                </span>
+            <span className="flex flex-1 flex-wrap content-start items-center gap-[4px]">
+                {t.lessons.length ? t.lessons.map((l) => {
+                    const f = pct(Math.min(l.solved, l.total), l.total)
+                    return <Square key={l.id} fill={f} color={color} gold={f >= 1} locked={l.proLocked && f < 1} title={`Задачник · ${l.title}: ${l.solved}/${l.total}`}
+                        onClick={(e) => { e.stopPropagation(); onLesson(t.num) }} />
+                }) : none}
             </span>
-            <span className="flex items-center gap-[4px]">
-                <Dumbbell className="h-3 w-3 shrink-0" style={{ color: MEDAL.gold }} strokeWidth={2.6} aria-label="Тренажёр" />
-                <span className="flex flex-wrap items-center gap-[4px]">
-                    {t.trainers.length ? t.trainers.map((k) => {
-                        const c = medalColor(k.percent)
-                        return <Square key={k.tUnitId} fill={c ? 1 : 0} color={c ?? color} gold={k.percent >= 100} locked={k.proLocked && k.percent < 100} title={`Тренажёр · ${k.title}: ${k.percent}%`}
-                            onClick={(e) => { e.stopPropagation(); onTopic(k.title) }} />
-                    }) : none}
-                </span>
+            <span className="flex flex-1 flex-wrap content-start items-center gap-[3px]">
+                {t.trainers.length ? t.trainers.map((k) => {
+                    const kind = k.percent >= 100 ? 'gold' : k.percent >= 50 ? 'silver' : k.percent > 0 ? 'bronze' : null
+                    return (
+                        <span key={k.tUnitId} title={`Тренажёр · ${k.title}: ${k.percent}%`} className="relative h-[26px] w-[26px] shrink-0 cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); onTopic(k.title) }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`/medals/medal-${kind ?? 'bronze'}.webp`} alt="" draggable={false} className="h-full w-full select-none object-contain"
+                                style={kind ? undefined : { filter: 'grayscale(1) brightness(0.55)', opacity: 0.35 }} />
+                            {k.proLocked && k.percent < 100 && <Lock className="absolute -bottom-0.5 -right-0.5 h-[11px] w-[11px] rounded-full p-[1px]" style={{ color: `${TICK}CC`, background: '#2A331B' }} strokeWidth={3} />}
+                        </span>
+                    )
+                }) : none}
             </span>
         </>
     )
@@ -272,6 +274,15 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
             )}
             <div ref={listRef} className="relative min-h-0 flex-1 overflow-y-auto px-2 pb-2">
                 <HereBand containerRef={listRef as React.RefObject<HTMLElement>} num={here.size ? Math.min(...here) : null} radius={8} inset={8} />
+                {mode === 'tasks' && (
+                    <div className="flex items-center gap-1.5 px-1 pb-1 text-[10px] font-black uppercase tracking-wider" style={{ color: `${TICK}AA` }}>
+                        <span className="w-[34px] shrink-0" /><span className="w-[16px] shrink-0" /><span className="w-[68px] shrink-0" />
+                        <span className="flex min-w-0 flex-1 gap-2">
+                            <span className="flex flex-1 items-center gap-1"><BookOpen className="h-3 w-3" style={{ color: SKIN.tasks.fill }} strokeWidth={2.6} />Задачник</span>
+                            <span className="flex flex-1 items-center gap-1"><Dumbbell className="h-3 w-3" style={{ color: MEDAL.gold }} strokeWidth={2.6} />Тренажёр</span>
+                        </span>
+                    </div>
+                )}
                 {data.tasks.map((t) => {
                     const p = taskProgress(t, mode)
                     const isSet = data.setTaskNum === t.num
@@ -287,7 +298,7 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
                                 </div>
                             )}
                             <div data-ruler-row={t.num} role={href ? 'button' : undefined} onClick={() => go(href)}
-                                className={`relative flex items-start gap-1.5 rounded-lg px-1 py-[6px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
+                                className={`relative flex ${mode === 'rambo' ? 'items-start' : 'min-h-[36px] items-center'} gap-1.5 rounded-lg px-1 py-[4px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
                                 style={isSet && !isHere ? { background: '#F2C35B1A', boxShadow: 'inset 0 0 0 1px #F2C35B66' } : undefined}>
                                 <span className="flex h-[16px] w-[34px] shrink-0 items-center gap-[3px]">
                                     <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />
@@ -295,8 +306,8 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
                                 </span>
                                 {/* Колокольчик — между номером и названием: задание текущего сета */}
                                 <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">{isSet && <Bell />}</span>
-                                <span className="w-[80px] shrink-0 text-[11px] font-bold leading-[1.15]" style={{ color: isHere ? '#FFFFFF' : `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
-                                <span className={`flex min-w-0 flex-1 ${mode === 'rambo' ? 'flex-wrap items-center gap-[3px]' : 'flex-col gap-[5px]'}`}>
+                                <span className={`${mode === 'rambo' ? 'w-[80px]' : 'w-[68px]'} shrink-0 text-[11px] font-bold leading-[1.15]`} style={{ color: isHere ? '#FFFFFF' : `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
+                                <span className={`flex min-w-0 flex-1 ${mode === 'rambo' ? 'flex-wrap items-center gap-[3px]' : 'items-start gap-2'}`}>
                                     <Squares t={t} mode={mode} color={s.fill} onTopic={(title) => go(topicHref(title))} onLesson={(num) => go(`/learn?task=${num}`)} onRambo={onRambo} />
                                 </span>
                             </div>
