@@ -4,25 +4,25 @@
 //
 // «Линейка ЕГЭ» — узкая армейская линейка у правого края экрана: сверху вниз задания 1–20, у каждого
 // риска, длина которой — прогресс задания. Нажал — линейка выезжает целиком: справа от номера квадратик
-// на каждый подраздел (урок задачника или тема тренажёра). Переключатель сверху: «Задачник» (оливковая
-// линейка) / «Тренажёр» (бордовая). Колокольчик — задание текущего сета. Замок — подраздел только в PRO.
+// на каждый подраздел. Режима два: «Задания» (у каждого задания две строки квадратиков: уроки задачника и темы
+// тренажёра, нажал квадратик — открылся именно он) и «Рэмбо». Колокольчик — задание текущего сета. Замок — подраздел только в PRO.
 // Данные — lib/egeRuler.ts.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
-import { Lock, Plus, Repeat, Swords, X } from 'lucide-react'
+import { BookOpen, Dumbbell, Lock, Plus, Repeat, Swords, X } from 'lucide-react'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import type { RulerData, RulerTask } from '@/lib/egeRuler'
 import { declensionRu } from '@/usefulFunctions'
 import { stencilFont } from '@/lib/fonts'
 import { PetBust } from './trainer-pet'
 
-type Mode = 'learn' | 'trainer' | 'rambo'
-const MODES: Mode[] = ['learn', 'trainer', 'rambo']
+type Mode = 'tasks' | 'rambo'
+const MODES: Mode[] = ['tasks', 'rambo']
 
-const SHORT: Record<number, string> = {
+export const SHORT: Record<number, string> = {
     1: 'Планиметрия', 2: 'Векторы', 3: 'Стереометрия', 4: 'Вероятность', 5: 'Сложная вероятность',
     6: 'Мат. ожидание', 7: 'Уравнения', 8: 'Выражения', 9: 'Производная', 10: 'Прикладные',
     11: 'Текстовые', 12: 'Графики', 13: 'Финансы', 14: 'Уравнения', 15: 'Стереометрия',
@@ -31,13 +31,12 @@ const SHORT: Record<number, string> = {
 
 // Линейка задачника — армейская оливковая, тренажёра — бордовая. Риски кремовые, как краска на старой линейке.
 const SKIN: Record<Mode, { body: string; edge: string; light: string; fill: string; label: string }> = {
-    learn: { body: '#3D4728', edge: '#272E19', light: '#55613A', fill: '#C9E36B', label: 'Задачник' },
-    trainer: { body: '#4A1F28', edge: '#2E1218', light: '#673040', fill: '#F2C35B', label: 'Тренажёр' },
+    tasks: { body: '#3D4728', edge: '#272E19', light: '#55613A', fill: '#C9E36B', label: 'Задания' },
     // «Рэмбо» (lib/rambo.ts) — смесь тренажёра и задачника: тёмный камуфляж и красная повязка.
     rambo: { body: '#2C312B', edge: '#161A15', light: '#434B40', fill: '#E04848', label: 'Рэмбо' },
 }
-const TICK = '#D9D2B0'
-const MEDAL = { bronze: '#C98A4B', silver: '#C9D4DA', gold: '#F2C35B' }
+export const TICK = '#D9D2B0'
+export const MEDAL = { bronze: '#C98A4B', silver: '#C9D4DA', gold: '#F2C35B' }
 const MODE_KEY = 'egeRulerMode'
 
 // Царапины на армейской надписи: дырки в маске (evenodd), сквозь них виден фон линейки. Маска статичная — процессор не грузит.
@@ -46,17 +45,20 @@ const SCRATCH_MASK = `url("data:image/svg+xml,${SCRATCHES}") center / 100% 100% 
 
 const pct = (n: number, d: number) => (d > 0 ? n / d : 0)
 
-/** Прогресс задания 0..1 в выбранном режиме. */
+export const learnProgress = (t: RulerTask) => {
+    const total = t.lessons.reduce((s, l) => s + l.total, 0)
+    return pct(t.lessons.reduce((s, l) => s + Math.min(l.solved, l.total), 0), total)
+}
+export const trainerProgress = (t: RulerTask) => (t.trainers.length ? t.trainers.reduce((s, k) => s + k.percent, 0) / t.trainers.length / 100 : 0)
+
+/** Прогресс задания 0..1 в выбранном режиме (в «Заданиях» — среднее по задачнику и тренажёру, что есть). */
 function taskProgress(t: RulerTask, mode: Mode) {
     if (mode === 'rambo') return t.rambo.filter((c) => c.passed).length / 4
-    if (mode === 'learn') {
-        const total = t.lessons.reduce((s, l) => s + l.total, 0)
-        return pct(t.lessons.reduce((s, l) => s + Math.min(l.solved, l.total), 0), total)
-    }
-    return t.trainers.length ? t.trainers.reduce((s, k) => s + k.percent, 0) / t.trainers.length / 100 : 0
+    const parts = [t.lessons.length ? learnProgress(t) : null, t.trainers.length ? trainerProgress(t) : null].filter((x): x is number => x !== null)
+    return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0
 }
 
-const medalColor = (p: number) => (p >= 100 ? MEDAL.gold : p >= 50 ? MEDAL.silver : p > 0 ? MEDAL.bronze : null)
+export const medalColor = (p: number) => (p >= 100 ? MEDAL.gold : p >= 50 ? MEDAL.silver : p > 0 ? MEDAL.bronze : null)
 
 function Bell({ size = 14 }: { size?: number }) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -65,7 +67,7 @@ function Bell({ size = 14 }: { size?: number }) {
 
 function Square({ fill, color, locked, title, gold, onClick }: { fill: number; color: string; locked: boolean; title: string; gold?: boolean; onClick?: (e: React.MouseEvent) => void }) {
     return (
-        <span title={title} onClick={onClick} className={`relative h-[13px] w-[13px] shrink-0 overflow-hidden rounded-[3px] ${onClick ? 'cursor-pointer' : ''}`}
+        <span title={title} onClick={onClick} className={`relative h-[16px] w-[16px] shrink-0 overflow-hidden rounded-[4px] ${onClick ? 'cursor-pointer' : ''}`}
             style={{ background: '#00000040', boxShadow: `inset 0 0 0 1px ${TICK}33` }}>
             {fill > 0 && <span className="absolute inset-x-0 bottom-0" style={{ height: `${Math.max(fill, 0.15) * 100}%`, background: color, boxShadow: gold ? `0 0 6px ${color}` : undefined }} />}
             {locked && <Lock className="absolute inset-0 m-auto h-[9px] w-[9px]" style={{ color: `${TICK}99` }} strokeWidth={3} />}
@@ -73,7 +75,7 @@ function Square({ fill, color, locked, title, gold, onClick }: { fill: number; c
     )
 }
 
-function Squares({ t, mode, color, onTopic, onRambo }: { t: RulerTask; mode: Mode; color: string; onTopic: (title: string) => void; onRambo: (num: number, level: number, need: string | null, proLocked: boolean) => void }) {
+function Squares({ t, mode, color, onTopic, onLesson, onRambo }: { t: RulerTask; mode: Mode; color: string; onTopic: (title: string) => void; onLesson: (num: number) => void; onRambo: (num: number, level: number, need: string | null, proLocked: boolean) => void }) {
     if (mode === 'rambo') {
         if (!t.ramboAvailable) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
         // 4 клетки: пройдена — залита красным, открыта — яркая рамка, закрыта — тусклая (с замком, если PRO).
@@ -90,30 +92,43 @@ function Squares({ t, mode, color, onTopic, onRambo }: { t: RulerTask; mode: Mod
             </span>
         ))}</>
     }
-    if (mode === 'learn') {
-        if (!t.lessons.length) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
-        return <>{t.lessons.map((l) => {
-            const f = pct(Math.min(l.solved, l.total), l.total)
-            return <Square key={l.id} fill={f} color={color} gold={f >= 1} locked={l.proLocked && f < 1} title={`${l.title}: ${l.solved}/${l.total}`} />
-        })}</>
-    }
-    if (!t.trainers.length) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
-    return <>{t.trainers.map((k) => {
-        const c = medalColor(k.percent)
-        // В режиме «Тренажёр» каждый квадратик — своя тема: нажал — открывается именно она.
-        return <Square key={k.tUnitId} fill={c ? 1 : 0} color={c ?? color} gold={k.percent >= 100} locked={k.proLocked && k.percent < 100} title={`${k.title}: ${k.percent}%`}
-            onClick={(e) => { e.stopPropagation(); onTopic(k.title) }} />
-    })}</>
+    const none = <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
+    // Две строки: уроки задачника (лайм, заливка снизу по доле решённых) и темы тренажёра (цвет медали). Нажал — открылся именно он.
+    return (
+        <>
+            <span className="flex items-center gap-[4px]">
+                <BookOpen className="h-3 w-3 shrink-0" style={{ color: SKIN.tasks.fill }} strokeWidth={2.6} aria-label="Задачник" />
+                <span className="flex flex-wrap items-center gap-[4px]">
+                    {t.lessons.length ? t.lessons.map((l) => {
+                        const f = pct(Math.min(l.solved, l.total), l.total)
+                        return <Square key={l.id} fill={f} color={color} gold={f >= 1} locked={l.proLocked && f < 1} title={`Задачник · ${l.title}: ${l.solved}/${l.total}`}
+                            onClick={(e) => { e.stopPropagation(); onLesson(t.num) }} />
+                    }) : none}
+                </span>
+            </span>
+            <span className="flex items-center gap-[4px]">
+                <Dumbbell className="h-3 w-3 shrink-0" style={{ color: MEDAL.gold }} strokeWidth={2.6} aria-label="Тренажёр" />
+                <span className="flex flex-wrap items-center gap-[4px]">
+                    {t.trainers.length ? t.trainers.map((k) => {
+                        const c = medalColor(k.percent)
+                        return <Square key={k.tUnitId} fill={c ? 1 : 0} color={c ?? color} gold={k.percent >= 100} locked={k.proLocked && k.percent < 100} title={`Тренажёр · ${k.title}: ${k.percent}%`}
+                            onClick={(e) => { e.stopPropagation(); onTopic(k.title) }} />
+                    }) : none}
+                </span>
+            </span>
+        </>
+    )
 }
 
-const topicHref = (title: string) => `/trainer?topic=${encodeURIComponent(title)}`
+export const topicHref = (title: string) => `/trainer?topic=${encodeURIComponent(title)}`
 /** Куда ведёт строка: задачник — раздел задания, тренажёр — первая непройденная тема. Нечего открыть — null. */
 const rowHref = (t: RulerTask, mode: Mode) => {
     if (mode === 'rambo') {
         const c = t.rambo.find((x) => x.open && !x.passed) ?? [...t.rambo].reverse().find((x) => x.open)
         return c ? `/rambo/${t.num}/${c.level}` : null
     }
-    if (mode === 'trainer') return t.trainers.length ? topicHref((t.trainers.find((k) => k.percent < 100) ?? t.trainers[0]).title) : null
+    // «Задания»: по пустому месту строки — тренажёр, если он есть (первая непройденная тема), иначе задачник
+    if (t.trainers.length) return topicHref((t.trainers.find((k) => k.percent < 100) ?? t.trainers[0]).title)
     return t.lessons.length ? `/learn?task=${t.num}` : null
 }
 
@@ -182,7 +197,13 @@ function Strip({ data, mode, here, onOpen }: { data: RulerData; mode: Mode; here
                     <span key={t.num} data-ruler-row={t.num} className={`relative flex h-[17px] items-center gap-[2px] pl-[2px] ${t.num === 14 ? 'mt-1.5 border-t' : ''}`}
                         style={{ borderColor: `${TICK}66` }}>
                         <span className="w-[14px] text-right font-mono text-[9px] font-bold leading-none" style={{ color: here.has(t.num) ? '#FFFFFF' : `${TICK}${p > 0 ? 'DD' : '77'}` }}>{t.num}</span>
-                        <span className="h-[2px] rounded-full" style={{ width: 4 + 13 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
+                        {/* две риски: верхняя — задачник, нижняя — тренажёр */}
+                        <span className="flex flex-col gap-[2px]">
+                            {mode === 'rambo' ? <span className="h-[2px] rounded-full" style={{ width: 4 + 13 * p, background: p >= 1 ? s.fill : p > 0 ? TICK : `${TICK}55` }} />
+                                : ([[learnProgress(t), t.lessons.length, s.fill], [trainerProgress(t), t.trainers.length, MEDAL.gold]] as const).map(([q, n, col], i) => (
+                                    <span key={i} className="h-[2px] rounded-full" style={{ width: 4 + 13 * q, background: !n ? `${TICK}22` : q >= 1 ? col : q > 0 ? TICK : `${TICK}55` }} />
+                                ))}
+                        </span>
                         {data.setTaskNum === t.num && <span className="absolute right-[2px] h-[6px] w-[6px] rounded-full" style={{ background: '#F2C35B', boxShadow: '0 0 6px #F2C35B' }} />}
                     </span>
                 )
@@ -197,10 +218,6 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
     const router = useRouter()
     const listRef = useRef<HTMLDivElement>(null)
     const go = (href: string | null) => { if (!href) return; onClose?.(); router.push(href) }
-    // Тренажёр: сколько тем уже с медалью (бронза и выше) из всех тем, привязанных к заданиям.
-    const topics = new Map<number, number>()
-    for (const t of data.tasks) for (const k of t.trainers) topics.set(k.tUnitId, k.percent)
-    const medaled = [...topics.values()].filter((p) => p > 0).length
     const ramboPassed = data.tasks.reduce((n, t) => n + t.rambo.filter((c) => c.passed).length, 0)
     // Подсказка по закрытой клетке «Рэмбо» (на телефоне нет наведения) — плашка под шапкой.
     const [hint, setHint] = useState<string | null>(null)
@@ -211,9 +228,7 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
     }
     const locked = data.tasks.reduce((n, t) => n + (mode === 'rambo'
         ? (t.ramboAvailable ? t.rambo.filter((c) => c.proLocked).length : 0)
-        : mode === 'learn'
-        ? t.lessons.filter((l) => l.proLocked && l.solved < l.total).length
-        : t.trainers.filter((k) => k.proLocked && k.percent < 100).length), 0)
+        : t.lessons.filter((l) => l.proLocked && l.solved < l.total).length + t.trainers.filter((k) => k.proLocked && k.percent < 100).length), 0)
     return (
         <div className="flex max-h-full w-[min(340px,92vw)] flex-col rounded-l-2xl border-y border-l shadow-[-6px_6px_24px_#000a]"
             style={{
@@ -244,9 +259,7 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
                 </div>
                 {mode === 'rambo'
                     ? <span className="shrink-0 text-right leading-none" title="Выиграно боёв «Рэмбо»"><span className="font-mono text-base font-black" style={{ color: TICK }}>{ramboPassed}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(ramboPassed, 'бой', 'боя', 'боёв')}</span></span>
-                    : mode === 'learn'
-                    ? <span className="shrink-0 text-right leading-none" title="Прогноз баллов ЕГЭ"><span className="font-mono text-base font-black" style={{ color: TICK }}>≈{data.test}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(data.test, 'балл', 'балла', 'баллов')}</span></span>
-                    : <span className="shrink-0 text-right leading-none" title="Тем тренажёра с медалью"><span className="font-mono text-base font-black" style={{ color: TICK }}>{medaled}/{topics.size}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>тем</span></span>}
+                    : <span className="shrink-0 text-right leading-none" title="Прогноз баллов ЕГЭ"><span className="font-mono text-base font-black" style={{ color: TICK }}>≈{data.test}</span><span className="block text-[9px] font-bold" style={{ color: `${TICK}AA` }}>{declensionRu(data.test, 'балл', 'балла', 'баллов')}</span></span>}
             </div>
             {mode === 'rambo' && (
                 <div className="relative mx-3 mb-2 flex items-end overflow-hidden rounded-xl pl-3" style={{ background: '#0006', boxShadow: 'inset 0 0 0 1px #E0484855' }}>
@@ -274,17 +287,17 @@ function Panel({ data, mode, setMode, here, onClose, active = true, fixedHeight 
                                 </div>
                             )}
                             <div data-ruler-row={t.num} role={href ? 'button' : undefined} onClick={() => go(href)}
-                                className={`relative flex items-center gap-1.5 rounded-lg px-1 py-[5px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
+                                className={`relative flex items-start gap-1.5 rounded-lg px-1 py-[6px] ${href ? 'cursor-pointer hover:bg-black/20' : ''}`}
                                 style={isSet && !isHere ? { background: '#F2C35B1A', boxShadow: 'inset 0 0 0 1px #F2C35B66' } : undefined}>
-                                <span className="flex w-[34px] shrink-0 items-center gap-[3px]">
+                                <span className="flex h-[16px] w-[34px] shrink-0 items-center gap-[3px]">
                                     <span className="h-[2px] rounded-full" style={{ width: 4 + 6 * p, background: p >= 1 ? s.fill : TICK }} />
                                     <span className="font-mono text-[13px] font-black leading-none" style={{ color: isHere ? '#FFFFFF' : p > 0 ? TICK : `${TICK}88` }}>{t.num}</span>
                                 </span>
                                 {/* Колокольчик — между номером и названием: задание текущего сета */}
-                                <span className="flex w-[16px] shrink-0 justify-center">{isSet && <Bell />}</span>
-                                <span className="w-[80px] shrink-0 truncate text-[11px] font-bold" style={{ color: isHere ? '#FFFFFF' : `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
-                                <span className="flex min-w-0 flex-1 flex-wrap items-center gap-[3px]">
-                                    <Squares t={t} mode={mode} color={s.fill} onTopic={(title) => go(topicHref(title))} onRambo={onRambo} />
+                                <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center">{isSet && <Bell />}</span>
+                                <span className="w-[80px] shrink-0 text-[11px] font-bold leading-[1.15]" style={{ color: isHere ? '#FFFFFF' : `${TICK}${p > 0 ? 'CC' : '77'}` }}>{SHORT[t.num] ?? t.title}</span>
+                                <span className={`flex min-w-0 flex-1 ${mode === 'rambo' ? 'flex-wrap items-center gap-[3px]' : 'flex-col gap-[5px]'}`}>
+                                    <Squares t={t} mode={mode} color={s.fill} onTopic={(title) => go(topicHref(title))} onLesson={(num) => go(`/learn?task=${num}`)} onRambo={onRambo} />
                                 </span>
                             </div>
                         </div>
@@ -349,12 +362,12 @@ function RamboLegend() {
 }
 
 export function EgeRuler({ data, inline = false }: { data: RulerData; inline?: boolean }) {
-    const [mode, setModeState] = useState<Mode>('learn')
+    const [mode, setModeState] = useState<Mode>('tasks')
     const [open, setOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
     useEffect(() => {
         setMounted(true)
-        try { const m = localStorage.getItem(MODE_KEY); if (m === 'learn' || m === 'trainer' || m === 'rambo') setModeState(m) } catch {}
+        try { const m = localStorage.getItem(MODE_KEY); if (m === 'rambo') setModeState('rambo') } catch {}
     }, [])
     const setMode = (m: Mode) => {
         setModeState(m)
