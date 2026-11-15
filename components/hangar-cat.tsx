@@ -129,11 +129,11 @@ const CatShadow = () => (
         style={{ bottom: '-3%', height: '12%', background: 'radial-gradient(closest-side, rgba(20,10,8,0.45), transparent)' }} />
 )
 
-function Bubble({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+function Bubble({ x, y, children, wrap = false }: { x: number; y: number; children: React.ReactNode; wrap?: boolean }) {
     return (
         <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(x), top: pct(y), zIndex: 1160 }}>
             <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }}
-                className="whitespace-nowrap rounded-2xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2.5 py-1 text-[3.2cqw] font-black leading-none text-[#5A3A22] shadow-md sm:text-[2.6cqw]">
+                className={`${wrap ? 'w-max max-w-[40cqw] text-center leading-tight' : 'whitespace-nowrap leading-none'} rounded-2xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2.5 py-1 text-[3.2cqw] font-black text-[#5A3A22] shadow-md sm:text-[2.6cqw]`}>
                 {children}
             </motion.div>
         </div>
@@ -454,12 +454,14 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo, sboxDone = false, asleep = false, away = false, fedAt = null }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo, sboxDone = false, asleep = false, away = false, fedAt = null, returnFrom = null }: {
     stage: number
     /** Мыши грабят сундук: котик спит (днём тоже), холодильник закрыт до конца сцены. */
     asleep?: boolean
     /** Котик сидит с пойманной мышкой в другом месте (components/hangar-mice.tsx): на коробке его нет, не гуляет. */
     away?: boolean
+    /** Откуда котик идёт к коробке, когда отпустил мышку (место, где он сидел с ней): идёт пешком, а не телепортируется. */
+    returnFrom?: { x: number; y: number } | null
     /** Когда кормили последний раз (сытость над котиком убывает за сутки). */
     fedAt?: string | null
     /** Ачивка «Кот Шрёдингера» уже получена: коробки больше нет, котик в неё не ходит (сцена — один раз). */
@@ -506,6 +508,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const sboxStateRef = useRef(sbox) // котик в коробке: домик пуст, мурлыкать там некому
     sboxStateRef.current = sbox
     const [sboxSay, setSboxSay] = useState<string | null>(null)
+    const returnFromRef = useRef(returnFrom)
+    returnFromRef.current = returnFrom
+    const wasAway = useRef(false)
     const [lockSay, setLockSay] = useState<string | null>(null)
     // сытость считаем только в браузере (время клиента) и раз в минуту обновляем
     const [satiety, setSatiety] = useState<number | null>(null)
@@ -723,15 +728,17 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
 
     // прогулка днём: { куда, идёт ли сейчас, смотрит ли влево, сколько секунд идти }
     useEffect(() => {
-        if (phase !== 'home' || bare || night || asleep || away) { setStroll(null); setSbox('idle'); sboxResume.current = null; setMeal(null); busyRef.current = false; return }
+        if (phase !== 'home' || bare || night || asleep || away) { if (away) wasAway.current = true; setStroll(null); setSbox('idle'); sboxResume.current = null; setMeal(null); busyRef.current = false; return }
+        const retFrom = wasAway.current ? returnFromRef.current : null
+        wasAway.current = false
         let alive = true
         const timers: ReturnType<typeof setTimeout>[] = []
         const later = (ms: number, f: () => void) => timers.push(setTimeout(() => alive && f(), ms))
         const durTo = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.min(3.6, Math.max(1.4, Math.hypot(a.x - b.x, a.y - b.y) / STROLL_SPEED))
         // Прогулка по шагам на одной шкале времени: t — когда начать следующий шаг (мс от начала прогулки).
-        const go = (eatOnly = false, resume = false) => {
+        const go = (eatOnly = false, resume = false, from: { x: number; y: number } | null = null) => {
             // есть бочка — котик почти всегда идёт гулять (к ней), иначе через раз остаётся дома
-            if (!eatOnly && (busyRef.current || (!demo && Math.random() < (barrelRef.current ? 0.15 : 0.5)))) { later(20000 + Math.random() * 15000, () => go()); return }
+            if (!from && !eatOnly && (busyRef.current || (!demo && Math.random() < (barrelRef.current ? 0.15 : 0.5)))) { later(20000 + Math.random() * 15000, () => go()); return }
             const bed = bedRef.current
             if (!bed) return
             const BEDp = { x: bed.x, y: bed.y }
@@ -762,6 +769,13 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     if (eatKindRef.current) go(true, true)
                     else later(demo ? 1500 : 25000 + Math.random() * 20000, () => go())
                 })
+            }
+            // отпустил мышку: от места поимки спокойно идёт к коробке и запрыгивает
+            if (from) {
+                at(() => setStroll({ ...from, walking: false, flip: boxFloor.x < from.x, dur: 0 }))
+                t += 60
+                comeHome(from)
+                return
             }
             if (eatOnly) {
                 // поесть: спрыгнул, минуту ест из большой миски перед коробкой, запрыгнул обратно
@@ -847,7 +861,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             jump(boxFloor, BEDp, BEDp.x < boxFloor.x, {}, { k: bed.k })
             at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, () => go()) })
         }
-        later(demo ? 800 : 15000 + Math.random() * 15000, () => go())
+        later(retFrom ? 50 : demo ? 800 : 15000 + Math.random() * 15000, () => go(false, false, retFrom))
         eatNowRef.current = () => { if (!busyRef.current) go(true) }
         return () => { alive = false; timers.forEach(clearTimeout) }
     }, [phase, bare, night, demo, asleep, away])
@@ -959,7 +973,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         <>
             <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : asleep || away ? () => { playJustClick(); setLockSay(away ? 'Котик поймал мышку! Сначала порадуйся за него' : 'Тсс! Мыши в деле — подожди'); setTimeout(() => setLockSay(null), 2600) } : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
             {/* пока мыши грабят или котик держит пойманную мышку — кормить нельзя: досмотри сцену / нажми на котика */}
-            {!bare && lockSay && <Bubble x={frP.x} y={frP.y - frP.h - 4}>{lockSay}</Bubble>}
+            {!bare && lockSay && <Bubble wrap x={Math.min(Math.max(frP.x, 230), 800)} y={frP.y - frP.h - 4}>{lockSay}</Bubble>}
             {shopOpen && typeof document !== 'undefined' && createPortal(
                 <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
                     satiety={satiety ?? 0} feedStreak={liveFeedStreak(food.fedDate, food.streak)}

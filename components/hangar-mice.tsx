@@ -350,14 +350,16 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
             {/* сытый котик поймал мышку: сидит с ней, пока не нажмут; потом — просто сидит, пока мышка удирает */}
             {catchSt && (
                 <button type="button" aria-label="Котик поймал мышку" disabled={catchSt !== 'holding'} onClick={releaseMouse}
-                    className="absolute cursor-pointer disabled:cursor-default" style={placeStyle(catchP)}>
+                    className="absolute cursor-pointer disabled:cursor-default" style={{ ...placeStyle(catchP), zIndex: catchSt === 'holding' ? 1180 : 882 }}>
+                    {/* невидимая зона нажатия шире котика: чтобы легко попасть, не задев соседние предметы */}
+                    {catchSt === 'holding' && <span className="absolute -inset-[18%]" />}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={catchSt === 'holding' ? IMG.caught.src : '/hangar/life/cat-sit.webp'} alt="" draggable={false}
                         className={`absolute inset-0 h-full w-full select-none object-contain object-bottom ${catchSt === 'holding' ? 'animate-cat-proud' : ''}`} />
                 </button>
             )}
             {catchSt === 'holding' && !say && (
-                <div className="pointer-events-none absolute" style={{ left: pct(catchP.x), top: pct(catchP.y - catchP.h - 4), zIndex: 1160, transform: 'translate(-50%, -100%)' }}>
+                <div className="pointer-events-none absolute" style={{ left: pct(catchP.x), top: pct(catchP.y - catchP.h - 4), zIndex: 1190, transform: 'translate(-50%, -100%)' }}>
                     <div className="w-max max-w-[30cqw] animate-bounce rounded-xl border-2 border-[#5A3A22] bg-[#FFF6E4] px-2 py-1 text-center font-black leading-tight text-[#5A3A22] shadow-md" style={{ fontSize: '2.1cqw' }}>
                         Смотри, кого поймал! Нажми на меня
                     </div>

@@ -17,7 +17,7 @@ import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, hangarTarpPic, TARP_OF_ITEM, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, MICE_DECOR, placeAnyState, PORTRAIT_NUM, itemOf, place, placeStyle, hangarItemPic, hangarTarpPic, TARP_OF_ITEM, type LayoutOverrides } from '@/lib/hangarModel'
 import { ItemBadge } from '@/components/learn-section-header'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarMice, type MiceScene, type MiceEventView } from '@/components/hangar-mice'
@@ -550,7 +550,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                     onClick={() => { if (!bare) toggleTray() }}
                     style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} sboxDone={catSboxDone} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome}
-                    asleep={raidOn} away={catchOn} fedAt={catFedAt} />
+                    asleep={raidOn} away={catchOn} returnFrom={(() => { const c = placeAnyState(layout, 'b', MICE_DECOR[1]); return { x: c.x, y: c.y } })()} fedAt={catFedAt} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
