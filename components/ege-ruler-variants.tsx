@@ -36,8 +36,22 @@ function LessonSqs({ t, go, size }: { t: RulerTask; go: (h: string | null) => vo
         return <Sq key={l.id} size={size} fill={f} color={LIME} locked={l.proLocked && f < 1} title={`${l.title}: ${l.solved}/${l.total}`} onClick={() => go(learnHref(t.num))} />
     })}</>
 }
-function TopicSqs({ t, go, size }: { t: RulerTask; go: (h: string | null) => void; size?: number }) {
+/** Медаль темы: бронза с первого прогресса, серебро от 50%, золото на 100%; пока ничего нет — тусклая пустая. */
+function MedalBtn({ percent, locked, title, onClick }: { percent: number; locked: boolean; title: string; onClick: () => void }) {
+    const kind = percent >= 100 ? 'gold' : percent >= 50 ? 'silver' : percent > 0 ? 'bronze' : null
+    return (
+        <button type="button" title={title} onClick={onClick} className="relative h-[26px] w-[26px] shrink-0 active:scale-90">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/medals/medal-${kind ?? 'bronze'}.webp`} alt="" draggable={false} className="h-full w-full select-none object-contain"
+                style={kind ? undefined : { filter: 'grayscale(1) brightness(0.55)', opacity: 0.35 }} />
+            {locked && <Lock className="absolute -bottom-0.5 -right-0.5 h-[11px] w-[11px] rounded-full bg-[#2A331B] p-[1px]" style={{ color: `${TICK}CC` }} strokeWidth={3} />}
+        </button>
+    )
+}
+
+function TopicSqs({ t, go, size, medals = false }: { t: RulerTask; go: (h: string | null) => void; size?: number; medals?: boolean }) {
     if (!t.trainers.length) return <span className="text-[10px] font-bold" style={{ color: `${TICK}55` }}>скоро</span>
+    if (medals) return <>{t.trainers.map((k) => <MedalBtn key={k.tUnitId} percent={k.percent} locked={k.proLocked && k.percent < 100} title={`${k.title}: ${k.percent}%`} onClick={() => go(topicHref(k.title))} />)}</>
     return <>{t.trainers.map((k) => {
         const c = medalColor(k.percent)
         return <Sq key={k.tUnitId} size={size} fill={c ? 1 : 0} color={c ?? MEDAL.gold} locked={k.proLocked && k.percent < 100} title={`${k.title}: ${k.percent}%`} onClick={() => go(topicHref(k.title))} />
@@ -59,13 +73,13 @@ export function RulerGrid({ data }: { data: RulerData }) {
                 <span className="flex flex-1 items-center gap-1"><Dumbbell className="h-3 w-3" style={{ color: MEDAL.gold }} />Тренажёр</span>
             </div>
             {data.tasks.map((t) => (
-                <div key={t.num} className="flex items-start gap-2 rounded-lg px-1 py-[5px] odd:bg-black/10">
-                    <span className="flex w-[108px] shrink-0 items-baseline gap-1.5 pt-[1px]">
+                <div key={t.num} className="flex min-h-[34px] items-center gap-2 rounded-lg px-1 py-[4px] odd:bg-black/10">
+                    <span className="flex w-[108px] shrink-0 items-baseline gap-1.5">
                         <span className="w-[20px] text-right font-mono text-[13px] font-black" style={{ color: TICK }}>{t.num}</span>
                         <span className="truncate text-[11px] font-bold" style={{ color: `${TICK}CC` }}>{name(t)}</span>
                     </span>
                     <span className="flex flex-1 flex-wrap gap-[4px]"><LessonSqs t={t} go={go} /></span>
-                    <span className="flex flex-1 flex-wrap gap-[4px]"><TopicSqs t={t} go={go} /></span>
+                    <span className="flex flex-1 flex-wrap items-center gap-[3px]"><TopicSqs t={t} go={go} medals /></span>
                 </div>
             ))}
         </Frame>
