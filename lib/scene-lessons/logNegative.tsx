@@ -2,7 +2,7 @@
 // aᵐ/ⁿ = ⁿ√aᵐ, a⁰ = 1, комбо минус + дробь), потом логарифмы от дробей и корней.
 // Переделка по правилам step-by-step: маленькие порции, ack-тезисы, мини-игры вместо чтения, шутки, перелёт числа в знаменатель.
 import { useRef, useState } from 'react'
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { animate, motion, useMotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
 import { dessert } from './logHelpers'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
@@ -19,43 +19,44 @@ const Pw = ({ b, children }: { b: string; children: React.ReactNode }) => (
     </span>
 )
 
-// «Перевёртыш»: ученик нажимает кнопку, и число (без минуса) перелетает по дуге в знаменатель.
-// Слева остаётся a⁻ⁿ, справа растёт 1 / aⁿ; движется только transform/opacity.
+// «Перевёртыш»: ученик нажимает кнопку. Справа появляется копия a⁻ⁿ, потом она с отскоком опускается вниз,
+// минус исчезает, рисуется черта и сверху появляется единица: получается 1 / aⁿ. Слева a⁻ⁿ остаётся.
+const SPRING = { type: 'spring' as const, stiffness: 320, damping: 14 }
 const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string; onDone: () => void }) => {
-    const src = useRef<HTMLSpanElement>(null)
+    const bar = useRef<HTMLSpanElement>(null)
     const dst = useRef<HTMLSpanElement>(null)
-    const d = useRef({ x: 0, y: 0 })
-    const [phase, setPhase] = useState<'idle' | 'fly' | 'done'>('idle')
-    const p = useMotionValue(0)
-    const x = useTransform(p, (v) => d.current.x * v)
-    const y = useTransform(p, (v) => d.current.y * v - 46 * 4 * v * (1 - v))
-    const minusOp = useTransform(p, [0.5, 0.85], [1, 0])
-    const cloneOp = useTransform(p, [0.88, 1], [1, 0])
-    const dstOp = useTransform(p, [0.88, 1], [0, 1])
+    const [phase, setPhase] = useState<'idle' | 'copy' | 'drop' | 'frac'>('idle')
+    const yv = useMotionValue(0)
     const go = () => {
-        if (phase !== 'idle' || !src.current || !dst.current) return
+        if (phase !== 'idle' || !bar.current || !dst.current) return
         playJustClick()
-        const s = src.current.getBoundingClientRect(), t = dst.current.getBoundingClientRect()
-        d.current = { x: t.left + t.width / 2 - (s.left + s.width / 2), y: t.top + t.height / 2 - (s.top + s.height / 2) }
-        setPhase('fly')
-        animate(p, 1, { duration: 1.2, ease: 'easeInOut', onComplete: () => { setPhase('done'); setTimeout(onDone, 900) } })
+        const bb = bar.current.getBoundingClientRect(), dd = dst.current.getBoundingClientRect()
+        // Копия сначала стоит на уровне черты (рядом с исходной степенью), потом падает в знаменатель.
+        yv.set((bb.top + bb.height / 2) - (dd.top + dd.height / 2))
+        setPhase('copy')
+        setTimeout(() => {
+            setPhase('drop')
+            animate(yv, 0, { type: 'spring', stiffness: 220, damping: 10 })
+        }, 900)
+        setTimeout(() => setPhase('frac'), 1700)
+        setTimeout(onDone, 2900)
     }
+    const shown = phase !== 'idle'
+    const dropped = phase === 'drop' || phase === 'frac'
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[140px]">
-                <span ref={src} className="relative inline-block">
-                    <Pw b={b}>−{n}</Pw>
-                    {phase !== 'idle' && (
-                        <motion.span className="absolute left-0 top-0 whitespace-nowrap" style={{ x, y, opacity: cloneOp, color: NUM }}>
-                            <Pw b={b}><motion.span style={{ opacity: minusOp }}>−</motion.span>{n}</Pw>
-                        </motion.span>
-                    )}
-                </span>
-                <span>=</span>
-                <span className="inline-flex flex-col items-center gap-1 transition-opacity duration-500" style={{ opacity: phase === 'idle' ? 0 : 1 }}>
-                    <span>1</span>
-                    <span className="block h-[4px] w-full rounded-full bg-[#F2F7FB]" />
-                    <motion.span ref={dst} className="inline-block" style={{ opacity: dstOp, color: NUM }}><Pw b={b}>{n}</Pw></motion.span>
+            <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
+                <Pw b={b}>−{n}</Pw>
+                <span className="transition-opacity duration-500" style={{ opacity: shown ? 1 : 0 }}>=</span>
+                <span className="inline-flex flex-col items-center gap-1" style={{ visibility: shown ? 'visible' : 'hidden' }}>
+                    <motion.span className="inline-block" initial={false} animate={{ scale: phase === 'frac' ? 1 : 0, opacity: phase === 'frac' ? 1 : 0 }} transition={SPRING}>1</motion.span>
+                    <motion.span ref={bar} className="block h-[4px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: phase === 'frac' ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+                    <motion.span ref={dst} className="inline-block" style={{ y: yv, color: NUM }} initial={false} animate={{ scale: shown ? 1 : 0.5, opacity: shown ? 1 : 0 }} transition={SPRING}>
+                        <Pw b={b}>
+                            <motion.span className="inline-block overflow-hidden whitespace-nowrap align-top" initial={false} animate={dropped ? { opacity: 0, scale: 0, width: 0 } : { opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}>−</motion.span>
+                            {n}
+                        </Pw>
+                    </motion.span>
                 </span>
             </div>
             {phase === 'idle' && (
@@ -77,9 +78,7 @@ export const LOG_NEGATIVE: SceneLesson = {
             title: 'Минус в степени', next: 'Минус — это вниз', parts: [
                 { t: 'say', text: 'Что значит минус в степени?' },
                 { t: 'pause', ms: 700 },
-                { t: 'say', text: 'Число от этого не стало отрицательным' },
-                { t: 'pause', ms: 800 },
-                { t: 'say', text: 'Минус говорит: переверни' },
+                { t: 'say', text: 'Надо закинуть в знаменатель' },
                 { t: 'pause', ms: 700 },
                 flip('5', '2', 'Отправить вниз'),
                 { t: 'say', text: 'Минус пропал, а пятёрка уехала в знаменатель' },
