@@ -108,13 +108,13 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
             <div className="flex items-center justify-center gap-3 text-5xl font-black text-[#F2F7FB] min-h-[150px]">
                 <MathText>{'$3^{-2} =$'}</MathText>
                 {stage === 0 ? (
-                    <span className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-xl border-2 border-dashed text-4xl animate-slot-breathe" style={{ borderColor: GGEGE_PALETTE.purple.button }}>?</span>
+                    <span className="inline-flex items-center justify-center min-w-[56px] h-[56px] px-2 rounded-xl border-2 border-dashed text-4xl" style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: '#161F23' }}><span className="animate-slot-label" style={{ ['--slot-c' as string]: GGEGE_PALETTE.purple.button } as React.CSSProperties}>?</span></span>
                 ) : (
                     <span className="inline-flex flex-col items-center gap-1">
                         <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={pop}>1</motion.span>
                         <span className="block h-[4px] w-full rounded-full bg-[#F2F7FB]" />
                         {stage === 1
-                            ? <span className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-xl border-2 border-dashed text-4xl animate-slot-breathe" style={{ borderColor: GGEGE_PALETTE.purple.button }}>?</span>
+                            ? <span className="inline-flex items-center justify-center min-w-[56px] h-[56px] px-2 rounded-xl border-2 border-dashed text-4xl" style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: '#161F23' }}><span className="animate-slot-label" style={{ ['--slot-c' as string]: GGEGE_PALETTE.purple.button } as React.CSSProperties}>?</span></span>
                             : <motion.span style={{ color: NUM }} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{'$3^2$'}</MathText></motion.span>}
                     </span>
                 )}
