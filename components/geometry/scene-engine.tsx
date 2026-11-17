@@ -164,6 +164,8 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
         })
         promptRef.current?.querySelectorAll('.q-slot').forEach((el) => el.classList.toggle('q-slot-done', done))
     }, [r, done, order])
+    // дроби и корни выше обычной строки: кнопке нужна высота под них, иначе формула вылезает за рамку
+    const tall = round.options.some((o) => /\\d?frac|\\tfrac|\\sqrt/.test(o))
     const long = round.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
     return (
         <div className="w-full flex flex-col gap-2">
@@ -178,7 +180,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (
                         <button key={o} type="button" disabled={isWrong || done} onClick={() => pick(o)}
-                            className={cn('min-h-[56px] px-2 rounded-xl border-2 border-b-4 text-xl font-black transition-colors',
+                            className={cn('px-2 rounded-xl border-2 border-b-4 text-xl font-black transition-colors flex items-center justify-center', tall ? 'min-h-[92px] py-3' : 'min-h-[56px]',
                                 isRight ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
                                     : isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
                                         : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
@@ -225,7 +227,7 @@ const ChipGrid = ({ chips, used, onPick }: { chips: string[]; used?: (i: number)
     <div className="drop-in-options grid grid-cols-3 gap-2 w-full">
         {chips.map((c, i) => (
             <button key={i} type="button" disabled={used?.(i)} onClick={() => { playJustClick(); onPick(i) }}
-                className={cn('min-h-[50px] px-1 rounded-xl border-2 border-b-4 text-lg md:text-xl font-black transition-opacity',
+                className={cn('px-1 rounded-xl border-2 border-b-4 text-lg md:text-xl font-black transition-opacity flex items-center justify-center', /\\d?frac|\\sqrt/.test(c) ? 'min-h-[84px] py-2' : 'min-h-[50px]',
                     'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]', used?.(i) && 'opacity-25')}>
                 <L>{c}</L>
             </button>
