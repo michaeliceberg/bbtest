@@ -280,6 +280,18 @@ const VectorFig = ({ step }: { step: number }) => {
                 <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
                     d={`M${E.x - 11},${O.y} L${E.x - 11},${O.y - 11} L${E.x},${O.y - 11}`} fill="none" stroke="#8FA3AE" strokeWidth={2} />
             )}
+            {step >= 1 && step < 5 && (
+                <motion.g key="lbl-vx" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.6 }}
+                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                    <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={22} color={VX_COL} main="v" sub="x" anchor="middle" />
+                </motion.g>
+            )}
+            {step >= 3 && step < 6 && (
+                <motion.g key="lbl-vy" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 1.3 }}
+                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                    <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={22} color={VY_COL} main="v" sub="y" />
+                </motion.g>
+            )}
             <Arrow x1={O.x} y1={O.y} x2={E.x} y2={E.y} color={V0_COL} w={5} head={13} />
             <VecLabel x={O.x + 12} y={O.y - 86} size={26} color={V0_COL} sub="0" />
             {step >= 4 && (
