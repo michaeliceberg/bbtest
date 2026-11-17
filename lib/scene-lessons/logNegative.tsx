@@ -1,15 +1,32 @@
 // «Отрицательные степени в логарифмах»: сначала напоминаем степени (минус = перевёртыш, корень = дробная степень,
 // aᵐ/ⁿ = ⁿ√aᵐ, a⁰ = 1, комбо минус + дробь), потом логарифмы от дробей и корней.
 // Переделка по правилам step-by-step: маленькие порции, ack-тезисы, мини-игры вместо чтения, шутки, перелёт числа в знаменатель.
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { animate, motion, useMotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
 import { dessert } from './logHelpers'
+import { Typewriter } from '@/components/geometry/Typewriter'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { playJustClick } from '@/lib/sound'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 
 const NUM = GGEGE_PALETTE.blue.button
+
+// Печатная строка с выделением ключевых слов маркером (текстовыделение 2.0): печатаем обычным текстом,
+// после печати подсвечиваем сегменты с mark (цвет роли из палитры, тёмный текст).
+const MarkSay = ({ segs, onDone }: { segs: { t: string; c?: string }[]; onDone: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-center font-black text-[#F2F7FB] text-lg md:text-xl">
+            {typed
+                ? segs.map((g, i) => g.c
+                    ? <span key={i} className="rounded-[3px] px-[3px] text-[#10181C]" style={{ backgroundColor: g.c }}>{g.t}</span>
+                    : <Fragment key={i}>{g.t}</Fragment>)
+                : <Typewriter text={segs.map((g) => g.t).join('')} onDone={() => { setTyped(true); setTimeout(onDone, 350) }} />}
+        </div>
+    )
+}
+const markSay = (segs: { t: string; c?: string }[]) => ({ t: 'custom' as const, render: (done: () => void) => <MarkSay segs={segs} onDone={done} /> })
 
 // Степень как HTML: основание + показатель; для перелёта нужны настоящие элементы, а не KaTeX.
 const Pw = ({ b, children }: { b: string; children: React.ReactNode }) => (
@@ -25,7 +42,7 @@ const SPRING = { type: 'spring' as const, stiffness: 320, damping: 14 }
 const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string; onDone: () => void }) => {
     const bar = useRef<HTMLSpanElement>(null)
     const dst = useRef<HTMLSpanElement>(null)
-    const [phase, setPhase] = useState<'idle' | 'copy' | 'drop' | 'frac'>('idle')
+    const [phase, setPhase] = useState<'idle' | 'copy' | 'drop' | 'plus' | 'gone' | 'frac'>('idle')
     const yv = useMotionValue(0)
     const go = () => {
         if (phase !== 'idle' || !bar.current || !dst.current) return
@@ -38,11 +55,12 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
             setPhase('drop')
             animate(yv, 0, { type: 'spring', stiffness: 220, damping: 10 })
         }, 900)
-        setTimeout(() => setPhase('frac'), 1700)
-        setTimeout(onDone, 2900)
+        setTimeout(() => setPhase('plus'), 1800)
+        setTimeout(() => setPhase('gone'), 2800)
+        setTimeout(() => setPhase('frac'), 3500)
+        setTimeout(onDone, 4700)
     }
     const shown = phase !== 'idle'
-    const dropped = phase === 'drop' || phase === 'frac'
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
@@ -53,7 +71,13 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
                     <motion.span ref={bar} className="block h-[4px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: phase === 'frac' ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
                     <motion.span ref={dst} className="inline-block" style={{ y: yv, color: NUM }} initial={false} animate={{ scale: shown ? 1 : 0.5, opacity: shown ? 1 : 0 }} transition={SPRING}>
                         <Pw b={b}>
-                            <motion.span className="inline-block overflow-hidden whitespace-nowrap align-top" initial={false} animate={dropped ? { opacity: 0, scale: 0, width: 0 } : { opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}>−</motion.span>
+                            <motion.span key={phase === 'plus' || phase === 'gone' || phase === 'frac' ? 'p' : 'm'} className="inline-block overflow-hidden whitespace-nowrap align-top"
+                                initial={phase === 'plus' ? { scale: 0.2, opacity: 0 } : false}
+                                animate={phase === 'gone' || phase === 'frac' ? { opacity: 0, scale: 0, width: 0 } : { opacity: 1, scale: 1 }}
+                                style={phase === 'plus' ? { color: GGEGE_PALETTE.orange.button } : undefined}
+                                transition={phase === 'plus' ? { type: 'spring', stiffness: 380, damping: 9 } : { duration: 0.4 }}>
+                                {phase === 'plus' || phase === 'gone' || phase === 'frac' ? '+' : '−'}
+                            </motion.span>
                             {n}
                         </Pw>
                     </motion.span>
@@ -76,12 +100,12 @@ export const LOG_NEGATIVE: SceneLesson = {
     scenes: [
         {
             title: 'Минус в степени', next: 'Минус — это вниз', parts: [
-                { t: 'say', text: 'Что значит минус в степени?' },
+                markSay([{ t: 'Что значит ' }, { t: 'минус в степени', c: GGEGE_PALETTE.purple.button }, { t: '?' }]),
                 { t: 'pause', ms: 700 },
-                { t: 'say', text: 'Надо закинуть в знаменатель' },
+                markSay([{ t: 'Надо ' }, { t: 'опустить в знаменатель', c: GGEGE_PALETTE.green.button }]),
                 { t: 'pause', ms: 700 },
                 flip('5', '2', 'Отправить вниз'),
-                { t: 'say', text: 'Минус пропал, а пятёрка уехала в знаменатель' },
+                { t: 'say', text: 'Минус стал плюсом и исчез, а пятёрка уехала вниз' },
                 { t: 'pause', ms: 800 },
                 { t: 'calc', tex: '5^{-2} = \\dfrac{1}{5^2} = \\dfrac{1}{25}' },
                 { t: 'ack', label: 'Понял, минус — это вниз' },
