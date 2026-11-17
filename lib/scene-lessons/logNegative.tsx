@@ -4,13 +4,15 @@
 import { Fragment, useRef, useState } from 'react'
 import { animate, motion, useMotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
-import { dessert } from './logHelpers'
+import { dessert, Fig } from './logHelpers'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { playJustClick } from '@/lib/sound'
-import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 const NUM = GGEGE_PALETTE.blue.button
+// Один спокойный цвет маркера для обеих половин «минус в степени = опустить в знаменатель»
+const KEY = hexToRgba(GGEGE_PALETTE.blue.button, 0.3)
 
 // Печатная строка с выделением ключевых слов маркером (текстовыделение 2.0): печатаем обычным текстом,
 // после печати подсвечиваем сегменты с mark (цвет роли из палитры, тёмный текст).
@@ -20,12 +22,13 @@ const MarkSay = ({ segs, onDone }: { segs: { t: string; c?: string }[]; onDone: 
         <div className="w-full text-center font-black text-[#F2F7FB] text-lg md:text-xl">
             {typed
                 ? segs.map((g, i) => g.c
-                    ? <span key={i} className="rounded-[3px] px-[3px] text-[#10181C]" style={{ backgroundColor: g.c }}>{g.t}</span>
+                    ? <span key={i} className="rounded-[4px] px-[5px] py-[1px] text-[#F2F7FB]" style={{ backgroundColor: g.c }}>{g.t}</span>
                     : <Fragment key={i}>{g.t}</Fragment>)
                 : <Typewriter text={segs.map((g) => g.t).join('')} onDone={() => { setTyped(true); setTimeout(onDone, 350) }} />}
         </div>
     )
 }
+const fig = (tex: string) => ({ t: 'fig' as const, node: <Fig tex={tex} /> })
 const markSay = (segs: { t: string; c?: string }[]) => ({ t: 'custom' as const, render: (done: () => void) => <MarkSay segs={segs} onDone={done} /> })
 
 // Степень как HTML: основание + показатель; для перелёта нужны настоящие элементы, а не KaTeX.
@@ -100,21 +103,16 @@ export const LOG_NEGATIVE: SceneLesson = {
     scenes: [
         {
             title: 'Минус в степени', next: 'Минус — это вниз', parts: [
-                markSay([{ t: 'Что значит ' }, { t: 'минус в степени', c: GGEGE_PALETTE.purple.button }, { t: '?' }]),
+                markSay([{ t: 'Что значит ' }, { t: 'минус в степени', c: KEY }, { t: '?' }]),
                 { t: 'pause', ms: 700 },
-                markSay([{ t: 'Надо ' }, { t: 'опустить в знаменатель', c: GGEGE_PALETTE.green.button }]),
+                markSay([{ t: 'Надо ' }, { t: 'опустить в знаменатель', c: KEY }]),
                 { t: 'pause', ms: 700 },
                 flip('5', '2', 'Отправить вниз'),
-                { t: 'say', text: 'Минус стал плюсом и исчез, а пятёрка уехала вниз' },
-                { t: 'pause', ms: 800 },
-                { t: 'calc', tex: '5^{-2} = \\dfrac{1}{5^2} = \\dfrac{1}{25}' },
                 { t: 'ack', label: 'Понял, минус — это вниз' },
                 { t: 'say', text: 'Сел в лифт и поехал на первый этаж' },
                 { t: 'pause', ms: 800 },
                 { t: 'say', text: 'Ещё раз, теперь сам' },
                 flip('7', '3', 'Отправить вниз'),
-                { t: 'calc', tex: '7^{-3} = \\dfrac{1}{7^3}' },
-                { t: 'pause', ms: 700 },
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$a^{-n} = \\dfrac{1}{a^n}$', 'Минус пропадает, число едет в знаменатель'] },
             ],
         },
@@ -139,15 +137,15 @@ export const LOG_NEGATIVE: SceneLesson = {
             title: 'Корень — это степень', next: 'Корень — это дробь в степени', parts: [
                 { t: 'say', text: 'Корень тоже умеет прикидываться степенью' },
                 { t: 'pause', ms: 700 },
-                { t: 'calc', tex: '\\sqrt[3]{5}' },
+                fig('\\sqrt[3]{5}'),
                 { t: 'say', text: 'Тройка у корня уезжает в знаменатель показателя' },
                 { t: 'pause', ms: 900 },
-                { t: 'calc', tex: '\\sqrt[3]{5} = 5^{\\frac13}' },
+                fig('\\sqrt[3]{5} = 5^{\\frac13}'),
                 { t: 'pause', ms: 900 },
                 { t: 'say', text: 'Пятёрка в корне, пятёрка в основании, а в показателе единица на тройку' },
                 { t: 'ack', label: 'Корень — это дробь в степени' },
                 { t: 'say', text: 'Ещё один пример' },
-                { t: 'calc', tex: '\\sqrt[5]{4} = 4^{\\frac15}' },
+                fig('\\sqrt[5]{4} = 4^{\\frac15}'),
                 { t: 'pause', ms: 700 },
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$\\sqrt[n]{a} = a^{\\frac1n}$', 'Корень — это степень с дробью'] },
             ],
@@ -172,12 +170,12 @@ export const LOG_NEGATIVE: SceneLesson = {
             title: 'Числитель — степень под корнем', next: 'Верх — степень, низ — корень', parts: [
                 { t: 'say', text: 'А если в числителе не единица?' },
                 { t: 'pause', ms: 700 },
-                { t: 'calc', tex: '5^{\\frac23}' },
+                fig('5^{\\frac23}'),
                 { t: 'say', text: 'Знаменатель 3 — это корень третьей степени' },
                 { t: 'pause', ms: 900 },
                 { t: 'say', text: 'А числитель 2 — степень под корнем' },
                 { t: 'pause', ms: 900 },
-                { t: 'calc', tex: '5^{\\frac23} = \\sqrt[3]{5^2}' },
+                fig('5^{\\frac23} = \\sqrt[3]{5^2}'),
                 { t: 'pause', ms: 900 },
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$a^{\\frac mn} = \\sqrt[n]{a^m}$', 'Низ — корень, верх — степень под корнем'] },
                 {
@@ -193,7 +191,7 @@ export const LOG_NEGATIVE: SceneLesson = {
         {
             title: 'Нулевая степень', next: 'Нуль в степени — единица', parts: [
                 { t: 'say', text: 'И ещё один фокус' },
-                { t: 'calc', tex: '2^0 = \\ ?' },
+                fig('2^0 = \\ ?'),
                 {
                     t: 'choice', rounds: [
                         { prompt: '$2^0 = \\ ?$', options: ['$1$', '$0$', '$2$'], correct: '$1$', hint: 'Ноль в степени не обнуляет число', ok: '$2^0 = 1$' },
@@ -207,7 +205,7 @@ export const LOG_NEGATIVE: SceneLesson = {
             title: 'Комбо: минус и дробь', next: 'Комбо собрал', parts: [
                 { t: 'say', text: 'А теперь всё вместе: и корень, и минус' },
                 { t: 'pause', ms: 700 },
-                { t: 'calc', tex: '\\dfrac{1}{\\sqrt[4]{5^5}}' },
+                fig('\\dfrac{1}{\\sqrt[4]{5^5}}'),
                 { t: 'say', text: 'Идём по порядку. Сначала корень' },
                 { t: 'pause', ms: 700 },
                 {
@@ -215,7 +213,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$\\sqrt[4]{5^5} = 5^{?}$', options: ['$\\dfrac54$', '$\\dfrac45$', '$20$'], correct: '$\\dfrac54$', hint: 'Четвёрка внизу, пятёрка сверху', ok: '$\\sqrt[4]{5^5} = 5^{\\frac54}$' },
                     ],
                 },
-                { t: 'calc', tex: '\\dfrac{1}{5^{\\frac54}}' },
+                fig('\\dfrac{1}{5^{\\frac54}}'),
                 { t: 'say', text: 'Теперь число стоит в знаменателе' },
                 { t: 'pause', ms: 700 },
                 {
@@ -239,7 +237,7 @@ export const LOG_NEGATIVE: SceneLesson = {
         {
             title: 'Числа с красивым ответом', next: 'Числа считаются', parts: [
                 { t: 'say', text: 'Иногда степень можно просто посчитать' },
-                { t: 'calc', tex: '8^{-\\frac13} = \\ ?' },
+                fig('8^{-\\frac13} = \\ ?'),
                 { t: 'say', text: 'Восемь это два в кубе' },
                 { t: 'pause', ms: 700 },
                 {
@@ -254,7 +252,7 @@ export const LOG_NEGATIVE: SceneLesson = {
         {
             title: 'Логарифм дроби', next: 'Минус в ответе — норм', parts: [
                 { t: 'say', text: 'Вернёмся к логарифмам' },
-                { t: 'calc', tex: '\\log_2 \\dfrac18 = \\ ?' },
+                fig('\\log_2 \\dfrac18 = \\ ?'),
                 { t: 'say', text: 'Спрашиваем: 2 в какой степени даёт одну восьмую?' },
                 { t: 'pause', ms: 700 },
                 {
@@ -262,7 +260,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$\\dfrac18 = 2^{?}$', options: ['$-3$', '$3$', '$-8$'], correct: '$-3$', hint: '$8 = 2^3$, а дробь — значит минус', ok: '$\\dfrac18 = 2^{-3}$' },
                     ],
                 },
-                { t: 'calc', tex: '\\log_2 \\dfrac18 = -3' },
+                fig('\\log_2 \\dfrac18 = -3'),
                 { t: 'say', text: 'Логарифм бывает отрицательным, и это нормально' },
                 { t: 'ack', label: 'Минус в ответе — это нормально' },
                 { t: 'card', title: 'Логарифм дроби', tex: '\\log_a \\dfrac{1}{a^n} = -n' },
@@ -277,7 +275,7 @@ export const LOG_NEGATIVE: SceneLesson = {
         },
         {
             title: 'Корень в логарифме', next: 'Дробь в ответе — норм', parts: [
-                { t: 'calc', tex: '\\log_2 \\sqrt[3]{2} = \\ ?' },
+                fig('\\log_2 \\sqrt[3]{2} = \\ ?'),
                 { t: 'say', text: 'Корень — это степень с дробью' },
                 { t: 'pause', ms: 700 },
                 {
@@ -285,9 +283,9 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$\\sqrt[3]{2} = 2^{?}$', options: ['$\\dfrac13$', '$3$', '$-\\dfrac13$'], correct: '$\\dfrac13$', hint: 'Тройка у корня уезжает в знаменатель', ok: '$\\sqrt[3]{2} = 2^{\\frac13}$' },
                     ],
                 },
-                { t: 'calc', tex: '\\log_2 \\sqrt[3]{2} = \\dfrac13' },
+                fig('\\log_2 \\sqrt[3]{2} = \\dfrac13'),
                 { t: 'say', text: 'А если корень ещё и в знаменателе?' },
-                { t: 'calc', tex: '\\log_3 \\dfrac{1}{\\sqrt{3}}' },
+                fig('\\log_3 \\dfrac{1}{\\sqrt{3}}'),
                 { t: 'pause', ms: 700 },
                 {
                     t: 'choice', rounds: [
@@ -299,7 +297,7 @@ export const LOG_NEGATIVE: SceneLesson = {
         },
         {
             title: 'Разные основания и дробь внизу', next: 'Общее основание — сила', parts: [
-                { t: 'calc', tex: '\\log_8 \\dfrac12 = \\ ?' },
+                fig('\\log_8 \\dfrac12 = \\ ?'),
                 { t: 'say', text: 'Восемь и одна вторая — оба из семьи двойки' },
                 { t: 'pause', ms: 700 },
                 {
@@ -308,16 +306,16 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$\\dfrac12 = 2^{?}$', options: ['$-1$', '$1$', '$-2$'], correct: '$-1$', hint: 'Перевёртыш двойки', ok: '$\\dfrac12 = 2^{-1}$' },
                     ],
                 },
-                { t: 'calc', tex: '(2^3)^x = 2^{-1} \\;\\Rightarrow\\; 3x = -1' },
+                fig('(2^3)^x = 2^{-1} \\;\\Rightarrow\\; 3x = -1'),
                 {
                     t: 'choice', rounds: [
                         { prompt: '$3x = -1,\\ x = \\ ?$', options: ['$-\\dfrac13$', '$-3$', '$\\dfrac13$'], correct: '$-\\dfrac13$', hint: 'Делим −1 на 3', ok: '$\\log_8 \\dfrac12 = -\\dfrac13$. Минус и дробь сразу, комбо' },
                     ],
                 },
                 { t: 'ack', label: 'Всё через двойку, понял' },
-                { t: 'calc', tex: '\\log_{\\frac12} 16 = \\ ?' },
+                fig('\\log_{\\frac12} 16 = \\ ?'),
                 { t: 'say', text: 'Теперь дробь в основании. Тот же трюк' },
-                { t: 'calc', tex: '\\left(\\tfrac12\\right)^x = 16 \\;\\Rightarrow\\; 2^{-x} = 2^4' },
+                fig('\\left(\\tfrac12\\right)^x = 16 \\;\\Rightarrow\\; 2^{-x} = 2^4'),
                 {
                     t: 'choice', rounds: [
                         { prompt: '$-x = 4,\\ x = \\ ?$', options: ['$-4$', '$4$', '$\\dfrac14$'], correct: '$-4$', hint: 'Если −x = 4, то x = −4', ok: '$\\log_{\\frac12} 16 = -4$' },
