@@ -156,13 +156,22 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
             }, 1800)
         } else { setWrong((w) => [...w, o]); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false) }
     }
+    // «?» внутри формулы — пунктирный дышащий пропуск (стандарт: показываем, куда подставляем ответ)
+    const promptRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        promptRef.current?.querySelectorAll('.katex-html span').forEach((el) => {
+            if (el.children.length === 0 && el.textContent?.trim() === '?') el.classList.add('q-slot')
+        })
+        promptRef.current?.querySelectorAll('.q-slot').forEach((el) => el.classList.toggle('q-slot-done', done))
+    }, [r, done, order])
     const long = round.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
     return (
         <div className="w-full flex flex-col gap-2">
-            <motion.div key={r} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            {/* номер задания — слева сверху над вопросом, как в других уроках */}
+            {rounds.length > 1 && !plain && <div className="w-full text-left text-sm font-bold text-[#8A99A3]">{r + 1} из {rounds.length}</div>}
+            <motion.div key={r} ref={promptRef} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                 className="w-full text-center text-xl md:text-2xl font-black text-[#F2F7FB]">
                 <L>{round.prompt}</L>
-                {rounds.length > 1 && !plain && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
             </motion.div>
             {showOpts && order && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
                 {order.map((o) => {

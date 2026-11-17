@@ -809,6 +809,10 @@ body {
 @keyframes slot-label-fast { 0%, 100% { color: var(--slot-c); transform: scale(1); } 50% { color: #FFFFFF; transform: scale(1.3); } }
 .animate-slot-label-fast { display: inline-block; animation: slot-label-fast 0.8s ease-in-out infinite; }
 
+/* «?» внутри формулы в вопросе: пунктирный пропуск, «?» пульсирует — видно, куда подставляем ответ. */
+.q-slot { display: inline-block; min-width: 0.85em; text-align: center; border: 2px dashed #C385F7; border-radius: 6px; padding: 0 0.12em; --slot-c: #C385F7; animation: slot-label-fast 0.8s ease-in-out infinite; }
+.q-slot.q-slot-done { animation: none; border-style: solid; border-color: #A1D151; color: #A1D151; }
+
 /* Варианты ответа в пошаговых разборах «падают сверху» по очереди, через 0,5 с после вопроса.
    Класс вешается на контейнер (сетку) вариантов. backwards — до старта скрыты, после — обычный вид. */
 @keyframes drop-in-option {
