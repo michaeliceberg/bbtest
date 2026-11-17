@@ -257,58 +257,83 @@ const ThrowGame = ({ onDone }: { onDone: () => void }) => {
 // ===== Сцена 3: вектор v₀ и его проекции =====
 // step: 0 только v₀; 1 горизонтальная проекция из начала; 2 вертикальная из начала; 3 вертикальная едет вправо,
 // получается треугольник; 4 угол α; 5 подпись v₀·cos α; 6 подпись v₀·sin α.
-const VectorFig = ({ step }: { step: number }) => {
+type VFocus = 'x' | 'y' | 'none'
+const VectorFig = ({ step, focus }: { step: number; focus?: VFocus }) => {
     const O = { x: 60, y: 182 }, L = 150
     const E = { x: O.x + L * Math.cos(Math.PI / 3), y: O.y - L * Math.sin(Math.PI / 3) }
     const dx = E.x - O.x
+    // Смотрим только на новое: всё, кроме текущей проекции, бледнеет.
+    const f: VFocus = focus ?? (step === 1 ? 'x' : step === 2 || step === 3 ? 'y' : 'none')
+    const dim = (keep: 'x' | 'y' | null): React.CSSProperties => {
+        const on = f === 'none' || f === keep
+        return { opacity: on ? 1 : 0.22, transition: 'opacity 0.5s' }
+    }
     return (
         <svg viewBox="0 0 300 214" className="w-full h-auto" style={{ maxWidth: 420 }}>
             {step >= 1 && (
-                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <Arrow x1={O.x} y1={O.y} x2={E.x} y2={O.y} color={VX_COL} w={4} head={10} dash />
-                </motion.g>
+                <g style={dim('x')}>
+                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <Arrow x1={O.x} y1={O.y} x2={E.x} y2={O.y} color={VX_COL} w={4} head={10} dash />
+                    </motion.g>
+                </g>
             )}
             {step >= 2 && (
-                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    {/* та же стрелка, переносится параллельно вправо (CSS-переход) */}
-                    <g style={{ transform: `translateX(${step >= 3 ? dx : 0}px)`, transition: 'transform 1.1s cubic-bezier(0.65,0,0.35,1)' }}>
-                        <Arrow x1={O.x} y1={O.y} x2={O.x} y2={E.y} color={VY_COL} w={4} head={10} dash />
-                    </g>
-                </motion.g>
+                <g style={dim('y')}>
+                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        {/* та же стрелка, переносится параллельно вправо (CSS-переход) */}
+                        <g style={{ transform: `translateX(${step >= 3 ? dx : 0}px)`, transition: 'transform 1.1s cubic-bezier(0.65,0,0.35,1)' }}>
+                            <Arrow x1={O.x} y1={O.y} x2={O.x} y2={E.y} color={VY_COL} w={4} head={10} dash />
+                        </g>
+                    </motion.g>
+                </g>
             )}
             {step >= 3 && (
-                <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
-                    d={`M${E.x - 11},${O.y} L${E.x - 11},${O.y - 11} L${E.x},${O.y - 11}`} fill="none" stroke="#8FA3AE" strokeWidth={2} />
+                <g style={dim(null)}>
+                    <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
+                        d={`M${E.x - 11},${O.y} L${E.x - 11},${O.y - 11} L${E.x},${O.y - 11}`} fill="none" stroke="#8FA3AE" strokeWidth={2} />
+                </g>
             )}
+            <g style={dim(null)}>
+                <Arrow x1={O.x} y1={O.y} x2={E.x} y2={E.y} color={V0_COL} w={5} head={13} />
+                <VecLabel x={O.x + 12} y={O.y - 86} size={26} color={V0_COL} sub="0" />
+            </g>
             {step >= 1 && step < 5 && (
-                <motion.g key="lbl-vx" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.6 }}
-                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                    <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={22} color={VX_COL} main="v" sub="x" anchor="middle" />
-                </motion.g>
+                <g style={dim('x')}>
+                    <motion.g key="lbl-vx" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.6 }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                        <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={22} color={VX_COL} main="v" sub="x" anchor="middle" />
+                    </motion.g>
+                </g>
             )}
             {step >= 3 && step < 6 && (
-                <motion.g key="lbl-vy" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 1.3 }}
-                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                    <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={22} color={VY_COL} main="v" sub="y" />
-                </motion.g>
+                <g style={dim('y')}>
+                    <motion.g key="lbl-vy" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 1.3 }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                        <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={22} color={VY_COL} main="v" sub="y" />
+                    </motion.g>
+                </g>
             )}
-            <Arrow x1={O.x} y1={O.y} x2={E.x} y2={E.y} color={V0_COL} w={5} head={13} />
-            <VecLabel x={O.x + 12} y={O.y - 86} size={26} color={V0_COL} sub="0" />
             {step >= 4 && (
-                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
-                    <path d={arcD(O.x, O.y, 30, -Math.PI / 3, 0)} fill="none" stroke={G_COL} strokeWidth={3} />
-                    <text x={O.x + 36} y={O.y - 9} fontSize={20} fontWeight={900} fontStyle="italic" fill={G_COL} fontFamily={FONT}>α</text>
-                </motion.g>
+                <g style={dim(null)}>
+                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
+                        <path d={arcD(O.x, O.y, 30, -Math.PI / 3, 0)} fill="none" stroke={G_COL} strokeWidth={3} />
+                        <text x={O.x + 36} y={O.y - 9} fontSize={20} fontWeight={900} fontStyle="italic" fill={G_COL} fontFamily={FONT}>α</text>
+                    </motion.g>
+                </g>
             )}
             {step >= 5 && (
-                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
-                    <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={19} color={VX_COL} main="v" sub="0" rest=" · cos α" anchor="middle" />
-                </motion.g>
+                <g style={dim('x')}>
+                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
+                        <SubText x={(O.x + E.x) / 2} y={O.y + 26} size={19} color={VX_COL} main="v" sub="0" rest=" · cos α" anchor="middle" />
+                    </motion.g>
+                </g>
             )}
             {step >= 6 && (
-                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
-                    <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={19} color={VY_COL} main="v" sub="0" rest=" · sin α" />
-                </motion.g>
+                <g style={dim('y')}>
+                    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
+                        <SubText x={E.x + 10} y={(O.y + E.y) / 2 + 6} size={19} color={VY_COL} main="v" sub="0" rest=" · sin α" />
+                    </motion.g>
+                </g>
             )}
         </svg>
     )
@@ -538,15 +563,15 @@ const SCENES: Scene[] = [
     },
     {
         title: 'Чему равны проекции', next: 'Дальше', parts: [
-            { t: 'fig', node: <VectorFig step={4} /> },
+            { t: 'fig', node: <VectorFig step={4} focus="x" /> },
             {
                 t: 'choice', label: 'Вопрос', rounds: [
                     { prompt: 'Чему равна горизонтальная проекция?', options: ['$v_0\\cos\\alpha$', '$v_0\\sin\\alpha$', '$v_0\\,\\mathrm{tg}\\,\\alpha$'],
                         correct: '$v_0\\cos\\alpha$', hint: 'Горизонтальный катет касается угла α, он прилежащий 🙃', ok: 'Прилежащий катет → косинус ✅' },
                 ],
             },
-            { t: 'fig', node: <VectorFig step={5} /> },
-            { t: 'fig', node: <VectorFig step={6} /> },
+            { t: 'fig', node: <VectorFig step={5} focus="x" /> },
+            { t: 'fig', node: <VectorFig step={6} focus="y" /> },
             { t: 'remember', title: 'ЗАПОМНИ', lines: ['Горизонтальная, прилежащий катет: $v_x = v_0\\cos\\alpha$', 'Вертикальная, противолежащий: $v_y = v_0\\sin\\alpha$'] },
             ln('Понятно? 🤔'),
             { t: 'custom', render: (done) => <UnderstoodAsk onDone={done} /> },
