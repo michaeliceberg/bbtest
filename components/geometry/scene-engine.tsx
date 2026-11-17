@@ -391,8 +391,11 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                     case 'remember': return (
                         <Fragment key={i}>
                             <RememberPlate title={p.title}>
-                                <div className="flex flex-col gap-1 text-sm md:text-base font-bold text-[#F2F7FB]">
-                                    {p.lines.map((l, j) => <div key={j}><L>{l}</L></div>)}
+                                <div className="flex flex-col gap-2 text-sm md:text-base font-bold text-[#F2F7FB]">
+                                    {/* строка-формула целиком ($…$) — крупно и жирно, как в сценах; остальное — обычным текстом */}
+                                    {p.lines.map((l, j) => /^\$[^$]*\$$/.test(l)
+                                        ? <div key={j} className="text-3xl md:text-4xl font-black py-1"><MathText>{l}</MathText></div>
+                                        : <div key={j}><L>{l}</L></div>)}
                                 </div>
                             </RememberPlate>
                             {i === reached && <After ms={1500} onDone={d} />}

@@ -5,6 +5,8 @@ import { Fragment, useRef, useState } from 'react'
 import { animate, motion, useMotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
 import { dessert, Fig } from './logHelpers'
+import { ChoiceGame } from '@/components/geometry/scene-engine'
+import { MathText } from '@/components/geometry/plain-math'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { playJustClick } from '@/lib/sound'
@@ -96,6 +98,37 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
 }
 const flip = (b: string, n: string, label: string) => ({ t: 'custom' as const, render: (done: () => void) => <FlipDemo b={b} n={n} label={label} onDone={done} /> })
 
+// Мини-игра «опусти сам»: сначала в ответе только «?», нажимаем «опустить в знаменатель» — сверху прилетает единица,
+// потом выбираем, что осталось внизу. Вариантов мало и они похожи, чтобы внимание не разбегалось.
+const SinkBuild = ({ onDone }: { onDone: () => void }) => {
+    const [stage, setStage] = useState<0 | 1 | 2>(0)
+    const pop = { type: 'spring' as const, stiffness: 380, damping: 12 }
+    return (
+        <div className="w-full flex flex-col gap-3">
+            <div className="flex items-center justify-center gap-3 text-5xl font-black text-[#F2F7FB] min-h-[150px]">
+                <MathText>{'$3^{-2} =$'}</MathText>
+                {stage === 0 ? (
+                    <span className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-xl border-2 border-dashed text-4xl animate-slot-breathe" style={{ borderColor: GGEGE_PALETTE.purple.button }}>?</span>
+                ) : (
+                    <span className="inline-flex flex-col items-center gap-1">
+                        <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={pop}>1</motion.span>
+                        <span className="block h-[4px] w-full rounded-full bg-[#F2F7FB]" />
+                        {stage === 1
+                            ? <span className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-xl border-2 border-dashed text-4xl animate-slot-breathe" style={{ borderColor: GGEGE_PALETTE.purple.button }}>?</span>
+                            : <motion.span style={{ color: NUM }} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{'$3^2$'}</MathText></motion.span>}
+                    </span>
+                )}
+            </div>
+            {stage === 0 && <ChoiceGame key="s0" onDone={() => setStage(1)} rounds={[
+                { prompt: 'Что делаем с минусом?', options: ['Опустить в знаменатель', 'Поставить минус перед числом', 'Поменять знак ответа'], correct: 'Опустить в знаменатель', hint: 'Минус не делает число отрицательным. Он отправляет вниз' },
+            ]} />}
+            {stage === 1 && <ChoiceGame key="s1" onDone={() => { setStage(2); setTimeout(onDone, 1000) }} rounds={[
+                { prompt: 'Что стоит внизу?', options: ['$3^2$', '$-3^2$', '$2^3$'], correct: '$3^2$', hint: 'Едет вниз то же число, но без минуса' },
+            ]} />}
+        </div>
+    )
+}
+
 export const LOG_NEGATIVE: SceneLesson = {
     question: 'Минус и дробь в степенях',
     mascot: 'Минус и дробь в степени',
@@ -113,16 +146,13 @@ export const LOG_NEGATIVE: SceneLesson = {
                 { t: 'pause', ms: 800 },
                 { t: 'say', text: 'Ещё раз, теперь сам' },
                 flip('7', '3', 'Отправить вниз'),
-                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$a^{-n} = \\dfrac{1}{a^n}$', 'Минус пропадает, число едет в знаменатель'] },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$7^{-3} = \\dfrac{1}{7^3}$', 'Минус в степени — опусти в знаменатель'] },
             ],
         },
         {
             title: 'Тренируем минус', next: 'Минус-степень освоил', parts: [
-                { t: 'say', text: 'Теперь собери сам' },
-                {
-                    t: 'build', prompt: 'Собери перевёртыш', tpl: ['$3^{-2} =$', { frac: [['1'], [{ s: 0 }]] }],
-                    chips: ['$3^2$', '$-3^2$', '$2^3$', '$-9$', '$3$', '$6$'], slots: ['$3^2$'], hint: 'Минус пропадает, а $3^2$ едет вниз',
-                },
+                { t: 'say', text: 'Теперь сам' },
+                { t: 'custom', render: (done: () => void) => <SinkBuild onDone={done} /> },
                 {
                     t: 'choice', label: 'Разминка', rounds: [
                         { prompt: '$2^{-3} = \\ ?$', options: ['$\\dfrac18$', '$-8$', '$-6$'], correct: '$\\dfrac18$', hint: 'Это не минус восемь. Это один делить на $2^3$', ok: '$2^{-3} = \\dfrac18$' },
@@ -147,7 +177,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                 { t: 'say', text: 'Ещё один пример' },
                 fig('\\sqrt[5]{4} = 4^{\\frac15}'),
                 { t: 'pause', ms: 700 },
-                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$\\sqrt[n]{a} = a^{\\frac1n}$', 'Корень — это степень с дробью'] },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$\\sqrt[3]{5} = 5^{\\frac13}$', 'Корень — это степень с дробью'] },
             ],
         },
         {
@@ -177,7 +207,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                 { t: 'pause', ms: 900 },
                 fig('5^{\\frac23} = \\sqrt[3]{5^2}'),
                 { t: 'pause', ms: 900 },
-                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$a^{\\frac mn} = \\sqrt[n]{a^m}$', 'Низ — корень, верх — степень под корнем'] },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$5^{\\frac23} = \\sqrt[3]{5^2}$', 'Низ — корень, верх — степень под корнем'] },
                 {
                     t: 'choice', label: 'Туда и обратно', rounds: [
                         { prompt: '$7^{\\frac34} = \\ ?$', options: ['$\\sqrt[4]{7^3}$', '$\\sqrt[3]{7^4}$', '$\\dfrac{7^3}{7^4}$'], correct: '$\\sqrt[4]{7^3}$', hint: 'Знаменатель 4 — корень четвёртой степени, числитель 3 — степень', ok: '$7^{\\frac34} = \\sqrt[4]{7^3}$' },
@@ -198,7 +228,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$100^0 = \\ ?$', options: ['$1$', '$0$', '$100$'], correct: '$1$', hint: 'Любое число в нулевой степени — единица', ok: '$100^0 = 1$' },
                     ],
                 },
-                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$a^0 = 1$', 'Любое число, кроме нуля'] },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$7^0 = 1$', 'Любое число, кроме нуля, в нулевой степени — единица'] },
             ],
         },
         {
@@ -263,7 +293,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                 fig('\\log_2 \\dfrac18 = -3'),
                 { t: 'say', text: 'Логарифм бывает отрицательным, и это нормально' },
                 { t: 'ack', label: 'Минус в ответе — это нормально' },
-                { t: 'card', title: 'Логарифм дроби', tex: '\\log_a \\dfrac{1}{a^n} = -n' },
+                { t: 'card', title: 'Логарифм дроби', tex: '\\log_5 \\dfrac{1}{25} = -2' },
                 {
                     t: 'choice', rounds: [
                         { prompt: '$\\log_2 \\dfrac14 = \\ ?$', options: ['$-2$', '$2$', '$\\dfrac14$'], correct: '$-2$', hint: '$\\dfrac14 = 2^{-2}$', ok: '$-2$' },
@@ -324,7 +354,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                 },
                 {
                     t: 'remember', title: 'ЗАПОМНИ', lines: [
-                        '1. $\\dfrac{1}{a^n} = a^{-n}$, а корень — это дробь в степени',
+                        '1. $\\dfrac18 = 2^{-3}$, а $\\sqrt{2} = 2^{\\frac12}$',
                         '2. Основание и аргумент записываем через одно число (2, 3, 5)',
                         '3. Основание и аргумент по разные стороны от 1, значит ответ отрицательный',
                     ],
