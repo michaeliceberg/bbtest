@@ -124,7 +124,20 @@ export function shuffleOptions<T>(options: T[], correct: T | null, prevPos: numb
 
 // --- «Выбери / посчитай» ---
 // optionsDelay — варианты появляются не сразу с вопросом, а позже (между ними, например, подсветка в условии).
-export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void; optionsDelay?: number }) => {
+// Подставляем верный ответ вместо «?» в формуле вопроса (только внутри $…$), цветом «верно»; null — подставлять некуда.
+export const fillAnswer = (prompt: string, correct: string): string | null => {
+    const m = correct.match(/^\$([^$]*)\$$/)
+    if (!m) return null
+    let hit = false
+    const out = prompt.replace(/\$([^$]*)\$/g, (all, tex: string) => {
+        if (!tex.includes('?')) return all
+        hit = true
+        return '$' + tex.replace(/(\\ )?\?/g, () => '\\textcolor{' + OK + '}{' + m[1] + '}') + '$'
+    })
+    return hit ? out : null
+}
+
+export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, optionsDelay = 0 }: { rounds: ChoiceRound[]; onDone: () => void; onRound?: (r: number) => void; onPick?: (r: number) => void; optionsDelay?: number }) => {
     const plain = usePlainMath()
     const [r, setR] = useState(0)
     const [showOpts, setShowOpts] = useState(optionsDelay === 0)
@@ -149,21 +162,26 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
     const pick = (o: string) => {
         if (done || wrong.includes(o)) return
         if (o === round.correct) {
-            setDone(true); showAnswerMeme(true)
+            setDone(true); showAnswerMeme(true); onCorrectPick?.(r)
             setTimeout(() => {
                 if (r + 1 >= rounds.length) { onDone(); return }
                 setOrder(null); setR(r + 1); setWrong([]); setDone(false)
-            }, 1800)
+            }, 1300)
         } else { setWrong((w) => [...w, o]); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false) }
     }
     // «?» внутри формулы — пунктирный дышащий пропуск (стандарт: показываем, куда подставляем ответ)
     const promptRef = useRef<HTMLDivElement>(null)
+    const filled = done ? fillAnswer(round.prompt, round.correct) : null
     useEffect(() => {
         promptRef.current?.querySelectorAll('.katex-html span').forEach((el) => {
             if (el.children.length === 0 && el.textContent?.trim() === '?') el.classList.add('q-slot')
         })
         promptRef.current?.querySelectorAll('.q-slot').forEach((el) => el.classList.toggle('q-slot-done', done))
-    }, [r, done, order])
+        // верный ответ «влетает» на место «?» сразу в момент выбора
+        if (filled) promptRef.current?.querySelectorAll('.katex-html [style*="color"]').forEach((el) => {
+            if (!el.parentElement?.closest('[style*="color"]')) el.classList.add('ans-pop')
+        })
+    }, [r, done, order, filled])
     // дроби и корни выше обычной строки: кнопке нужна высота под них, иначе формула вылезает за рамку
     const tall = round.options.some((o) => /\\d?frac|\\tfrac|\\sqrt/.test(o))
     const long = round.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
@@ -173,7 +191,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, optionsDelay = 0 }: { roun
             {rounds.length > 1 && !plain && <div className="w-full text-left text-sm font-bold text-[#8A99A3]">{r + 1} из {rounds.length}</div>}
             <motion.div key={r} ref={promptRef} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                 className="w-full text-center text-xl md:text-2xl font-black text-[#F2F7FB]">
-                <L>{round.prompt}</L>
+                <L>{done && filled ? filled : round.prompt}</L>
             </motion.div>
             {showOpts && order && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
                 {order.map((o) => {

@@ -101,7 +101,8 @@ const flip = (b: string, n: string, label: string) => ({ t: 'custom' as const, r
 // Мини-игра «опусти сам»: сначала в ответе только «?», нажимаем «опустить в знаменатель» — сверху прилетает единица,
 // потом выбираем, что осталось внизу. Вариантов мало и они похожи, чтобы внимание не разбегалось.
 const SinkBuild = ({ onDone }: { onDone: () => void }) => {
-    const [stage, setStage] = useState<0 | 1 | 2>(0)
+    const [stage, setStage] = useState<0 | 1 | 2>(0) // что показано в уравнении
+    const [step, setStep] = useState<0 | 1>(0) // какой вопрос сейчас на экране
     const pop = { type: 'spring' as const, stiffness: 380, damping: 12 }
     return (
         <div className="w-full flex flex-col gap-3">
@@ -119,10 +120,10 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
                     </span>
                 )}
             </div>
-            {stage === 0 && <ChoiceGame key="s0" onDone={() => setStage(1)} rounds={[
+            {step === 0 && <ChoiceGame key="s0" onPick={() => setStage(1)} onDone={() => setStep(1)} rounds={[
                 { prompt: 'Что делаем с минусом?', options: ['Опустить в знаменатель', 'Поставить минус перед числом', 'Поменять знак ответа'], correct: 'Опустить в знаменатель', hint: 'Минус не делает число отрицательным. Он отправляет вниз' },
             ]} />}
-            {stage === 1 && <ChoiceGame key="s1" onDone={() => { setStage(2); setTimeout(onDone, 1000) }} rounds={[
+            {step === 1 && <ChoiceGame key="s1" onPick={() => setStage(2)} onDone={() => setTimeout(onDone, 300)} rounds={[
                 { prompt: 'Что стоит внизу?', options: ['$3^2$', '$-3^2$', '$2^3$'], correct: '$3^2$', hint: 'Едет вниз то же число, но без минуса' },
             ]} />}
         </div>

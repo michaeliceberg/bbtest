@@ -12,7 +12,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo, isFieryMilestoneTrial, pickMiguelCheer,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
-import { SceneRunner, SLOT_COL, shuffleOptions } from '@/components/geometry/scene-engine'
+import { SceneRunner, SLOT_COL, shuffleOptions, fillAnswer } from '@/components/geometry/scene-engine'
 import { findSceneLesson } from '@/lib/scene-lessons'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
@@ -46,6 +46,14 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
     const [wrongTried, setWrongTried] = useState<string[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [chosen, setChosen] = useState<string | null>(null)
+    // верный ответ «влетает» на место «?» сразу в момент выбора
+    const qRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        if (!checked) return
+        qRef.current?.querySelectorAll('.katex-html [style*="color"]').forEach((el) => {
+            if (!el.parentElement?.closest('[style*="color"]')) el.classList.add('ans-pop')
+        })
+    }, [checked])
     // порядок вариантов в задании: случайный, верный не на том же месте, что в прошлом (правило 5a); считаем после монтирования
     const prevAnsPos = useRef<number | null>(null)
     const [trialOpts, setTrialOpts] = useState<string[]>([])
@@ -161,9 +169,9 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                             <span className="px-3 h-9 flex items-center rounded-full border-2 text-sm font-black"
                                 style={{ borderColor: 'rgba(232,182,54,0.7)', color: '#F2C35B' }}>{t.tag}</span>
                         </div>
-                        <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] text-center min-h-[3.5rem]">
+                        <div ref={qRef} className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] text-center min-h-[3.5rem]">
                             {(qShow || checked) && (t.text.includes('$')
-                                ? <motion.div key={`q-${trialIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onAnimationComplete={() => setQTyped(true)}><MathText>{t.text}</MathText></motion.div>
+                                ? <motion.div key={`q-${trialIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onAnimationComplete={() => setQTyped(true)}><MathText>{checked && !t.allCorrect ? (fillAnswer(t.text, t.answer) ?? t.text) : t.text}</MathText></motion.div>
                                 : <Typewriter key={`q-${trialIndex}`} text={t.text} onDone={() => setQTyped(true)} />)}
                         </div>
                         {!checked && qTyped && trialOpts.length > 0 && (
