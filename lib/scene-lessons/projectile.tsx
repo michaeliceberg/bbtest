@@ -29,10 +29,9 @@ const G_COL = '#F2C35B'
 const BAD = '#DC605B'
 const INK = '#F2F7FB'
 const FONT = 'var(--font-nunito), sans-serif'
-// Сцена в стиле ангара: приглушённое небо как в его окне, трава с тёмно-коричневым контуром.
-const HALO = '#1E2A30'
+// Чистая сцена: тёмная панель без неба и земли, без обводок.
 const OUTLINE = '#3B2A1C'
-const TXT = { stroke: HALO, strokeWidth: 2.4, strokeOpacity: 0.6, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+const TXT = {}
 const POP = { type: 'spring' as const, stiffness: 320, damping: 12 }
 
 // ===== Физика броска =====
@@ -67,9 +66,8 @@ const Arrow = ({ x1, y1, x2, y2, color, w = 3, dash, head = 7, opacity = 1 }:
     const p = (d: number, s: number) => `${x2 - Math.cos(a) * head * d + Math.sin(a) * head * s},${y2 - Math.sin(a) * head * d - Math.cos(a) * head * s}`
     return (
         <g opacity={opacity}>
-            <line x1={x1} y1={y1} x2={ex} y2={ey} stroke={HALO} strokeOpacity={0.55} strokeWidth={w + 2} strokeLinecap="round" />
             <line x1={x1} y1={y1} x2={ex} y2={ey} stroke={color} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash ? `${w * 2} ${w * 1.6}` : undefined} />
-            <polygon points={`${x2},${y2} ${p(1, 0.55)} ${p(1, -0.55)}`} fill={color} stroke={HALO} strokeOpacity={0.55} strokeWidth={1} strokeLinejoin="round" />
+            <polygon points={`${x2},${y2} ${p(1, 0.55)} ${p(1, -0.55)}`} fill={color} />
         </g>
     )
 }
@@ -81,7 +79,7 @@ const arcD = (cx: number, cy: number, r: number, a1: number, a2: number) => {
 // «v» с индексом и стрелочкой над буквой (вектор). anchor — левый край буквы.
 const VecLabel = ({ x, y, size, color, sub, vector = true }: { x: number; y: number; size: number; color: string; sub: string; vector?: boolean }) => (
     <g>
-        <text x={x} y={y} fontSize={size} fontStyle="italic" fontWeight={800} fill={color} fontFamily={FONT} {...TXT} strokeWidth={size * 0.16}>
+        <text x={x} y={y} fontSize={size} fontStyle="italic" fontWeight={800} fill={color} fontFamily={FONT}>
             v<tspan fontSize={size * 0.6} dx={size * 0.06} dy={size * 0.3} fontStyle="normal">{sub}</tspan>
         </text>
         {vector && <Arrow x1={x + size * 0.02} y1={y - size * 0.86} x2={x + size * 0.6} y2={y - size * 0.86} color={color} w={size * 0.08} head={size * 0.2} />}
@@ -89,7 +87,7 @@ const VecLabel = ({ x, y, size, color, sub, vector = true }: { x: number; y: num
 )
 const SubText = ({ x, y, size, color, main, sub, rest = '', anchor = 'start' }:
     { x: number; y: number; size: number; color: string; main: string; sub: string; rest?: string; anchor?: 'start' | 'middle' | 'end' }) => (
-    <text x={x} y={y} fontSize={size} fontWeight={800} fill={color} fontFamily={FONT} textAnchor={anchor} {...TXT} strokeWidth={size * 0.16}>
+    <text x={x} y={y} fontSize={size} fontWeight={800} fill={color} fontFamily={FONT} textAnchor={anchor}>
         <tspan fontStyle="italic">{main}</tspan>
         <tspan fontSize={size * 0.62} dy={size * 0.28}>{sub}</tspan>
         {rest && <tspan dy={-size * 0.28}>{rest}</tspan>}
@@ -99,16 +97,6 @@ const SubText = ({ x, y, size, color, main, sub, rest = '', anchor = 'start' }:
 const Sausage = ({ x, y, r = 7, rot = 0 }: { x: number; y: number; r?: number; rot?: number }) => (
     <g transform={`translate(${x},${y}) rotate(${rot})`}>
         <image href="/hangar/life/cat-sausage.webp" x={-r * 1.8} y={-r * 0.9} width={r * 3.6} height={r * 1.8} />
-    </g>
-)
-// Пучки травы с тёмным контуром (пока кодом; картинка Leonardo — промпт в docs/hangar/leonardo-prompts-life.md).
-const Grass = () => (
-    <g fill="#8DAE5C" stroke={OUTLINE} strokeOpacity={0.7} strokeWidth={0.9} strokeLinejoin="round">
-        {Array.from({ length: 22 }, (_, i) => {
-            const x = 6 + i * 17.5 + ((i * 7) % 6)
-            const h = 5 + ((i * 13) % 4)
-            return <path key={i} d={`M${x - 4},${GY + 1} L${x - 3},${GY - h * 0.6} L${x - 1},${GY - 2} L${x},${GY - h} L${x + 1.5},${GY - 2} L${x + 3.5},${GY - h * 0.7} L${x + 4},${GY + 1} Z`} />
-        })}
     </g>
 )
 // ===== Поле броска =====
@@ -128,28 +116,19 @@ type FieldProps = {
     view?: string                   // свой viewBox (кадр части траектории)
     maxW?: number
 }
-const SKY_TOP = '#4F7E8C'
+const PANEL = '#1F2C32'
 const ZOOM_T = 'translate(92px,186px) scale(2.4) translate(-62px,-215px)'
 const NO_ZOOM_T = 'translate(0px,0px) scale(1) translate(0px,0px)'
 export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, hiVy, crossVx, points = [], landed, view, maxW = 520 }: FieldProps) => {
     const v0x = OX + K * VX, v0y = GY - K * VY0
     return (
-        <svg viewBox={view ?? `0 0 ${W} ${H}`} className="w-full h-auto rounded-2xl" style={{ maxWidth: maxW, maxHeight: '44vh', backgroundColor: SKY_TOP }}>
-            <defs>
-                <linearGradient id="proj-sky" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor={SKY_TOP} /><stop offset="0.65" stopColor="#7FA6A2" /><stop offset="1" stopColor="#A9C3AC" />
-                </linearGradient>
-            </defs>
+        <svg viewBox={view ?? `0 0 ${W} ${H}`} className="w-full h-auto rounded-2xl" style={{ maxWidth: maxW, maxHeight: '44vh', backgroundColor: PANEL }}>
             <g style={{ transform: zoom ? ZOOM_T : NO_ZOOM_T, transition: 'transform 1.4s cubic-bezier(0.65,0,0.35,1)' }}>
-                <rect x={-200} y={-200} width={W + 400} height={GY + 200} fill="url(#proj-sky)" />
-                <image href="/hangar/life/sun.webp" x={318} y={10} width={42} height={42} opacity={0.95} />
-                <image href="/hangar/life/cloud-puffy.webp" x={22} y={18} width={74} height={38} opacity={0.9} />
-                <image href="/hangar/life/cloud-round.webp" x={228} y={44} width={52} height={31} opacity={0.8} />
-                {/* земля: полоска травы и полоска почвы с тёмным контуром */}
-                <rect x={-200} y={GY} width={W + 400} height={120} fill="#8C6A4F" />
-                <rect x={-200} y={GY} width={W + 400} height={9} fill="#6F8E47" />
-                <line x1={-200} y1={GY + 9} x2={W + 200} y2={GY + 9} stroke={OUTLINE} strokeWidth={1.2} strokeOpacity={0.6} />
-                <line x1={-200} y1={GY} x2={W + 200} y2={GY} stroke={OUTLINE} strokeWidth={1.8} />
+                {/* мягкие тени под ногами вместо земли */}
+                <g style={{ opacity: zoom ? 0 : 1, transition: 'opacity 1s' }}>
+                    <ellipse cx={34} cy={GY} rx={26} ry={4} fill="#000" opacity={0.25} />
+                    <ellipse cx={356} cy={GY} rx={22} ry={3.5} fill="#000" opacity={0.25} />
+                </g>
                 {/* Команданте смотрит вправо, туда, куда бросает */}
                 <image href="/miguel/miguel-base.webp" x={-70} y={GY - 72} width={70} height={70} transform="scale(-1,1)"
                     style={{ opacity: zoom ? 0.15 : 1, transition: 'opacity 1s' }} />
@@ -163,8 +142,6 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                         <text x={354} y={GY - 52} textAnchor="middle" fontSize={11} fontWeight={900} fill={OUTLINE} fontFamily={FONT}>Ням!</text>
                     </motion.g>
                 )}
-                {/* трава поверх ног Команданте и лап котика: они стоят В траве */}
-                <g style={{ opacity: zoom ? 0 : 1, transition: 'opacity 1s' }}><Grass /></g>
                 {ghost && <path d={trailPath(T_FLIGHT)} fill="none" stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="4 5" />}
                 {trail > 0 && <path d={trailPath(Math.min(trail, T_FLIGHT))} fill="none" stroke={INK} strokeOpacity={v0 ? 0.5 : 1} strokeWidth={zoom ? 1.4 : 2.6} strokeLinecap="round" />}
 
@@ -179,10 +156,10 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                             <circle cx={x} cy={y} r={3.2} fill={INK} opacity={cur ? 1 : 0.45} />
                             {cur && (
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={POP}>
-                                    <text x={x + K * VX / 2} y={y + 13} textAnchor="middle" fontSize={11} fontWeight={900} fill={VX_COL} fontFamily={FONT} {...TXT}>{VX}</text>
+                                    <text x={x + K * VX / 2} y={y + 13} textAnchor="middle" fontSize={11} fontWeight={900} fill={VX_COL} fontFamily={FONT}>{VX}</text>
                                     {Math.abs(vy) > 0.1
-                                        ? <text x={x - 5} y={y - (K * vy) / 2 + 4} textAnchor="end" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT} {...TXT}>{Math.abs(vy)}</text>
-                                        : <text x={x} y={y - 9} textAnchor="middle" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT} {...TXT}>0</text>}
+                                        ? <text x={x - 5} y={y - (K * vy) / 2 + 4} textAnchor="end" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT}>{Math.abs(vy)}</text>
+                                        : <text x={x} y={y - 9} textAnchor="middle" fontSize={11} fontWeight={900} fill={VY_COL} fontFamily={FONT}>0</text>}
                                 </motion.g>
                             )}
                         </motion.g>
@@ -210,8 +187,8 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                 {g && (
                     <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={POP}>
                         <Arrow x1={140} y1={150} x2={140} y2={180} color={G_COL} w={2.2} head={4.4} />
-                        <text x={145} y={163} fontSize={7} fontWeight={900} fill={G_COL} fontFamily={FONT} fontStyle="italic" {...TXT} strokeWidth={1.2}>g</text>
-                        <text x={145} y={171} fontSize={4.4} fontWeight={800} fill={G_COL} fontFamily={FONT} {...TXT} strokeWidth={0.9}>= 10 м/с²</text>
+                        <text x={145} y={163} fontSize={7} fontWeight={900} fill={G_COL} fontFamily={FONT} fontStyle="italic">g</text>
+                        <text x={145} y={171} fontSize={4.4} fontWeight={800} fill={G_COL} fontFamily={FONT}>= 10 м/с²</text>
                     </motion.g>
                 )}
                 {v0 && (
@@ -219,7 +196,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                         <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
                             <Arrow x1={OX} y1={GY} x2={v0x} y2={v0y} color={V0_COL} w={1.8} head={4.2} />
                             <path d={arcD(OX, GY, 9, -Math.PI / 3, 0)} fill="none" stroke={V0_COL} strokeWidth={0.9} />
-                            <text x={OX + 10} y={GY - 3.2} fontSize={4.4} fontWeight={800} fill={V0_COL} fontFamily={FONT} {...TXT} strokeWidth={0.9}>60°</text>
+                            <text x={OX + 10} y={GY - 3.2} fontSize={4.4} fontWeight={800} fill={V0_COL} fontFamily={FONT}>60°</text>
                         </motion.g>
                         <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.6 }}>
                             <VecLabel x={OX - 2} y={GY - 26} size={11} color={V0_COL} sub="0" />
@@ -227,7 +204,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                     </g>
                 )}
 
-                {grenadeT !== null && !comps && <Sausage x={px(grenadeT)} y={py(grenadeT) - 6} r={zoom ? 3 : 6} rot={grenadeT * 80} />}
+                {grenadeT !== null && !comps && !v0 && points.length === 0 && <Sausage x={px(grenadeT)} y={py(grenadeT) - 6} r={zoom ? 3 : 6} rot={grenadeT * 80} />}
                 
             </g>
         </svg>
