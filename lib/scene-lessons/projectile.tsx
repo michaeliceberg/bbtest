@@ -126,7 +126,6 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
             <g style={{ transform: zoom ? ZOOM_T : NO_ZOOM_T, transition: 'transform 1.4s cubic-bezier(0.65,0,0.35,1)' }}>
                 {/* мягкие тени под ногами вместо земли */}
                 <g style={{ opacity: zoom ? 0 : 1, transition: 'opacity 1s' }}>
-                    <ellipse cx={34} cy={GY} rx={26} ry={4} fill="#000" opacity={0.25} />
                     <ellipse cx={356} cy={GY} rx={22} ry={3.5} fill="#000" opacity={0.25} />
                 </g>
                 {/* Команданте смотрит вправо, туда, куда бросает */}
@@ -134,7 +133,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                     style={{ opacity: zoom ? 0.15 : 1, transition: 'opacity 1s' }} />
                 {/* котик ждёт колбаску у места падения, потом ест */}
                 {landed
-                    ? <image href="/hangar/life/cat-eat.webp" x={326} y={GY - 37} width={52} height={39} />
+                    ? <image href="/hangar/life/cat-eat.webp" x={326} y={GY - 37} width={52} height={39} transform="translate(704,0) scale(-1,1)" />
                     : <image href="/hangar/life/cat-sit.webp" x={336} y={GY - 49} width={40} height={49} />}
                 {landed && (
                     <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...POP, delay: 0.4 }}>
@@ -143,7 +142,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                     </motion.g>
                 )}
                 {ghost && <path d={trailPath(T_FLIGHT)} fill="none" stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2} strokeDasharray="4 5" />}
-                {trail > 0 && <path d={trailPath(Math.min(trail, T_FLIGHT))} fill="none" stroke={INK} strokeOpacity={v0 ? 0.5 : 1} strokeWidth={zoom ? 1.4 : 2.6} strokeLinecap="round" />}
+                {trail > 0 && <path d={trailPath(Math.min(trail, T_FLIGHT))} fill="none" stroke={INK} strokeOpacity={v0 ? 0.22 : 1} strokeWidth={zoom ? 1.1 : 2.6} strokeDasharray={v0 ? '2 3' : undefined} strokeLinecap="round" />}
 
                 {/* «секунда за секундой» */}
                 {points.map(({ t, cur }) => {
@@ -194,7 +193,7 @@ export const Field = ({ trail = 0, ghost, grenadeT = null, zoom, v0, comps, g, h
                 {v0 && (
                     <g>
                         <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-                            <Arrow x1={OX} y1={GY} x2={v0x} y2={v0y} color={V0_COL} w={1.8} head={4.2} />
+                            <Arrow x1={OX} y1={GY} x2={v0x} y2={v0y} color={V0_COL} w={2.8} head={6} />
                             <path d={arcD(OX, GY, 9, -Math.PI / 3, 0)} fill="none" stroke={V0_COL} strokeWidth={0.9} />
                             <text x={OX + 10} y={GY - 3.2} fontSize={4.4} fontWeight={800} fill={V0_COL} fontFamily={FONT}>60°</text>
                         </motion.g>
@@ -493,7 +492,7 @@ const SCENES: Scene[] = [
         title: 'Бросок', next: 'Вижу: летит по параболе', parts: [
             ln('Котик проголодался 🐾 Бросаем ему ', ['колбаску', '#E07A5F']),
             { t: 'custom', render: (done) => <ThrowGame onDone={done} /> },
-            ln('Летит по ', ['параболе', PAR_COL], ' 😺'),
+            ln('Колбаска летит по ', ['параболе', PAR_COL], ' 😺'),
         ],
     },
     {
