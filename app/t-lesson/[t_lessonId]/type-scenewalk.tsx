@@ -197,7 +197,7 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
                             <FieryFeedbackBanner fiery={isFieryMilestoneTrial(trialIndex)}>
                                 {isFieryMilestoneTrial(trialIndex)
                                     ? pickMiguelCheer(trialIndex)
-                                    : <>{pickPraise(trialIndex)} <MathText>{t.allCorrect ? (chosen ?? t.answer) : t.answer}</MathText></>}
+                                    : <>{pickPraise(trialIndex)}{t.allCorrect && <> <MathText>{chosen ?? t.answer}</MathText></>}</>}
                             </FieryFeedbackBanner>
                         )}
                         {checked && <LocalAnswerConfetti />}

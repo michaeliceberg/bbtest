@@ -15,7 +15,7 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { RememberPlate, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
+import { RememberPlate, walkthroughButtonClass, walkthroughButtonStyle, CORRECT_FEEDBACK_PHRASES } from '@/components/geometry/WalkthroughLog'
 import { EgeTaskCard, type EgeFocusMode } from '@/components/geometry/ege-task-card'
 import { Typewriter, splitThoughts } from '@/components/geometry/Typewriter'
 import { MathText, usePlainMath } from '@/components/geometry/plain-math'
@@ -150,6 +150,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
     }, [r]) // eslint-disable-line react-hooks/exhaustive-deps
     const [wrong, setWrong] = useState<string[]>([])
     const [done, setDone] = useState(false)
+    const [praise, setPraise] = useState('')
     const round = rounds[r]
     // порядок вариантов выбираем после монтирования (случайное — не при серверном рендере)
     const prevPos = useRef<number | null>(null)
@@ -163,6 +164,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
         if (done || wrong.includes(o)) return
         if (o === round.correct) {
             setDone(true); showAnswerMeme(true); onCorrectPick?.(r)
+            setPraise(CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)])
             setTimeout(() => {
                 if (r + 1 >= rounds.length) { onDone(); return }
                 setOrder(null); setR(r + 1); setWrong([]); setDone(false)
@@ -208,7 +210,8 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
                 })}
             </div>}
             {!done && wrong.length > 0 && <Note ok={false}><L>{round.hint}</L></Note>}
-            {done && round.ok && <Note ok><L>{round.ok}</L></Note>}
+            {/* Пример уже стоит выше с подставленным ответом — повторять его не нужно: хвалим. Обычный текст в ok (шутка, вывод) оставляем. */}
+            {done && <Note ok>{round.ok && !round.ok.includes('$') ? round.ok : praise}</Note>}
         </div>
     )
 }
@@ -399,6 +402,13 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
     // последняя кнопка-подтверждение, которую уже нажали
     let lastAck = -1
     for (let i = 0; i < Math.min(reached, parts.length); i++) if (parts[i].t === 'ack') lastAck = i
+    // последняя уже начатая игра (вопрос/сборка/система/своя мини-игра/задача): всё выше неё тоже бледнеет
+    let lastGame = -1
+    for (let i = 0; i <= Math.min(reached, parts.length - 1); i++) {
+        const t = parts[i].t
+        if (t === 'choice' || t === 'build' || t === 'system' || t === 'custom' || (parts[i] as { quiz?: unknown }).quiz) lastGame = i
+    }
+    const dimBefore = Math.max(lastAck, lastGame)
     let fig: React.ReactNode = null
     for (let i = 0; i <= Math.min(reached, parts.length - 1); i++) { const p = parts[i]; if (p.t === 'fig') fig = p.node }
     return (
@@ -441,7 +451,7 @@ export const SceneRunner = ({ parts, onSettled }: { parts: Part[]; onSettled?: (
                 } })()
                 if (!node) return null
                 // Всё, что было до последней нажатой кнопки-подтверждения, бледнеет: ребёнок смотрит только на новое.
-                return <div key={i} className="w-full flex flex-col items-center gap-4 transition-opacity duration-500" style={{ opacity: i < lastAck ? 0.3 : 1 }}>{node}</div>
+                return <div key={i} className="w-full flex flex-col items-center gap-4 transition-opacity duration-500" style={{ opacity: i < dimBefore ? 0.3 : 1 }}>{node}</div>
             })}
         </>
     )
