@@ -26,6 +26,8 @@ type Props = {
     multiSelect?: boolean
     unitColor?: { button: string; bottom: string }
     isCorrectOption?: boolean
+    // вариант, уже выбранный неверно в этой попытке: красный и заблокирован
+    isWrongPick?: boolean
 }
 
 export const Card = ({
@@ -42,6 +44,7 @@ export const Card = ({
     multiSelect,
     unitColor,
     isCorrectOption,
+    isWrongPick,
 }: Props) => {
     const handleClick = useCallback(() => {
         if (disabled) return
@@ -109,7 +112,7 @@ export const Card = ({
                 selected && status === "correct" && "border-[#53692C] bg-[#678337] hover:bg-[#678337]",
                 selected && status === "wrong" && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
                 disabled && "pointer-events-none hover:bg-[#161F23]",
-                isDoneWrongChallenge && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
+                (isDoneWrongChallenge || isWrongPick) && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
                 type === "ASSIST" && "lg:p-3 w-full"
             )}
         >
@@ -132,14 +135,14 @@ export const Card = ({
 
                 <p className={cn(
                     "text-[#F2F7FB] text-sm lg:text-base text-center flex-1",
-                    (selected || isDoneWrongChallenge) && "text-white",
+                    (selected || isDoneWrongChallenge || isWrongPick) && "text-white",
                 )}>
                     <Latex>{text}</Latex>
                 </p>
 
                 <div className={cn(
                     "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] flex items-center justify-center rounded-lg text-[#9AA7B0]/70 lg:text-[15px] text-xs font-semibold",
-                    (selected || isDoneWrongChallenge) && "text-white/70",
+                    (selected || isDoneWrongChallenge || isWrongPick) && "text-white/70",
                 )}>
                     {shortcut}
                 </div>

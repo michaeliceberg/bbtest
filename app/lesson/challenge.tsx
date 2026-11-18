@@ -23,6 +23,7 @@ type Props = {
     isDoneWrongChallenge: boolean
     isDoneChallenge: boolean
     dateLastDone: Date
+    wrongPickIds?: Set<number>
     challengeId: number
     unitColor?: { button: string; bottom: string }
     imageSrc?: string | null
@@ -42,6 +43,7 @@ export const Challenge = ({
     isDoneWrongChallenge,
     isDoneChallenge,
     dateLastDone,
+    wrongPickIds,
     challengeId,
     unitColor,
     imageSrc,
@@ -49,7 +51,7 @@ export const Challenge = ({
 }: Props) => {
     const multiSelect = type === "SELECT"
     const isCharacterChange = type === "CONSTRUCT"
-    const canSolve = !dateLastDone || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
+    const canSolve = !dateLastDone || isDoneWrongChallenge || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
     
     const getStatusMessage = () => {
         if (!canSolve && isDoneWrongChallenge) {
@@ -105,9 +107,10 @@ export const Challenge = ({
                             selected={multiSelect ? !!selectedOptions?.has(option.id) : selectedOption === option.id}
                             onClick={() => onSelect(option.id)}
                             status={status}
-                            disabled={disabled}
+                            disabled={disabled || !!wrongPickIds?.has(option.id)}
                             type={type}
-                            isDoneWrongChallenge={isDoneWrongChallenge}
+                            isDoneWrongChallenge={false}
+                            isWrongPick={!!wrongPickIds?.has(option.id)}
                             multiSelect={multiSelect}
                             unitColor={unitColor}
                             isCorrectOption={option.correct}

@@ -174,7 +174,8 @@ export async function updateChallengeProgress({
     let streakFrozenDays = 0;
     let newStreak: number | undefined;
 
-    if (!isPractice && doneRight && !existingProgress?.completed) {
+    // Ранее решённая НЕВЕРНО задача (existingProgress.doneRight === false) — не «пройдена»: верный ответ с повтора засчитывается.
+    if (!isPractice && doneRight && (!existingProgress?.completed || existingProgress.doneRight === false)) {
         pointsEarned = challenge.points;
         gemsEarned = Math.floor(challenge.points / 10);
         const earnedXp = xpForAmount(pointsEarned);
@@ -280,7 +281,8 @@ export async function updateChallengeProgress({
     }
     
     // 13. Обновляем сердца при неправильном ответе
-    if (!isPractice && !doneRight && !existingProgress?.completed) {
+    // Каждая неверная попытка по ещё не решённой задаче — минус жизнь (повторы разрешены сразу, без суток ожидания).
+    if (!isPractice && !doneRight) {
         const newHearts = Math.max((userProgressData?.hearts ?? 0) - 1, 0);
         await db.update(userProgress)
             .set({ hearts: newHearts })

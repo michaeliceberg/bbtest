@@ -25,6 +25,7 @@ import { ResultCard } from "./result-card";
 import { useRouter } from "next/navigation";
 import Confetti from 'react-confetti'
 import { useHeartsModal } from "@/store/use-hearts-modal";
+import { LoseHeartModal } from "@/components/modals/lose-heart-modal";
 import { usePracticeModal } from "@/store/use-practice-modal";
 import { Button } from "@/components/ui/button";
 import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
@@ -261,6 +262,11 @@ export const Quiz = ({
     const [characterSelections, setCharacterSelections] = useState<Record<string, number>>({})
     const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
+    // Неверные попытки на текущей задаче: красные варианты блокируются, ученик пробует снова (каждая ошибка — минус жизнь).
+    const [wrongPickIds, setWrongPickIds] = useState<Set<number>>(new Set())
+    const [loseHeart, setLoseHeart] = useState<{ hearts: number; text?: string } | null>(null)
+    // Задачи, чей прогресс (полоса) уже засчитан в этой сессии — повторная попытка не двигает полосу второй раз.
+    const countedRef = useRef<Set<number>>(new Set())
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
     // Интерактивные разборы по шагам (см. WALKTHROUGH_REGISTRY выше) — null =
     // ещё не выбрано (показываем экран выбора режима), 'self'/'guided' —
@@ -281,7 +287,10 @@ export const Quiz = ({
     // логика, что открывает/прячет сетку вариантов в Challenge. Без этого
     // кнопка "Ответить" оставалась задизейбленной навсегда даже после того,
     // как Challenge уже открывал варианты для пересдачи.
-    const canSolve = !dateLastDone || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
+    // Неверно решённая задача блокировки не имеет: перерешать можно сразу (ценой жизни).
+    const canSolve = !dateLastDone || isDoneWrongChallenge || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
+    // «Решена верно» — только тогда повтор считается практикой (без очков и без потери жизни).
+    const solvedRight = isDoneChallenge && !isDoneWrongChallenge
 
     // Часть заданий ASSIST показываем как KEYBOARD — не переписываем тип в
     // БД (дистракторы остаются на месте для обычного вида), а решаем на
@@ -333,6 +342,8 @@ export const Quiz = ({
         setCharacterSelections({})
         setTypedAnswer('')
         setStatus('none')
+        setWrongPickIds(new Set())
+        setLoseHeart(null)
         setWalkthroughMode(null)
         setIsDoneWrongChallenge(wrongChallengesId.includes(newIndex))
         setIsDoneChallenge(doneChallengesId.includes(newIndex))
@@ -563,7 +574,7 @@ export const Quiz = ({
                 upsertChallengeProgress({
                     challengeId: challenge.id,
                     doneRight: true,
-                    isPractice: isDoneChallenge,
+                    isPractice: solvedRight,
                 })
                     .then((response) => {
                         if (!response?.success) {
@@ -589,7 +600,8 @@ export const Quiz = ({
                         reportGagaAnswer(true)
                         vibrate('success')
                         setStatus('correct')
-                        if (!isDoneChallenge) {
+                        if (!isDoneChallenge && !countedRef.current.has(challenge.id)) {
+                            countedRef.current.add(challenge.id)
                             setPercentage((prev) => prev + 100 / challenges.length)
                         }
 
@@ -622,7 +634,7 @@ export const Quiz = ({
                 upsertChallengeProgress({
                     challengeId: challenge.id,
                     doneRight: false,
-                    isPractice: isDoneChallenge,
+                    isPractice: solvedRight,
                 })
                     .then((response) => {
                         if (!response?.success) {
@@ -638,11 +650,24 @@ export const Quiz = ({
                         playIncorrectSound()
                         reportGagaAnswer(false)
                         vibrate('error')
-                        setStatus('wrong')
-                        if (!isDoneChallenge) {
+                        // Остаёмся на задаче: выбранный вариант краснеет и блокируется, ученик пробует снова.
+                        const lostText = isKeyboardChallenge ? typedAnswer.trim() : undefined
+                        if (!isDoneChallenge && !countedRef.current.has(challenge.id)) {
+                            countedRef.current.add(challenge.id)
                             setPercentage((prev) => prev + 100 / challenges.length)
-                            setHearts((prev) => Math.max(prev - 1, 0))
                         }
+                        if (!solvedRight) {
+                            const newHearts = Math.max(hearts - 1, 0)
+                            setHearts(newHearts)
+                            setLoseHeart({ hearts: newHearts, text: lostText })
+                        }
+                        if (!isKeyboardChallenge && !isMultiSelect && !isCharacterChange && selectedOption !== undefined) {
+                            setWrongPickIds((prev) => new Set(prev).add(selectedOption))
+                        }
+                        setSelectedOption(undefined)
+                        setSelectedOptions(new Set())
+                        setCharacterSelections({})
+                        setTypedAnswer('')
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))
             })
@@ -970,6 +995,7 @@ export const Quiz = ({
                                 isDoneWrongChallenge={isDoneWrongChallenge}
                                 isDoneChallenge={isDoneChallenge}
                                 dateLastDone={dateLastDone}
+                                wrongPickIds={wrongPickIds}
                                 challengeId={challenge.id}
                                 unitColor={unitColor}
                                 imageSrc={challenge.imageSrc}
@@ -979,6 +1005,14 @@ export const Quiz = ({
                         </motion.div>
                 </div>
             </div>
+
+            <LoseHeartModal
+                open={loseHeart !== null}
+                hearts={loseHeart?.hearts ?? 0}
+                wrongText={loseHeart?.text}
+                onRetry={() => setLoseHeart(null)}
+                onSkip={() => { setLoseHeart(null); onNext() }}
+            />
 
             <Footer
                 disabled={(isDoneChallenge && !canSolve) || pending || (isCharacterChange ? !characterAllAnswered : isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption))}
