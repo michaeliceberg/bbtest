@@ -13,7 +13,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CAT_DECOR, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
+import { CAT_DECOR, L, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
@@ -610,6 +610,13 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const BED = bedOf(boxP)
     bedRef.current = { ...BED, floorY: boxP.y }
     sboxRef.current = sbP
+    // Котик всегда поверх проводов (предмет 5): над ними он идёт по слою не ниже слоя проводов, пока стоит над ними по горизонтали
+    const wiresPl = [place(layout, 'b', '5', L['5'].b), place(layout, 'a', '5', L['5'].a)]
+    const wiresOver = (cx: number) => {
+        let z = 0
+        for (const w of wiresPl) if (Math.abs(cx - w.x) <= w.w / 2 + 40) z = Math.max(z, zOf(w) + 1)
+        return z
+    }
     const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
     // реакция + фраза одним махом; голодный котик (холодильник сломан) иногда просит молока
     const doReact = (r: 'pet' | 'meow' | 'happy') => {
@@ -1009,7 +1016,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 // обычная прогулка — по глубине лап
                 <motion.div ref={strollElRef} className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`}
                     style={{ zIndex: stroll.jump || stroll.crouch || stroll.land || stroll.perch || stroll.eat || stroll.under || stroll.ky !== undefined || sbox !== 'idle'
-                        ? CAT_TOP_Z : depthZIndex((stroll.walking && liveY !== null ? liveY : stroll.y) + 4), transformOrigin: '50% 100%' }}
+                        ? CAT_TOP_Z : Math.max(depthZIndex((stroll.walking && liveY !== null ? liveY : stroll.y) + 4), wiresOver(stroll.x)), transformOrigin: '50% 100%' }}
                     // старт прогулки — от коробки (раньше initial={false}: котик сразу оказывался в точке прогулки, «телепортировался»)
                     initial={box('walk-1', { x: BED.x, y: BED.y, k: kAt(BED.y) })}
                     // на бочке котик лежит вдоль её верха: бочка лежит наискосок (верх уходит вверх-вправо ~8°), поэтому котик

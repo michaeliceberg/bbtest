@@ -188,7 +188,7 @@ export function FeedDesignC(p: FeedDesignProps) {
                 ))}
             </div>
             {p.satiety >= CAT_FEED_BELOW
-                ? <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Покормишь, когда сытость станет меньше половины</div>
+                ? <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Покорми, когда сытость станет меньше половины</div>
                 : CAT_FOODS.every((k) => p.stock[k] <= 0) && <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Купи еду на полках выше</div>}
         </Shell>
     )
