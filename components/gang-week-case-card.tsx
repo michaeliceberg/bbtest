@@ -13,7 +13,7 @@ import { claimGangWeekCase } from '@/actions/gang-week';
 import { getLessonCasePool } from '@/lib/caseRewards';
 import { useUiTheme } from '@/lib/uiTheme';
 
-export const GangWeekCaseCard = () => {
+export const GangWeekCaseCard = ({ hasReward = true }: { hasReward?: boolean }) => {
 	const [open, setOpen] = useState(false);
 	const router = useRouter();
 	const theme = useUiTheme();
@@ -37,6 +37,9 @@ export const GangWeekCaseCard = () => {
 			</div>
 		);
 	}
+
+	// Карточка остаётся смонтированной, пока крутится барабан: после «Крутить» сервер отдаёт hasReward=false.
+	if (!hasReward) return null;
 
 	return (
 		<div className="rounded-xl border-2 border-amber-400/60 bg-amber-400/10 p-4 text-center space-y-3">

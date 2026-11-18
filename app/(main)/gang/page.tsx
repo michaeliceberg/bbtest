@@ -55,7 +55,7 @@ const GangPage = async () => {
                         Выбери эмблему и название — зови друзей, копите очки и громите другие банды GG
                     </p>
                 </div>
-                {hasWeekReward && <GangWeekCaseCard />}
+                <GangWeekCaseCard hasReward={hasWeekReward} />
                 <CreateGangForm />
             </div>
         );
@@ -109,7 +109,7 @@ const GangPage = async () => {
                 </div>
             </div>
 
-            {hasWeekReward && <GangWeekCaseCard />}
+            <GangWeekCaseCard hasReward={hasWeekReward} />
 
             <Link href="/gangs" className="rounded-xl border-2 border-violet-400/50 bg-violet-400/10 p-4 flex items-center justify-between gap-3">
                 <div>
