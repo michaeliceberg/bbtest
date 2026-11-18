@@ -27,6 +27,9 @@ type Props = {
     theme?: UiTheme;
     // Неоткрытый кейс за уровень (lib/levelCase.ts:getPendingLevelCase).
     levelCase?: { keyId: number; level: number } | null;
+    // Показывать карточку только пока есть кейс. Компонент при этом остаётся смонтированным до конца барабана:
+    // после открытия ключа сервер отдаёт levelCase=null, и без этого барабан исчезал посреди прокрутки.
+    onlyWhenCase?: boolean;
 };
 
 const RARE = '#00C5FF';
@@ -36,7 +39,7 @@ const VIOLET = '#A78BFA';
 const getMascotSrc = (level: number, lvlLottieCount: number): string =>
     `/Lottie/lvl/lvl${Math.min(Math.ceil(level / 3), Math.max(1, lvlLottieCount))}.json`;
 
-export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase = null }: Props) => {
+export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase = null, onlyWhenCase = false }: Props) => {
     const router = useRouter();
     const { level, xpIntoLevel, xpForNextLevel, progressPercent } = getLevelInfo(xp);
     const xpLeft = xpForNextLevel - xpIntoLevel;
@@ -83,6 +86,8 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
             )}
         </>
     );
+
+    if (onlyWhenCase && !levelCase && !openingCase) return null;
 
     // Половина ширины (на /learn рядом с плиткой ангара): персонаж, «УР. N ——→ УР. N+1», полоска, кнопка кейса.
     // Блоки распределены по высоте (justify-between), без пустой середины.

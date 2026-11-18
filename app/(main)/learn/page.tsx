@@ -498,11 +498,9 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                     cornerTop={setBar ? <SetBar data={setBar} backdropZ={1240} /> : undefined}
                     cornerRight={<div className='flex flex-col items-start gap-1.5'><StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />{ballometer && <BallometerChip d={ballometer} className='h-8 bg-[#151F23]/90 shadow-lg' />}</div>} />
                   {ballometer && <BallometerHello d={ballometer} />}
-                  {levelCase && (
-                    <div className='mt-4'>
-                      <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
-                    </div>
-                  )}
+                  <div className={levelCase ? 'mt-4' : undefined}>
+                    <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} onlyWhenCase />
+                  </div>
                 </>
               )
               const idx = unitsWithFormattedLessons.findIndex((u) => unitNum(u.title) === item.num)
@@ -532,11 +530,9 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
             {/* Уровень — в шапке; карточка уровня только если ждёт кейс за уровень, чтобы его можно было открыть */}
-            {levelCase && (
-              <div className='mb-4'>
-                <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
-              </div>
-            )}
+            <div className={levelCase ? 'mb-4' : undefined}>
+              <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} onlyWhenCase />
+            </div>
 
             {/* Другие курсы — шкала разделов */}
             <CourseProgressStrip
