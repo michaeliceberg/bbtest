@@ -2,7 +2,7 @@
 // aᵐ/ⁿ = ⁿ√aᵐ, a⁰ = 1, комбо минус + дробь), потом логарифмы от дробей и корней.
 // Переделка по правилам step-by-step: маленькие порции, ack-тезисы, мини-игры вместо чтения, шутки, перелёт числа в знаменатель.
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { animate, motion, useMotionValue } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
 import { dessert, Fig } from './logHelpers'
 import { ChoiceGame } from '@/components/geometry/scene-engine'
@@ -158,6 +158,99 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
     )
 }
 
+// «Корень = степень»: слева ⁿ√a, ученик жмёт кнопку, справа появляется основание a, а число n у корня
+// по дуге летит в показатель и становится знаменателем: появляется черта и сверху единица. Всё белое, цвет только у маркера.
+const Radical = ({ idx, children, idxRef, idxMark, arrow }: { idx: string; children: React.ReactNode; idxRef?: React.Ref<HTMLSpanElement>; idxMark?: boolean; arrow?: boolean }) => (
+    <span className="inline-flex items-end leading-none">
+        <span ref={idxRef} className="relative inline-block self-start rounded-[4px] px-[3px] mr-[-4px] text-3xl leading-none transition-colors duration-500" style={{ backgroundColor: idxMark ? KEY : 'transparent' }}>
+            {idx}
+            {arrow && (
+                <motion.span className="absolute left-1/2 -top-[46px] -ml-[17px] block" style={{ color: GGEGE_PALETTE.blue.button }}
+                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: [0, 9, 0] }}
+                    transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
+                    <ArrowDown size={34} strokeWidth={3.5} />
+                </motion.span>
+            )}
+        </span>
+        <svg viewBox="0 0 34 64" className="h-[64px] w-[26px] shrink-0 self-stretch" fill="none" stroke="#F2F7FB" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" preserveAspectRatio="none" aria-hidden>
+            <path d="M3 38 L10 33 L19 58 L32 4" />
+        </svg>
+        <span className="inline-block border-t-[5px] border-[#F2F7FB] px-1 pt-1 leading-none h-[64px]">{children}</span>
+    </span>
+)
+
+const RootDemo = ({ a, n, label, intro, onDone }: { a: string; n: string; label: string; intro?: boolean; onDone: () => void }) => {
+    const src = useRef<HTMLSpanElement>(null)
+    const dst = useRef<HTMLSpanElement>(null)
+    const d = useRef({ x: 0, y: 0 })
+    const [phase, setPhase] = useState<'idle' | 'base' | 'fly' | 'frac'>('idle')
+    // ip: -1 пауза, 0 печатается строка, 1 маркер и стрелка на числе у корня, 3 кнопка
+    const [ip, setIp] = useState(intro ? -1 : 3)
+    useEffect(() => {
+        if (!intro) { setIp(3); return }
+        const t = setTimeout(() => setIp(0), 800)
+        return () => clearTimeout(t)
+    }, [intro])
+    const p = useMotionValue(0)
+    const x = useTransform(p, (v) => d.current.x * v)
+    const y = useTransform(p, (v) => d.current.y * v - 60 * 4 * v * (1 - v))
+    const go = () => {
+        if (phase !== 'idle' || ip < 3 || !src.current || !dst.current) return
+        playJustClick()
+        const sr = src.current.getBoundingClientRect(), tr = dst.current.getBoundingClientRect()
+        d.current = { x: tr.left + tr.width / 2 - (sr.left + sr.width / 2), y: tr.top + tr.height / 2 - (sr.top + sr.height / 2) }
+        setPhase('base')
+        setTimeout(() => {
+            setPhase('fly')
+            animate(p, 1, { duration: 1.1, ease: 'easeInOut', onComplete: () => setPhase('frac') })
+        }, 1000)
+        setTimeout(onDone, 3600)
+    }
+    const shown = phase !== 'idle'
+    const landed = phase === 'frac'
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <div className="relative flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
+                <Radical idx={n} idxRef={src} idxMark={ip >= 1} arrow={ip >= 1 && phase === 'idle'}>{a}</Radical>
+                <span>=</span>
+                <span className="inline-flex items-start" style={{ visibility: shown ? 'visible' : 'hidden' }}>
+                    <motion.span className="inline-block" initial={false} animate={{ scale: shown ? 1 : 0.4, opacity: shown ? 1 : 0 }} transition={SPRING}>{a}</motion.span>
+                    <span className="ml-1 mt-[-10px] inline-flex flex-col items-center gap-[2px] text-3xl leading-none">
+                        <motion.span className="inline-block" initial={false} animate={{ scale: landed ? 1 : 0, opacity: landed ? 1 : 0 }} transition={SPRING}>1</motion.span>
+                        <motion.span className="block h-[3px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: landed ? 1 : 0 }} transition={{ duration: 0.3, ease: 'easeOut' }} />
+                        <span ref={dst} className="inline-block px-[3px]" style={{ opacity: landed ? 1 : 0 }}>{n}</span>
+                    </span>
+                </span>
+                {/* летящая копия числа: поверх всего, двигается только transform/opacity */}
+                {phase === 'fly' && src.current && (
+                    <FlyingNum from={src.current} x={x} y={y} text={n} />
+                )}
+            </div>
+            {intro && ip >= 0 && (
+                <MarkSay key="r1" segs={[{ t: 'Число у корня', c: KEY }, { t: ' уезжает в показатель' }]}
+                    onDone={() => { setTimeout(() => setIp(1), 500); setTimeout(() => setIp(3), 1500) }} />
+            )}
+            {phase === 'idle' && ip >= 3 && (
+                <div className="w-full flex">
+                    <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>{label}</button>
+                </div>
+            )}
+        </div>
+    )
+}
+const FlyingNum = ({ from, x, y, text }: { from: HTMLElement; x: MotionValue<number>; y: MotionValue<number>; text: string }) => {
+    // позиция исходного числа относительно строки с равенством считается один раз при появлении копии
+    const [pos] = useState(() => {
+        const par = from.offsetParent as HTMLElement | null
+        const fr = from.getBoundingClientRect(), pr = par?.getBoundingClientRect()
+        return { left: pr ? fr.left - pr.left : 0, top: pr ? fr.top - pr.top : 0 }
+    })
+    return (
+        <motion.span className="pointer-events-none absolute text-3xl leading-none px-[3px] font-black text-[#F2F7FB]" style={{ left: pos.left, top: pos.top, x, y }}>{text}</motion.span>
+    )
+}
+const rootDemo = (a: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <RootDemo a={a} n={n} label={label} intro={intro} onDone={done} /> })
+
 export const LOG_NEGATIVE: SceneLesson = {
     question: 'Минус и дробь в степенях',
     mascot: 'Минус и дробь в степени',
@@ -190,18 +283,10 @@ export const LOG_NEGATIVE: SceneLesson = {
         },
         {
             title: 'Корень — это степень', next: 'Корень — это дробь в степени', parts: [
-                { t: 'say', text: 'Корень тоже умеет прикидываться степенью' },
-                { t: 'pause', ms: 700 },
-                fig('\\sqrt[3]{5}'),
-                { t: 'say', text: 'Тройка у корня уезжает в знаменатель показателя' },
-                { t: 'pause', ms: 900 },
-                fig('\\sqrt[3]{5} = 5^{\\frac13}'),
-                { t: 'pause', ms: 900 },
-                { t: 'say', text: 'Пятёрка в корне, пятёрка в основании, а в показателе единица на тройку' },
-                { t: 'ack', label: 'Корень — это дробь в степени' },
-                { t: 'say', text: 'Ещё один пример' },
-                fig('\\sqrt[5]{4} = 4^{\\frac15}'),
-                { t: 'pause', ms: 700 },
+                rootDemo('5', '3', 'Отправить в показатель', true),
+                { t: 'ack', label: 'Понял, корень — это дробь в степени' },
+                { t: 'say', text: 'Ещё раз, теперь сам' },
+                rootDemo('4', '5', 'Отправить в показатель'),
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$\\sqrt[3]{5} = 5^{\\frac13}$', 'Корень — это степень с дробью'] },
             ],
         },
