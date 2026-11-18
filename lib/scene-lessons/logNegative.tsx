@@ -7,7 +7,7 @@ import type { SceneLesson } from './types'
 import { dessert, Fig } from './logHelpers'
 import { ChoiceGame } from '@/components/geometry/scene-engine'
 import { MathText } from '@/components/geometry/plain-math'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { playJustClick } from '@/lib/sound'
@@ -160,7 +160,7 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
 
 // «Корень = степень»: слева ⁿ√a, ученик жмёт кнопку, справа появляется основание a, а число n у корня
 // по дуге летит в показатель и становится знаменателем: появляется черта и сверху единица. Всё белое, цвет только у маркера.
-const Radical = ({ idx, children, idxRef, idxMark, arrow, whole }: { idx: string; children: React.ReactNode; idxRef?: React.Ref<HTMLSpanElement>; idxMark?: boolean; arrow?: boolean; whole?: boolean }) => (
+const Radical = ({ idx, children, idxRef, idxMark, arrow, whole }: { idx: React.ReactNode; children: React.ReactNode; idxRef?: React.Ref<HTMLSpanElement>; idxMark?: boolean; arrow?: boolean; whole?: boolean }) => (
     <span className="inline-flex items-end leading-none rounded-[6px] px-1 transition-colors duration-500" style={{ backgroundColor: whole ? KEY : 'transparent' }}>
         <span ref={idxRef} className="relative inline-block self-start rounded-[4px] px-[3px] mr-[-4px] text-3xl leading-none transition-colors duration-500" style={{ backgroundColor: idxMark ? KEY : 'transparent' }}>
             {idx}
@@ -256,6 +256,111 @@ const FlyingNum = ({ from, x, y, scale, text }: { from: HTMLElement; x: MotionVa
     )
 }
 const rootDemo = (a: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <RootDemo a={a} n={n} label={label} intro={intro} onDone={done} /> })
+
+// «Степень = корень» (обратное к RootDemo): слева a^(m/n). Знаменатель n копией летит в показатель корня,
+// затем числитель m — в степень под корнем. Всё белое, цвет только у маркера, стрелка качается на текущем числе.
+const PowerRootDemo = ({ a, m, n, intro, onDone }: { a: string; m: string; n: string; intro?: boolean; onDone: () => void }) => {
+    const srcs = [useRef<HTMLSpanElement>(null), useRef<HTMLSpanElement>(null)] // знаменатель, числитель
+    const dsts = [useRef<HTMLSpanElement>(null), useRef<HTMLSpanElement>(null)] // индекс корня, степень под корнем
+    const d = useRef({ x: 0, y: 0 })
+    const [k, setK] = useState<0 | 1>(0)
+    const [phase, setPhase] = useState<'idle' | 'fly' | 'land'>('idle')
+    const [shown, setShown] = useState(false)
+    const [landed, setLanded] = useState<[boolean, boolean]>([false, false])
+    const [ip, setIp] = useState(-1) // -1 пауза, 0 печатается строка, 1 маркер и стрелка, 2 кнопка
+    useEffect(() => {
+        if (!intro) { setIp(2); return }
+        setIp(-1)
+        const t = setTimeout(() => setIp(0), k === 0 ? 800 : 500)
+        return () => clearTimeout(t)
+    }, [intro, k])
+    const p = useMotionValue(0)
+    const x = useTransform(p, (v) => d.current.x * v)
+    const y = useTransform(p, (v) => d.current.y * v - 60 * 4 * v * (1 - v))
+    const sc = useTransform(p, () => 1)
+    const go = () => {
+        const s = srcs[k].current, t = dsts[k].current
+        if (phase !== 'idle' || ip < 2 || !s || !t) return
+        playJustClick()
+        const sr = s.getBoundingClientRect(), tr = t.getBoundingClientRect()
+        d.current = { x: tr.left + tr.width / 2 - (sr.left + sr.width / 2), y: tr.top + tr.height / 2 - (sr.top + sr.height / 2) }
+        setPhase('fly')
+        const delay = shown ? 0 : 1000
+        setShown(true)
+        setTimeout(() => {
+            animate(p, 1, {
+                duration: 1.1, ease: 'easeInOut', onComplete: () => {
+                    setLanded((l) => (k === 0 ? [true, l[1]] : [l[0], true]))
+                    setPhase('land')
+                    setTimeout(() => {
+                        if (k === 0) { p.set(0); setPhase('idle'); setK(1) } else onDone()
+                    }, k === 0 ? 700 : 900)
+                },
+            })
+        }, delay)
+    }
+    const mark = (i: 0 | 1) => ip >= 1 && phase === 'idle' && k === i
+    const numStyle = (i: 0 | 1) => ({ backgroundColor: mark(i) ? KEY : 'transparent' })
+    const arrowCls = 'absolute left-1/2 -ml-[17px] block'
+    const arrowStyle = { color: GGEGE_PALETTE.blue.button }
+    const lineSegs = k === 0
+        ? [{ t: 'Знаменатель', c: KEY }, { t: ' — это корень' }]
+        : [{ t: 'Числитель', c: KEY }, { t: ' — степень под корнем' }]
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <div className="relative flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[210px]">
+                <span className="inline-flex items-start">
+                    <span>{a}</span>
+                    <span className="ml-1 mt-[-36px] inline-flex flex-col items-center gap-[2px] text-3xl leading-none">
+                        <span ref={srcs[1]} className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={numStyle(1)}>
+                            {m}
+                            {mark(1) && (
+                                <motion.span className={`${arrowCls} -top-[46px]`} style={arrowStyle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: [0, 9, 0] }}
+                                    transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
+                                    <ArrowDown size={34} strokeWidth={3.5} />
+                                </motion.span>
+                            )}
+                        </span>
+                        <span className="block h-[3px] w-full rounded-full bg-[#F2F7FB]" />
+                        <span ref={srcs[0]} className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={numStyle(0)}>
+                            {n}
+                            {mark(0) && (
+                                <motion.span className={`${arrowCls} top-full mt-1`} style={arrowStyle} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: [0, -9, 0] }}
+                                    transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
+                                    <ArrowUp size={34} strokeWidth={3.5} />
+                                </motion.span>
+                            )}
+                        </span>
+                    </span>
+                </span>
+                <span>=</span>
+                <motion.span className="inline-block" initial={false} animate={{ scale: shown ? 1 : 0.4, opacity: shown ? 1 : 0 }} transition={SPRING}>
+                    <Radical idx={<span className="inline-block" style={{ opacity: landed[0] ? 1 : 0 }}>{n}</span>} idxRef={dsts[0]}>
+                        <span className="inline-flex items-start">
+                            {a}
+                            <span ref={dsts[1]} className="ml-1 inline-block text-3xl leading-none" style={{ opacity: landed[1] ? 1 : 0 }}>{m}</span>
+                        </span>
+                    </Radical>
+                </motion.span>
+                {phase === 'fly' && srcs[k].current && (
+                    <FlyingNum key={k} from={srcs[k].current as HTMLElement} x={x} y={y} scale={sc} text={k === 0 ? n : m} />
+                )}
+            </div>
+            {intro && ip >= 0 && (
+                <MarkSay key={`l${k}`} segs={lineSegs}
+                    onDone={() => { setTimeout(() => setIp(1), 500); setTimeout(() => setIp(2), 1500) }} />
+            )}
+            {phase === 'idle' && ip >= 2 && (
+                <div className="w-full flex">
+                    <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>
+                        {k === 0 ? 'Отправить в корень' : 'Отправить в степень'}
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+const powerRootDemo = (a: string, m: string, n: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <PowerRootDemo a={a} m={m} n={n} intro={intro} onDone={done} /> })
 
 // Конструктор степени из корня: сначала пропуск в основании (светится), потом пропуск-показатель сверху справа.
 // Каждый этап — 3 похожих варианта; верный ответ влетает в пропуск сразу, как выбран.
@@ -355,14 +460,10 @@ export const LOG_NEGATIVE: SceneLesson = {
         {
             title: 'Числитель — степень под корнем', next: 'Верх — степень, низ — корень', parts: [
                 { t: 'say', text: 'А если в числителе не единица?' },
-                { t: 'pause', ms: 700 },
-                fig('5^{\\frac23}'),
-                { t: 'say', text: 'Знаменатель 3 — это корень третьей степени' },
-                { t: 'pause', ms: 900 },
-                { t: 'say', text: 'А числитель 2 — степень под корнем' },
-                { t: 'pause', ms: 900 },
-                fig('5^{\\frac23} = \\sqrt[3]{5^2}'),
-                { t: 'pause', ms: 900 },
+                powerRootDemo('5', '2', '3', true),
+                { t: 'ack', label: 'Понял, низ — корень, верх — степень' },
+                { t: 'say', text: 'Ещё раз' },
+                powerRootDemo('7', '3', '4'),
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$5^{\\frac23} = \\sqrt[3]{5^2}$', 'Низ — корень, верх — степень под корнем'] },
                 {
                     t: 'choice', label: 'Туда и обратно', rounds: [
