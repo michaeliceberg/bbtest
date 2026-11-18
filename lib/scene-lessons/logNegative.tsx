@@ -300,47 +300,36 @@ const PowerRootDemo = ({ a, m, n, intro, onDone }: { a: string; m: string; n: st
         }, delay)
     }
     const mark = (i: 0 | 1) => ip >= 1 && phase === 'idle' && k === i
-    const numStyle = (i: 0 | 1) => ({ backgroundColor: mark(i) ? KEY : 'transparent' })
-    const arrowCls = 'absolute left-1/2 -ml-[17px] block'
     const arrowStyle = { color: GGEGE_PALETTE.blue.button }
     const lineSegs = k === 0
-        ? [{ t: 'Знаменатель', c: KEY }, { t: ' — это корень' }]
-        : [{ t: 'Числитель', c: KEY }, { t: ' — степень под корнем' }]
+        ? [{ t: 'Показатель корня', c: KEY }, { t: ' — в знаменатель' }]
+        : [{ t: 'Степень под корнем', c: KEY }, { t: ' — в числитель' }]
+    const sw = { opacity: 0 } as const
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="relative flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[210px]">
-                <span className="inline-flex items-start">
-                    <span>{a}</span>
-                    <span className="ml-1 mt-[-36px] inline-flex flex-col items-center gap-[2px] text-3xl leading-none">
-                        <span ref={srcs[1]} className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={numStyle(1)}>
+                <Radical idx={n} idxRef={srcs[0]} idxMark={mark(0)} arrow={mark(0)}>
+                    <span className="inline-flex items-start">
+                        {a}
+                        <span ref={srcs[1]} className="relative ml-1 inline-block rounded-[4px] px-[3px] text-3xl leading-none transition-colors duration-500" style={{ backgroundColor: mark(1) ? KEY : 'transparent' }}>
                             {m}
                             {mark(1) && (
-                                <motion.span className={`${arrowCls} -top-[46px]`} style={arrowStyle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: [0, 9, 0] }}
+                                <motion.span className="absolute left-1/2 -top-[46px] -ml-[17px] block" style={arrowStyle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: [0, 9, 0] }}
                                     transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
                                     <ArrowDown size={34} strokeWidth={3.5} />
                                 </motion.span>
                             )}
                         </span>
-                        <span className="block h-[3px] w-full rounded-full bg-[#F2F7FB]" />
-                        <span ref={srcs[0]} className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={numStyle(0)}>
-                            {n}
-                            {mark(0) && (
-                                <motion.span className={`${arrowCls} top-full mt-1`} style={arrowStyle} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: [0, -9, 0] }}
-                                    transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
-                                    <ArrowUp size={34} strokeWidth={3.5} />
-                                </motion.span>
-                            )}
-                        </span>
                     </span>
-                </span>
+                </Radical>
                 <span>=</span>
-                <motion.span className="inline-block" initial={false} animate={{ scale: shown ? 1 : 0.4, opacity: shown ? 1 : 0 }} transition={SPRING}>
-                    <Radical idx={<span className="inline-block" style={{ opacity: landed[0] ? 1 : 0 }}>{n}</span>} idxRef={dsts[0]}>
-                        <span className="inline-flex items-start">
-                            {a}
-                            <span ref={dsts[1]} className="ml-1 inline-block text-3xl leading-none" style={{ opacity: landed[1] ? 1 : 0 }}>{m}</span>
-                        </span>
-                    </Radical>
+                <motion.span className="inline-flex items-start" initial={false} animate={{ scale: shown ? 1 : 0.4, opacity: shown ? 1 : 0 }} transition={SPRING}>
+                    <span>{a}</span>
+                    <span className="ml-1 mt-[-36px] inline-flex flex-col items-center gap-[2px] text-3xl leading-none">
+                        <span ref={dsts[1]} className="inline-block px-[3px]" style={landed[1] ? undefined : sw}>{m}</span>
+                        <span className="block h-[3px] w-full rounded-full bg-[#F2F7FB]" />
+                        <span ref={dsts[0]} className="inline-block px-[3px]" style={landed[0] ? undefined : sw}>{n}</span>
+                    </span>
                 </motion.span>
                 {phase === 'fly' && srcs[k].current && (
                     <FlyingNum key={k} from={srcs[k].current as HTMLElement} x={x} y={y} scale={sc} text={k === 0 ? n : m} />
@@ -353,7 +342,7 @@ const PowerRootDemo = ({ a, m, n, intro, onDone }: { a: string; m: string; n: st
             {phase === 'idle' && ip >= 2 && (
                 <div className="w-full flex">
                     <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>
-                        {k === 0 ? 'Отправить в корень' : 'Отправить в степень'}
+                        {k === 0 ? 'Отправить в знаменатель' : 'Отправить в числитель'}
                     </button>
                 </div>
             )}
@@ -458,13 +447,13 @@ export const LOG_NEGATIVE: SceneLesson = {
             ],
         },
         {
-            title: 'Числитель — степень под корнем', next: 'Верх — степень, низ — корень', parts: [
-                { t: 'say', text: 'А если в числителе не единица?' },
+            title: 'Корень со степенью', next: 'Корень вниз, степень вверх', parts: [
+                { t: 'say', text: 'А если под корнем есть степень?' },
                 powerRootDemo('5', '2', '3', true),
-                { t: 'ack', label: 'Понял, низ — корень, верх — степень' },
+                { t: 'ack', label: 'Понял, корень вниз, степень вверх' },
                 { t: 'say', text: 'Ещё раз' },
                 powerRootDemo('7', '3', '4'),
-                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$5^{\\frac23} = \\sqrt[3]{5^2}$', 'Низ — корень, верх — степень под корнем'] },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$\\sqrt[3]{5^2} = 5^{\\frac23}$', 'Корень — вниз, степень под корнем — вверх'] },
                 {
                     t: 'choice', label: 'Туда и обратно', rounds: [
                         { prompt: '$7^{\\frac34} = \\ ?$', options: ['$\\sqrt[4]{7^3}$', '$\\sqrt[3]{7^4}$', '$\\dfrac{7^3}{7^4}$'], correct: '$\\sqrt[4]{7^3}$', hint: 'Знаменатель 4 — корень четвёртой степени, числитель 3 — степень', ok: '$7^{\\frac34} = \\sqrt[4]{7^3}$' },
@@ -472,7 +461,7 @@ export const LOG_NEGATIVE: SceneLesson = {
                         { prompt: '$\\sqrt{3^5} = 3^{?}$', options: ['$\\dfrac52$', '$\\dfrac25$', '$10$'], correct: '$\\dfrac52$', hint: 'У квадратного корня двойка внизу, пятёрка сверху', ok: '$\\sqrt{3^5} = 3^{\\frac52}$' },
                     ],
                 },
-                { t: 'ack', label: 'Верх — степень, низ — корень' },
+                { t: 'ack', label: 'Корень вниз, степень вверх' },
             ],
         },
         {
