@@ -174,15 +174,16 @@ export function FeedDesignC(p: FeedDesignProps) {
                 <Bar sat={p.satiety} color={m.color} h={16} />
                 <span className="w-9 text-right text-sm font-black">{pct(p.satiety)}%</span>
             </div>
-            <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1">
+            {/* 4 продукта в одну строку без прокрутки; pt-2 — запас сверху, чтобы красные кружки не обрезались */}
+            <div className="mt-1.5 grid grid-cols-4 gap-1.5 px-1 pb-1 pt-2">
                 {CAT_FOODS.map((k) => (
                     <button key={k} type="button" disabled={!canFeed(p, k)} onClick={() => p.onFeed(k)}
-                        className="relative flex w-[74px] shrink-0 flex-col items-center rounded-2xl border-2 border-b-4 border-[#3A2A1E] bg-white py-1.5 active:border-b-2 disabled:opacity-45">
+                        className="relative flex min-w-0 flex-col items-center rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-white px-0.5 py-1 active:border-b-2 disabled:opacity-45">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={CAT_FOOD[k].src} alt="" draggable={false} className="h-11 w-11 object-contain" />
-                        <span className="text-xs font-black">{CAT_FOOD[k].title}</span>
-                        <span className="text-[11px] font-black text-[#4E8F2A]">+{CAT_FOOD[k].gain}%</span>
-                        <span className="absolute -right-1.5 -top-1.5 min-w-[20px] rounded-full bg-[#E5533D] px-1 text-center text-xs font-black leading-5 text-white">{p.stock[k]}</span>
+                        <img src={CAT_FOOD[k].src} alt="" draggable={false} className="h-8 w-8 object-contain" />
+                        <span className="max-w-full truncate text-[11px] font-black leading-tight">{CAT_FOOD[k].title}</span>
+                        <span className="text-[10px] font-black leading-tight text-[#4E8F2A]">+{CAT_FOOD[k].gain}%</span>
+                        <span className="absolute -right-1 -top-2 min-w-[18px] rounded-full bg-[#E5533D] px-1 text-center text-[11px] font-black leading-[18px] text-white">{p.stock[k]}</span>
                     </button>
                 ))}
             </div>
