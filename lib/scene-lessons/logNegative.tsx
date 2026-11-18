@@ -1,7 +1,7 @@
 // «Отрицательные степени в логарифмах»: сначала напоминаем степени (минус = перевёртыш, корень = дробная степень,
 // aᵐ/ⁿ = ⁿ√aᵐ, a⁰ = 1, комбо минус + дробь), потом логарифмы от дробей и корней.
 // Переделка по правилам step-by-step: маленькие порции, ack-тезисы, мини-игры вместо чтения, шутки, перелёт числа в знаменатель.
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { animate, motion, useMotionValue } from 'framer-motion'
 import type { SceneLesson } from './types'
 import { dessert, Fig } from './logHelpers'
@@ -44,13 +44,21 @@ const Pw = ({ b, children }: { b: string; children: React.ReactNode }) => (
 // «Перевёртыш»: ученик нажимает кнопку. Справа появляется копия a⁻ⁿ, потом она с отскоком опускается вниз,
 // минус исчезает, рисуется черта и сверху появляется единица: получается 1 / aⁿ. Слева a⁻ⁿ остаётся.
 const SPRING = { type: 'spring' as const, stiffness: 320, damping: 14 }
-const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string; onDone: () => void }) => {
+const FlipDemo = ({ b, n, label, intro, onDone }: { b: string; n: string; label: string; intro?: boolean; onDone: () => void }) => {
     const bar = useRef<HTMLSpanElement>(null)
     const dst = useRef<HTMLSpanElement>(null)
     const [phase, setPhase] = useState<'idle' | 'copy' | 'drop' | 'plus' | 'gone' | 'frac'>('idle')
     const yv = useMotionValue(0)
+    // Вступление: равенство уже на экране → «что значит минус в степени?» → маркер на показателе → «значит надо опустить» → кнопка.
+    // ip: -1 пауза, 0 печатается первая строка, 1 маркер на показателе, 2 печатается вторая строка, 3 кнопка.
+    const [ip, setIp] = useState(intro ? -1 : 3)
+    useEffect(() => {
+        if (!intro) return
+        const t = setTimeout(() => setIp(0), 800)
+        return () => clearTimeout(t)
+    }, [intro])
     const go = () => {
-        if (phase !== 'idle' || !bar.current || !dst.current) return
+        if (phase !== 'idle' || ip < 3 || !bar.current || !dst.current) return
         playJustClick()
         const bb = bar.current.getBoundingClientRect(), dd = dst.current.getBoundingClientRect()
         // Копия сначала стоит на уровне черты (рядом с исходной степенью), потом падает в знаменатель.
@@ -69,8 +77,10 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
-                <Pw b={b}>−{n}</Pw>
-                <span className="transition-opacity duration-500" style={{ opacity: shown ? 1 : 0 }}>=</span>
+                <Pw b={b}>
+                    <span className="rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: ip === 1 || ip === 2 ? KEY : 'transparent' }}>−{n}</span>
+                </Pw>
+                <span>=</span>
                 <span className="inline-flex flex-col items-center gap-1" style={{ visibility: shown ? 'visible' : 'hidden' }}>
                     <motion.span className="inline-block" initial={false} animate={{ scale: phase === 'frac' ? 1 : 0, opacity: phase === 'frac' ? 1 : 0 }} transition={SPRING}>1</motion.span>
                     <motion.span ref={bar} className="block h-[4px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: phase === 'frac' ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
@@ -88,7 +98,15 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
                     </motion.span>
                 </span>
             </div>
-            {phase === 'idle' && (
+            {intro && ip >= 0 && (
+                <MarkSay key="l1" segs={[{ t: 'Что значит ' }, { t: 'минус в степени', c: KEY }, { t: '?' }]}
+                    onDone={() => { setTimeout(() => setIp(1), 600); setTimeout(() => setIp(2), 1700) }} />
+            )}
+            {intro && ip >= 2 && (
+                <MarkSay key="l2" segs={[{ t: 'Значит надо ' }, { t: 'опустить в знаменатель', c: KEY }]}
+                    onDone={() => setTimeout(() => setIp(3), 600)} />
+            )}
+            {phase === 'idle' && ip >= 3 && (
                 <div className="w-full flex">
                     <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>{label}</button>
                 </div>
@@ -96,7 +114,7 @@ const FlipDemo = ({ b, n, label, onDone }: { b: string; n: string; label: string
         </div>
     )
 }
-const flip = (b: string, n: string, label: string) => ({ t: 'custom' as const, render: (done: () => void) => <FlipDemo b={b} n={n} label={label} onDone={done} /> })
+const flip = (b: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <FlipDemo b={b} n={n} label={label} intro={intro} onDone={done} /> })
 
 // Мини-игра «опусти сам»: сначала в ответе только «?», нажимаем «опустить в знаменатель» — сверху прилетает единица,
 // потом выбираем, что осталось внизу. Вариантов мало и они похожи, чтобы внимание не разбегалось.
@@ -137,11 +155,7 @@ export const LOG_NEGATIVE: SceneLesson = {
     scenes: [
         {
             title: 'Минус в степени', next: 'Минус — это вниз', parts: [
-                markSay([{ t: 'Что значит ' }, { t: 'минус в степени', c: KEY }, { t: '?' }]),
-                { t: 'pause', ms: 700 },
-                markSay([{ t: 'Значит надо ' }, { t: 'опустить в знаменатель', c: KEY }]),
-                { t: 'pause', ms: 700 },
-                flip('5', '2', 'Отправить вниз'),
+                flip('5', '2', 'Отправить вниз', true),
                 { t: 'ack', label: 'Понял, минус — это вниз' },
                 { t: 'say', text: 'Сел в лифт и поехал на первый этаж' },
                 { t: 'pause', ms: 800 },
