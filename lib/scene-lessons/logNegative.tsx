@@ -273,16 +273,21 @@ const PowerBuild = ({ radical, base, baseOpts, expTex, expOpts, onDone }: { radi
         <div className="w-full flex flex-col gap-3">
             <div className="flex items-center justify-center gap-3 text-5xl font-black text-[#F2F7FB] min-h-[150px]">
                 <MathText>{`$${radical} =$`}</MathText>
-                <span className="inline-flex items-start">
-                    {stage === 0
-                        ? <EmptySlot active />
-                        : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{`$${base}$`}</MathText></motion.span>}
-                    <span className="ml-1 mt-[-18px] inline-flex text-3xl">
-                        {stage < 2
-                            ? <EmptySlot small active={stage === 1} />
-                            : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{`$${expTex}$`}</MathText></motion.span>}
+                {stage < 2 ? (
+                    <span className="inline-flex items-start">
+                        {stage === 0
+                            ? <EmptySlot active />
+                            : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{`$${base}$`}</MathText></motion.span>}
+                        <span className="ml-1 mt-[-18px] inline-flex text-3xl">
+                            <EmptySlot small active={stage === 1} />
+                        </span>
                     </span>
-                </span>
+                ) : (
+                    // настоящая степень KaTeX: дробь маленькая и стоит над основанием
+                    <motion.span initial={{ scale: 0.85, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} transition={pop}>
+                        <MathText>{`$${base}^{${expTex.replace('dfrac', 'frac')}}$`}</MathText>
+                    </motion.span>
+                )}
             </div>
             {step === 0 && <ChoiceGame key="p0" onPick={() => setStage(1)} onDone={() => setStep(1)} rounds={[
                 { prompt: 'Что в основании?', options: baseOpts.map((o) => `$${o}$`), correct: `$${baseOpts[0]}$`, hint: 'Число под корнем остаётся основанием' },
