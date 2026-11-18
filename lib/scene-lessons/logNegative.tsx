@@ -160,8 +160,8 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
 
 // «Корень = степень»: слева ⁿ√a, ученик жмёт кнопку, справа появляется основание a, а число n у корня
 // по дуге летит в показатель и становится знаменателем: появляется черта и сверху единица. Всё белое, цвет только у маркера.
-const Radical = ({ idx, children, idxRef, idxMark, arrow }: { idx: string; children: React.ReactNode; idxRef?: React.Ref<HTMLSpanElement>; idxMark?: boolean; arrow?: boolean }) => (
-    <span className="inline-flex items-end leading-none">
+const Radical = ({ idx, children, idxRef, idxMark, arrow, whole }: { idx: string; children: React.ReactNode; idxRef?: React.Ref<HTMLSpanElement>; idxMark?: boolean; arrow?: boolean; whole?: boolean }) => (
+    <span className="inline-flex items-end leading-none rounded-[6px] px-1 transition-colors duration-500" style={{ backgroundColor: whole ? KEY : 'transparent' }}>
         <span ref={idxRef} className="relative inline-block self-start rounded-[4px] px-[3px] mr-[-4px] text-3xl leading-none transition-colors duration-500" style={{ backgroundColor: idxMark ? KEY : 'transparent' }}>
             {idx}
             {arrow && (
@@ -184,18 +184,20 @@ const RootDemo = ({ a, n, label, intro, onDone }: { a: string; n: string; label:
     const dst = useRef<HTMLSpanElement>(null)
     const d = useRef({ x: 0, y: 0 })
     const [phase, setPhase] = useState<'idle' | 'base' | 'fly' | 'frac'>('idle')
-    // ip: -1 пауза, 0 печатается строка, 1 маркер и стрелка на числе у корня, 3 кнопка
-    const [ip, setIp] = useState(intro ? -1 : 3)
+    // ip: -1 пауза, 0 печатается «корень — это дробная степень», 1 маркер на всём корне, 2 печатается «число у корня уезжает…»,
+    // 3 маркер и стрелка на числе у корня, 4 кнопка
+    const [ip, setIp] = useState(intro ? -1 : 4)
     useEffect(() => {
-        if (!intro) { setIp(3); return }
+        if (!intro) { setIp(4); return }
         const t = setTimeout(() => setIp(0), 800)
         return () => clearTimeout(t)
     }, [intro])
     const p = useMotionValue(0)
     const x = useTransform(p, (v) => d.current.x * v)
     const y = useTransform(p, (v) => d.current.y * v - 60 * 4 * v * (1 - v))
+    const sc = useTransform(p, (v) => 1 - 0.2 * v) // 30px у корня → 24px в показателе
     const go = () => {
-        if (phase !== 'idle' || ip < 3 || !src.current || !dst.current) return
+        if (phase !== 'idle' || ip < 4 || !src.current || !dst.current) return
         playJustClick()
         const sr = src.current.getBoundingClientRect(), tr = dst.current.getBoundingClientRect()
         d.current = { x: tr.left + tr.width / 2 - (sr.left + sr.width / 2), y: tr.top + tr.height / 2 - (sr.top + sr.height / 2) }
@@ -211,11 +213,11 @@ const RootDemo = ({ a, n, label, intro, onDone }: { a: string; n: string; label:
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="relative flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
-                <Radical idx={n} idxRef={src} idxMark={ip >= 1} arrow={ip >= 1 && phase === 'idle'}>{a}</Radical>
+                <Radical idx={n} idxRef={src} idxMark={ip >= 3} arrow={ip >= 3 && phase === 'idle'} whole={ip === 1}>{a}</Radical>
                 <span>=</span>
                 <span className="inline-flex items-start" style={{ visibility: shown ? 'visible' : 'hidden' }}>
                     <motion.span className="inline-block" initial={false} animate={{ scale: shown ? 1 : 0.4, opacity: shown ? 1 : 0 }} transition={SPRING}>{a}</motion.span>
-                    <span className="ml-1 mt-[-10px] inline-flex flex-col items-center gap-[2px] text-3xl leading-none">
+                    <span className="ml-1 mt-[-30px] inline-flex flex-col items-center gap-[2px] text-2xl leading-none">
                         <motion.span className="inline-block" initial={false} animate={{ scale: landed ? 1 : 0, opacity: landed ? 1 : 0 }} transition={SPRING}>1</motion.span>
                         <motion.span className="block h-[3px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: landed ? 1 : 0 }} transition={{ duration: 0.3, ease: 'easeOut' }} />
                         <span ref={dst} className="inline-block px-[3px]" style={{ opacity: landed ? 1 : 0 }}>{n}</span>
@@ -223,14 +225,18 @@ const RootDemo = ({ a, n, label, intro, onDone }: { a: string; n: string; label:
                 </span>
                 {/* летящая копия числа: поверх всего, двигается только transform/opacity */}
                 {phase === 'fly' && src.current && (
-                    <FlyingNum from={src.current} x={x} y={y} text={n} />
+                    <FlyingNum from={src.current} x={x} y={y} scale={sc} text={n} />
                 )}
             </div>
             {intro && ip >= 0 && (
-                <MarkSay key="r1" segs={[{ t: 'Число у корня', c: KEY }, { t: ' уезжает в показатель' }]}
-                    onDone={() => { setTimeout(() => setIp(1), 500); setTimeout(() => setIp(3), 1500) }} />
+                <MarkSay key="r0" segs={[{ t: 'Корень', c: KEY }, { t: ' — это ' }, { t: 'дробная степень', c: KEY }]}
+                    onDone={() => { setTimeout(() => setIp(1), 400); setTimeout(() => setIp(2), 1700) }} />
             )}
-            {phase === 'idle' && ip >= 3 && (
+            {intro && ip >= 2 && (
+                <MarkSay key="r1" segs={[{ t: 'Число у корня', c: KEY }, { t: ' уезжает в показатель' }]}
+                    onDone={() => { setTimeout(() => setIp(3), 500); setTimeout(() => setIp(4), 1500) }} />
+            )}
+            {phase === 'idle' && ip >= 4 && (
                 <div className="w-full flex">
                     <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>{label}</button>
                 </div>
@@ -238,7 +244,7 @@ const RootDemo = ({ a, n, label, intro, onDone }: { a: string; n: string; label:
         </div>
     )
 }
-const FlyingNum = ({ from, x, y, text }: { from: HTMLElement; x: MotionValue<number>; y: MotionValue<number>; text: string }) => {
+const FlyingNum = ({ from, x, y, scale, text }: { from: HTMLElement; x: MotionValue<number>; y: MotionValue<number>; scale: MotionValue<number>; text: string }) => {
     // позиция исходного числа относительно строки с равенством считается один раз при появлении копии
     const [pos] = useState(() => {
         const par = from.offsetParent as HTMLElement | null
@@ -246,7 +252,7 @@ const FlyingNum = ({ from, x, y, text }: { from: HTMLElement; x: MotionValue<num
         return { left: pr ? fr.left - pr.left : 0, top: pr ? fr.top - pr.top : 0 }
     })
     return (
-        <motion.span className="pointer-events-none absolute text-3xl leading-none px-[3px] font-black text-[#F2F7FB]" style={{ left: pos.left, top: pos.top, x, y }}>{text}</motion.span>
+        <motion.span className="pointer-events-none absolute text-3xl leading-none px-[3px] font-black text-[#F2F7FB]" style={{ left: pos.left, top: pos.top, x, y, scale }}>{text}</motion.span>
     )
 }
 const rootDemo = (a: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <RootDemo a={a} n={n} label={label} intro={intro} onDone={done} /> })
