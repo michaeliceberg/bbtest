@@ -7,12 +7,12 @@ import type { SceneLesson } from './types'
 import { dessert, Fig } from './logHelpers'
 import { ChoiceGame } from '@/components/geometry/scene-engine'
 import { MathText } from '@/components/geometry/plain-math'
+import { ArrowDown } from 'lucide-react'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { playJustClick } from '@/lib/sound'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
-const NUM = GGEGE_PALETTE.blue.button
 // Один спокойный цвет маркера для обеих половин «минус в степени = опустить в знаменатель»
 const KEY = hexToRgba(GGEGE_PALETTE.blue.button, 0.3)
 
@@ -78,22 +78,32 @@ const FlipDemo = ({ b, n, label, intro, onDone }: { b: string; n: string; label:
         <div className="w-full flex flex-col items-center gap-4">
             <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[190px]">
                 <Pw b={b}>
-                    <span className="rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: ip === 1 || ip === 2 ? KEY : 'transparent' }}>−{n}</span>
+                    <span className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: ip >= 1 ? KEY : 'transparent' }}>
+                        −{n}
+                        {ip >= 1 && phase === 'idle' && (
+                            <motion.span className="absolute left-1/2 -top-[46px] -ml-[17px] block" style={{ color: GGEGE_PALETTE.blue.button }}
+                                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: [0, 9, 0] }}
+                                transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
+                                <ArrowDown size={34} strokeWidth={3.5} />
+                            </motion.span>
+                        )}
+                    </span>
                 </Pw>
                 <span>=</span>
                 <span className="inline-flex flex-col items-center gap-1" style={{ visibility: shown ? 'visible' : 'hidden' }}>
                     <motion.span className="inline-block" initial={false} animate={{ scale: phase === 'frac' ? 1 : 0, opacity: phase === 'frac' ? 1 : 0 }} transition={SPRING}>1</motion.span>
                     <motion.span ref={bar} className="block h-[4px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: phase === 'frac' ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
-                    <motion.span ref={dst} className="inline-block" style={{ y: yv, color: NUM }} initial={false} animate={{ scale: shown ? 1 : 0.5, opacity: shown ? 1 : 0 }} transition={SPRING}>
+                    <motion.span ref={dst} className="inline-block" style={{ y: yv }} initial={false} animate={{ scale: shown ? 1 : 0.5, opacity: shown ? 1 : 0 }} transition={SPRING}>
                         <Pw b={b}>
+                            <span className="inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: phase === 'frac' ? 'transparent' : KEY }}>
                             <motion.span key={phase === 'plus' || phase === 'gone' || phase === 'frac' ? 'p' : 'm'} className="inline-block overflow-hidden whitespace-nowrap align-top"
                                 initial={phase === 'plus' ? { scale: 0.2, opacity: 0 } : false}
                                 animate={phase === 'gone' || phase === 'frac' ? { opacity: 0, scale: 0, width: 0 } : { opacity: 1, scale: 1 }}
-                                style={phase === 'plus' ? { color: GGEGE_PALETTE.orange.button } : undefined}
                                 transition={phase === 'plus' ? { type: 'spring', stiffness: 380, damping: 9 } : { duration: 0.4 }}>
                                 {phase === 'plus' || phase === 'gone' || phase === 'frac' ? '+' : '−'}
                             </motion.span>
                             {n}
+                            </span>
                         </Pw>
                     </motion.span>
                 </span>
@@ -134,7 +144,7 @@ const SinkBuild = ({ onDone }: { onDone: () => void }) => {
                         <span className="block h-[4px] w-full rounded-full bg-[#F2F7FB]" />
                         {stage === 1
                             ? <span className="inline-flex items-center justify-center min-w-[56px] h-[56px] px-2 rounded-xl border-2 border-dashed text-4xl" style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: '#161F23' }}><span className="animate-slot-label" style={{ ['--slot-c' as string]: GGEGE_PALETTE.purple.button } as React.CSSProperties}>?</span></span>
-                            : <motion.span style={{ color: NUM }} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{'$3^2$'}</MathText></motion.span>}
+                            : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{'$3^2$'}</MathText></motion.span>}
                     </span>
                 )}
             </div>
