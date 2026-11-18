@@ -257,6 +257,43 @@ const FlyingNum = ({ from, x, y, scale, text }: { from: HTMLElement; x: MotionVa
 }
 const rootDemo = (a: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <RootDemo a={a} n={n} label={label} intro={intro} onDone={done} /> })
 
+// Конструктор степени из корня: сначала пропуск в основании (светится), потом пропуск-показатель сверху справа.
+// Каждый этап — 3 похожих варианта; верный ответ влетает в пропуск сразу, как выбран.
+const EmptySlot = ({ active, small }: { active: boolean; small?: boolean }) => (
+    <span className={`inline-flex items-center justify-center rounded-xl border-2 border-dashed ${small ? 'min-w-[44px] h-[44px] text-2xl' : 'min-w-[60px] h-[60px] text-4xl'}`}
+        style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: '#161F23', opacity: active ? 1 : 0.35 }}>
+        <span className={active ? 'animate-slot-label' : undefined} style={{ ['--slot-c' as string]: GGEGE_PALETTE.purple.button } as React.CSSProperties}>?</span>
+    </span>
+)
+const PowerBuild = ({ radical, base, baseOpts, expTex, expOpts, onDone }: { radical: string; base: string; baseOpts: string[]; expTex: string; expOpts: string[]; onDone: () => void }) => {
+    const [stage, setStage] = useState<0 | 1 | 2>(0) // что уже вставлено
+    const [step, setStep] = useState<0 | 1>(0) // какой вопрос на экране
+    const pop = { type: 'spring' as const, stiffness: 380, damping: 12 }
+    return (
+        <div className="w-full flex flex-col gap-3">
+            <div className="flex items-center justify-center gap-3 text-5xl font-black text-[#F2F7FB] min-h-[150px]">
+                <MathText>{`$${radical} =$`}</MathText>
+                <span className="inline-flex items-start">
+                    {stage === 0
+                        ? <EmptySlot active />
+                        : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{`$${base}$`}</MathText></motion.span>}
+                    <span className="ml-1 mt-[-18px] inline-flex text-3xl">
+                        {stage < 2
+                            ? <EmptySlot small active={stage === 1} />
+                            : <motion.span initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={pop}><MathText>{`$${expTex}$`}</MathText></motion.span>}
+                    </span>
+                </span>
+            </div>
+            {step === 0 && <ChoiceGame key="p0" onPick={() => setStage(1)} onDone={() => setStep(1)} rounds={[
+                { prompt: 'Что в основании?', options: baseOpts.map((o) => `$${o}$`), correct: `$${baseOpts[0]}$`, hint: 'Число под корнем остаётся основанием' },
+            ]} />}
+            {step === 1 && <ChoiceGame key="p1" onPick={() => setStage(2)} onDone={() => setTimeout(onDone, 300)} rounds={[
+                { prompt: 'Что в показателе?', options: expOpts.map((o) => `$${o}$`), correct: `$${expOpts[0]}$`, hint: 'Число у корня уезжает вниз, сверху единица' },
+            ]} />}
+        </div>
+    )
+}
+
 export const LOG_NEGATIVE: SceneLesson = {
     question: 'Минус и дробь в степенях',
     mascot: 'Минус и дробь в степени',
@@ -298,10 +335,8 @@ export const LOG_NEGATIVE: SceneLesson = {
         },
         {
             title: 'Тренируем корни', next: 'Корни освоил', parts: [
-                {
-                    t: 'build', prompt: 'Собери степень', tpl: ['$\\sqrt[5]{4} =$', { s: 0 }],
-                    chips: ['$4^{\\frac15}$', '$4^5$', '$5^4$', '$4^{-5}$', '$\\dfrac45$', '$5^{\\frac14}$'], slots: ['$4^{\\frac15}$'], hint: 'Пятёрка у корня уезжает в знаменатель показателя',
-                },
+                { t: 'say', text: 'Теперь сам' },
+                { t: 'custom', render: (done: () => void) => <PowerBuild radical="\sqrt[5]{4}" base="4" baseOpts={['4', '5', '20']} expTex="\dfrac{1}{5}" expOpts={['\\dfrac{1}{5}', '\\dfrac{1}{4}', '5']} onDone={done} /> },
                 {
                     t: 'choice', label: 'Корни', rounds: [
                         { prompt: '$\\sqrt[4]{3} = 3^{?}$', options: ['$\\dfrac14$', '$4$', '$-4$'], correct: '$\\dfrac14$', hint: 'Четвёрка у корня уезжает в знаменатель', ok: '$\\sqrt[4]{3} = 3^{\\frac14}$' },

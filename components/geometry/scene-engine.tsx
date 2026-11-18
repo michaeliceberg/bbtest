@@ -185,6 +185,8 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
         })
     }, [r, done, order, filled])
     // дроби и корни выше обычной строки: кнопке нужна высота под них, иначе формула вылезает за рамку
+    // дробь внутри показателя KaTeX рисует совсем мелко — таким вариантам даём шрифт покрупнее
+    const nestedExp = round.options.some((o) => /\^\{-?\\d?frac/.test(o))
     const tall = round.options.some((o) => /\\d?frac|\\tfrac|\\sqrt/.test(o))
     const long = round.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
     return (
@@ -192,7 +194,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
             {/* номер задания — слева сверху над вопросом, как в других уроках */}
             {rounds.length > 1 && !plain && <div className="w-full text-left text-sm font-bold text-[#8A99A3]">{r + 1} из {rounds.length}</div>}
             <motion.div key={r} ref={promptRef} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                className="w-full text-center text-xl md:text-2xl font-black text-[#F2F7FB]">
+                className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]">
                 <L>{done && filled ? filled : round.prompt}</L>
             </motion.div>
             {showOpts && order && <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
@@ -200,7 +202,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (
                         <button key={o} type="button" disabled={isWrong || done} onClick={() => pick(o)}
-                            className={cn('px-2 rounded-xl border-2 border-b-4 text-xl font-black transition-colors flex items-center justify-center', tall ? 'min-h-[92px] py-3' : 'min-h-[56px]',
+                            className={cn('px-2 rounded-xl border-2 border-b-4 font-black transition-colors flex items-center justify-center', nestedExp ? 'text-4xl' : 'text-3xl', tall ? 'min-h-[112px] py-3' : 'min-h-[68px]',
                                 isRight ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
                                     : isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
                                         : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
