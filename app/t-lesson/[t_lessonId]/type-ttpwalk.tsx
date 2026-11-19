@@ -42,13 +42,20 @@ const CONCEPT_PAUSE_MS = 1000
 
 // Текстовыделение 2.0: сплошной цветной маркер с тёмным текстом (вместо рамки-стикера).
 const MARK_INK = '#10181C'
+// Цвет текста на маркере: тёмный на светлых, светлый на тёмных (заливка плоскости — тёмная)
+const inkFor = (bg: string) => {
+    if (!/^#[0-9a-f]{6}$/i.test(bg)) return MARK_INK
+    const n = parseInt(bg.slice(1), 16)
+    const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+    return lum < 0.4 ? '#F2F7FB' : MARK_INK
+}
 const Sticker = ({ value, color, border }: { value: React.ReactNode; color: string; bg?: string; border?: string }) => (
     <motion.span
         initial={{ scale: 2.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
         className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle"
-        style={{ background: border ?? color, color: MARK_INK, lineHeight: 1.15 }}
+        style={{ background: border ?? color, color: inkFor(border ?? color), lineHeight: 1.15 }}
     >
         {value}
     </motion.span>
@@ -173,8 +180,13 @@ const PERP_WHITE = 'rgba(242,247,251,0.78)' // перпендикуляр и п�
 // Плоскость — песочная (выбрано на /test-ttp-colors): овал, почти прозрачная заливка и тот же песочный маркер слова «плоскость»
 const PLANE_COLOR = '#E3CB94'
 const PLANE_FILL_OP = 0.16
-// маркер слова «плоскость» — того же цвета и яркости, что и граница плоскости (песок с прозрачностью 0.8)
-const PLANE_MARK = 'rgba(227, 203, 148, 0.8)'
+// маркер слова «плоскость» — того же цвета, что и заливка плоскости (с 2026-11-19; текст на нём светлый)
+const blendHex = (fg: string, a: number, bg = '#161F23') => {
+    const f = parseInt(fg.slice(1), 16), b = parseInt(bg.slice(1), 16)
+    const ch = (sh: number) => Math.round(((f >> sh) & 255) * a + ((b >> sh) & 255) * (1 - a)).toString(16).padStart(2, '0')
+    return `#${ch(16)}${ch(8)}${ch(0)}`
+}
+const PLANE_MARK = blendHex(PLANE_COLOR, PLANE_FILL_OP) // ровно тот цвет, каким заливка плоскости выглядит на фоне
 const PLANE_STROKE_OP = 0.8
 const LINE_W = 4 // единая толщина линий чертежа: b, проекция, перпендикуляр
 const MARK_COLOR = GGEGE_PALETTE.orange.button
@@ -198,7 +210,19 @@ const OVAL_G: [number, number][] = Array.from({ length: 96 }, (_, i) => {
     const a = (i / 96) * Math.PI * 2
     return [CXW + PLANE_RX * Math.cos(a), CYW + PLANE_RY * Math.sin(a)]
 })
-export const LB = 3.9 // полудлина линии b (при любом угле остаётся в пределах земли)
+export const LB = 5.6 // наибольшая полудлина линии b
+// Полудлина линии b под углом φ (рад): не больше LB и не дальше края овала (с запасом 7%) — при вращении линия остаётся на плоскости
+export const lineHalf = (phi: number) => {
+    const ox = O3.x - CXW, oy = O3.y - CYW
+    const hit = (sg: number) => {
+        const dx = sg * Math.cos(phi), dy = sg * Math.sin(phi)
+        const A = (dx / PLANE_RX) ** 2 + (dy / PLANE_RY) ** 2
+        const B = 2 * (ox * dx / PLANE_RX ** 2 + oy * dy / PLANE_RY ** 2)
+        const C = (ox / PLANE_RX) ** 2 + (oy / PLANE_RY) ** 2 - 1
+        return (-B + Math.sqrt(B * B - 4 * A * C)) / (2 * A)
+    }
+    return Math.min(LB, 0.93 * Math.min(hit(1), hit(-1)))
+}
 const DEG = Math.PI / 180
 
 const rawProj = (x: number, y: number, z: number) => {
@@ -374,8 +398,9 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
 
     // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
     const ph = phi * DEG
-    const e1 = P3(O3.x + LB * Math.cos(ph), O3.y + LB * Math.sin(ph), 0)
-    const e2 = P3(O3.x - LB * Math.cos(ph), O3.y - LB * Math.sin(ph), 0)
+    const lh = lineHalf(ph)
+    const e1 = P3(O3.x + lh * Math.cos(ph), O3.y + lh * Math.sin(ph), 0)
+    const e2 = P3(O3.x - lh * Math.cos(ph), O3.y - lh * Math.sin(ph), 0)
     const bPath = `M${e2.x.toFixed(1)},${e2.y.toFixed(1)} L${e1.x.toFixed(1)},${e1.y.toFixed(1)}`
     const handle = e1.y > e2.y ? e1 : e2
     const tagEnd = e1.y > e2.y ? e2 : e1
@@ -998,7 +1023,7 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
     const top = aPoint(S_HIGH)
     const T = P3(top.x, top.y, top.z)
     const Hf = P3(O3.x, O3.y + S_HIGH, 0)
-    const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
+    const bL = P3(O3.x - lineHalf(0), O3.y, 0), bR = P3(O3.x + lineHalf(0), O3.y, 0)
     const planePts = PLANE_OVAL_PTS
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
     const farCorner = cs.reduce((best, c) => (c.x < best.x ? c : best), cs[0])

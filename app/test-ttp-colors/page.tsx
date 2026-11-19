@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
-import { CXW, CYW, LB, O3, PLANE_RX, PLANE_RY, S_HIGH, VB_H, VB_W, P3, aPoint, groundMatrix, SLOPE } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
+import { CXW, CYW, lineHalf, O3, PLANE_RX, PLANE_RY, S_HIGH, VB_H, VB_W, P3, aPoint, groundMatrix, SLOPE } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
 
 const INK = '#10181C'
 const WHITE = '#F2F7FB'
@@ -18,19 +18,22 @@ const SWATCHES = [
 const P = GGEGE_PALETTE
 
 type ArrowKind = 'image' | 'color'
+type OStroke = 'line' | 'dark' | 'white' | 'none'
 type Cfg = {
     planeFill: string; planeOp: number
     planeStroke: string; strokeOp: number; strokeW: number
     line: string
     arrowKind: ArrowKind; arrow: string
     shadow: string
+    oFill: string
+    oStroke: OStroke
     perp: string
 }
 
 // Выбрано для урока 497 (2026-11-19): песочная плоскость, синяя линия, тёмная тень
 const DEFAULT: Cfg = {
     planeFill: '#E3CB94', planeOp: 0.16, planeStroke: '#E3CB94', strokeOp: 0.8, strokeW: 2,
-    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#000000', perp: WHITE,
+    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#000000', oFill: '#F2F7FB', oStroke: 'line', perp: WHITE,
 }
 
 const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
@@ -92,8 +95,14 @@ const Slider = ({ label, value, min, max, step, onChange }: { label: string; val
     </label>
 )
 
-const Mark = ({ color, children }: { color: string; children: React.ReactNode }) => (
-    <span className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle" style={{ background: color, color: INK, lineHeight: 1.15 }}>{children}</span>
+const blend = (fg: string, a: number, bg = '#161F23') => {
+    const x = parseInt(fg.slice(1), 16), y = parseInt(bg.slice(1), 16)
+    const ch = (sh: number) => Math.round(((x >> sh) & 255) * a + ((y >> sh) & 255) * (1 - a)).toString(16).padStart(2, '0')
+    return `#${ch(16)}${ch(8)}${ch(0)}`
+}
+
+const Mark = ({ color, children, dark }: { color: string; children: React.ReactNode; dark?: boolean }) => (
+    <span className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle" style={{ background: color, color: dark ? WHITE : INK, lineHeight: 1.15 }}>{children}</span>
 )
 
 const MarkTag = ({ x, y, text, color }: { x: number; y: number; text: string; color: string }) => (
@@ -109,7 +118,8 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
         const top = aPoint(S_HIGH)
         const T = P3(top.x, top.y, top.z)
         const H = P3(O3.x, O3.y + S_HIGH, 0)
-        const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
+        const lh = lineHalf(0)
+        const bL = P3(O3.x - lh, O3.y, 0), bR = P3(O3.x + lh, O3.y, 0)
         const rx = PLANE_RX, ry = PLANE_RY
         const oval = Array.from({ length: 96 }, (_, i) => {
             const a = (i / 96) * Math.PI * 2
@@ -127,6 +137,10 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
     const gm = groundMatrix(O3.x, O3.y + S_HIGH / 2)
     const sh = { x: O3.x, y: O3.y + S_HIGH / 2 }
     void sh; void mid; void SLOPE
+    const oStrokeColor = c.oStroke === 'line' ? c.line : c.oStroke === 'dark' ? '#0B1216' : c.oStroke === 'white' ? WHITE : 'none'
+    const bAng = (Math.atan2(bR.y - bL.y, bR.x - bL.x) * 180) / Math.PI
+    const bLen = Math.hypot(bR.x - bL.x, bR.y - bL.y)
+    const bu = { x: (bR.x - bL.x) / bLen, y: (bR.y - bL.y) / bLen }
     const spearRot = (Math.atan2(-vx / vl, vy / vl) * 180) / Math.PI
     const oldTop = P3(O3.x, O3.y + 4.2, 1.05 * 4.2)
     const spearW = Math.hypot(oldTop.x - Op.x, oldTop.y - Op.y) / 8.3
@@ -160,21 +174,24 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
                     )}
                     <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeOpacity={0.78} strokeWidth={3} strokeLinecap="round" strokeDasharray="6 6" />
                     <path d={rightAngle} fill="none" stroke={c.perp} strokeOpacity={0.78} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx={H.x} cy={H.y} r={5} fill={c.perp} stroke="#0B1216" strokeWidth={1.5} />
+                    <circle cx={H.x} cy={H.y} r={6} fill={c.oFill} stroke={oStrokeColor === c.line ? c.perp : oStrokeColor} strokeWidth={c.oStroke === 'none' ? 0 : 2.4} />
                     <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
                 </>
             )}
-            <circle cx={Op.x} cy={Op.y} r={5.5} fill="#9BE3B8" stroke="#0B1216" strokeWidth={1.5} />
+            <circle cx={Op.x} cy={Op.y} r={6} fill={c.oFill} stroke={oStrokeColor} strokeWidth={c.oStroke === 'none' ? 0 : 2.4} />
             {labels && (
                 <>
-                    <MarkTag x={bL.x - 14} y={bL.y + 2} text="b" color={c.line} />
-                    <text x={Op.x - 22} y={Op.y + 5} fontSize={14} fontWeight={800} fill={c.perp}>O</text>
+                    <g transform={`translate(${f(bL.x + bu.x * bLen * 0.88 - bu.y * 19)},${f(bL.y + bu.y * bLen * 0.88 + bu.x * 19)}) rotate(${f(bAng)})`}>
+                        <rect x={-30} y={-10} width={60} height={20} rx={3} fill={c.line} />
+                        <text x={0} y={4.5} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={INK}>прямая</text>
+                    </g>
+                    <text x={Op.x - 14} y={Op.y + 26} fontSize={14} fontWeight={800} fill={c.perp}>O</text>
                     {full && (
                         <>
                             <g transform={gm}>
-                                <text x={0} y={4.2} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>проекция</text>
+                                <text x={0} y={0.6} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>проекция</text>
                             </g>
-                            <g transform={`translate(${f(H.x + 14)},${f(T.y + (H.y - T.y) * 0.5)}) rotate(-90)`}>
+                            <g transform={`translate(${f(H.x + 26)},${f(T.y + (H.y - T.y) * 0.5)}) rotate(-90)`}>
                                 <rect x={-54} y={-10} width={108} height={20} rx={3} fill={c.perp} fillOpacity={0.78} />
                                 <text x={0} y={4.5} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={INK}>перпендикуляр</text>
                             </g>
@@ -191,6 +208,7 @@ export default function Page() {
     const [full, setFull] = useState(true)
     const [labels, setLabels] = useState(true)
     const [preset, setPreset] = useState(0)
+    const planeMark = blend(c.planeFill, c.planeOp)
     const set = <K extends keyof Cfg>(k: K, v: Cfg[K]) => { setC((p) => ({ ...p, [k]: v })); setPreset(-1) }
     return (
         <div className="min-h-screen bg-[#161F23] px-4 py-5 text-[#F2F7FB]">
@@ -213,7 +231,7 @@ export default function Page() {
                 <div className="sticky top-0 z-10 -mx-4 bg-[#161F23] px-4 pb-2 pt-1">
                     <div className="rounded-2xl border-2 border-[#2E383E] p-3">
                         <div className="mb-2 text-center text-base">
-                            Это <Mark color={hexToRgba(c.planeStroke, c.strokeOp)}>плоскость</Mark>
+                            Это <Mark color={planeMark} dark>плоскость</Mark>
                             
                         </div>
                         <Preview c={c} full={full} labels={labels} />
@@ -249,7 +267,15 @@ export default function Page() {
                 <Row title="Тень стрелы (проекция)">
                     <Swatches value={c.shadow} onChange={(v) => set('shadow', v)} />
                 </Row>
-                <Row title="Перпендикуляр и точка H">
+                <Row title="Точки O и H: заливка и обводка">
+                    <Swatches value={c.oFill} onChange={(v) => set('oFill', v)} />
+                    <div className="flex flex-wrap gap-2">
+                        {([['line', 'Обводка цвета линии b'], ['dark', 'Тёмная'], ['white', 'Белая'], ['none', 'Без обводки']] as [OStroke, string][]).map(([k, t]) => (
+                            <button key={k} type="button" onClick={() => set('oStroke', k)} className="rounded-lg px-3 py-1.5 text-sm font-bold" style={{ background: c.oStroke === k ? '#3A454E' : '#161F23', border: '2px solid #2E383E' }}>{t}</button>
+                        ))}
+                    </div>
+                </Row>
+                <Row title="Перпендикуляр">
                     <Swatches value={c.perp} onChange={(v) => set('perp', v)} />
                 </Row>
 
