@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
-import { CXW, CYW, LB, O3, PLANE_RX, PLANE_RY, S_HIGH, VB_H, VB_W, P3, aPoint, groundMatrix, ovalAlphaPos, SLOPE } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
+import { CXW, CYW, LB, O3, PLANE_RX, PLANE_RY, S_HIGH, VB_H, VB_W, P3, aPoint, groundMatrix, SLOPE } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
 
 const INK = '#10181C'
 const WHITE = '#F2F7FB'
@@ -124,7 +124,6 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
     const rightAngle = `M${ra(-0.9, 0)} L${ra(-0.9, 0.9)} L${ra(0, 0.9)}`
     const ux = vx / vl, uy = vy / vl, nx = -uy, ny = ux
     const mid = { x: (Op.x + H.x) / 2, y: (Op.y + H.y) / 2 }
-    const al = ovalAlphaPos()
     const gm = groundMatrix(O3.x, O3.y + S_HIGH / 2)
     const sh = { x: O3.x, y: O3.y + S_HIGH / 2 }
     void sh; void mid; void SLOPE
@@ -168,16 +167,17 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
             <circle cx={Op.x} cy={Op.y} r={5.5} fill="#9BE3B8" stroke="#0B1216" strokeWidth={1.5} />
             {labels && (
                 <>
-                    <text x={al.x} y={al.y + 6} textAnchor="middle" fontSize={20} fontStyle="italic" fontWeight={800} fill={c.planeStroke}>α</text>
                     <MarkTag x={bL.x - 14} y={bL.y + 2} text="b" color={c.line} />
-                    <text x={Op.x - 14} y={Op.y + 20} textAnchor="middle" fontSize={14} fontWeight={800} fill="#9BE3B8">O</text>
+                    <text x={Op.x - 22} y={Op.y + 5} fontSize={14} fontWeight={800} fill={c.perp}>O</text>
                     {full && (
                         <>
-                            <MarkTag x={T.x + 18} y={T.y + 2} text="a" color={P.purple.button} />
                             <g transform={gm}>
-                                <text x={0} y={4.2} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>тень</text>
+                                <text x={0} y={4.2} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>проекция</text>
                             </g>
-                            <text transform={`translate(${f(H.x - 9)},${f(T.y + (H.y - T.y) * 0.7)}) rotate(-90)`} textAnchor="middle" fontSize={12} fontWeight={700} fill={c.perp} fillOpacity={0.9}>перпендикуляр</text>
+                            <g transform={`translate(${f(H.x + 14)},${f(T.y + (H.y - T.y) * 0.5)}) rotate(-90)`}>
+                                <rect x={-54} y={-10} width={108} height={20} rx={3} fill={c.perp} fillOpacity={0.78} />
+                                <text x={0} y={4.5} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={INK}>перпендикуляр</text>
+                            </g>
                         </>
                     )}
                 </>
