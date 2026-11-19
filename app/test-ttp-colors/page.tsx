@@ -1,0 +1,245 @@
+'use client'
+
+// Примерка цветов чертежа урока ТТП (497): плоскость (форма, заливка, граница), линия b, стрела,
+// тень, перпендикуляр, маркеры слов. Готовые сочетания сверху, каждый элемент можно менять отдельно.
+// Страница без входа в аккаунт.
+
+import { useMemo, useState } from 'react'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { CXW, CYW, LB, O3, PLANE_CORNERS, S_HIGH, VB_H, VB_W, P3, aPoint } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
+
+const INK = '#10181C'
+const WHITE = '#F2F7FB'
+const SWATCHES = [
+    ...Object.entries(GGEGE_PALETTE).map(([k, v]) => ({ id: k, hex: v.button })),
+    { id: 'sky', hex: '#7dd3fc' }, { id: 'sand', hex: '#F0DDB0' }, { id: 'sun', hex: '#FFE27A' },
+    { id: 'white', hex: WHITE }, { id: 'shadow', hex: '#3A7D59' }, { id: 'dark', hex: '#1B3428' },
+]
+const P = GGEGE_PALETTE
+
+type Shape = 'oval' | 'para'
+type ArrowKind = 'image' | 'color'
+type Cfg = {
+    shape: Shape
+    planeFill: string; planeOp: number
+    planeStroke: string; strokeOp: number; strokeW: number
+    line: string
+    arrowKind: ArrowKind; arrow: string
+    shadow: string
+    perp: string
+    planeMark: string
+}
+
+const DEFAULT: Cfg = {
+    shape: 'oval', planeFill: P.teal.button, planeOp: 0.1, planeStroke: P.teal.button, strokeOp: 0.75, strokeW: 2,
+    line: P.purple.button, arrowKind: 'image', arrow: P.blue.button, shadow: '#3A7D59', perp: WHITE, planeMark: P.teal.button,
+}
+
+const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
+    { name: 'Бледная бирюза', hint: 'овал, почти прозрачный, как сейчас по цвету', cfg: DEFAULT },
+    {
+        name: 'Голубой лёд', hint: 'голубая дымка, оранжевая линия',
+        cfg: { ...DEFAULT, planeFill: '#7dd3fc', planeStroke: '#7dd3fc', planeOp: 0.09, line: P.orange.button, planeMark: '#7dd3fc', shadow: '#7dd3fc' },
+    },
+    {
+        name: 'Контур без заливки', hint: 'только граница-овал',
+        cfg: { ...DEFAULT, planeOp: 0, strokeOp: 0.85, strokeW: 2.5 },
+    },
+    {
+        name: 'Песок', hint: 'тёплый светлый овал, синяя линия',
+        cfg: { ...DEFAULT, planeFill: '#F0DDB0', planeStroke: '#F0DDB0', planeOp: 0.1, line: P.blue.button, planeMark: '#F0DDB0', arrow: P.orange.button, shadow: '#F0DDB0' },
+    },
+    {
+        name: 'Сиреневая дымка', hint: 'фиолетовая плоскость, зелёная линия',
+        cfg: { ...DEFAULT, planeFill: P.purple.button, planeStroke: P.purple.button, planeOp: 0.1, line: P.green.button, planeMark: P.purple.button, shadow: P.purple.button },
+    },
+    {
+        name: 'Параллелограмм бледный', hint: 'прежняя форма, но почти прозрачная',
+        cfg: { ...DEFAULT, shape: 'para', planeOp: 0.1 },
+    },
+    {
+        name: 'Контраст', hint: 'синяя плоскость, оранжевая линия и жёлтая стрела',
+        cfg: { ...DEFAULT, planeFill: P.blue.button, planeStroke: P.blue.button, planeOp: 0.12, line: P.orange.button, planeMark: P.blue.button, arrowKind: 'color', arrow: '#FFE27A', shadow: '#7dd3fc' },
+    },
+    {
+        name: 'Мята + розовая линия', hint: 'малиновая линия на мятной плоскости',
+        cfg: { ...DEFAULT, line: P.raspberry.button, arrowKind: 'color', arrow: WHITE },
+    },
+]
+
+const f = (n: number) => n.toFixed(1)
+
+const Swatches = ({ value, onChange }: { value: string; onChange: (hex: string) => void }) => (
+    <div className="flex flex-wrap items-center gap-1.5">
+        {SWATCHES.map((s) => (
+            <button
+                key={s.id} type="button" onClick={() => onChange(s.hex)} aria-label={s.id}
+                className="h-7 w-7 rounded-md border-2"
+                style={{ background: s.hex, borderColor: value.toLowerCase() === s.hex.toLowerCase() ? '#fff' : 'transparent', outline: value.toLowerCase() === s.hex.toLowerCase() ? '2px solid #fff' : 'none' }}
+            />
+        ))}
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-7 w-9 rounded-md bg-transparent" aria-label="свой цвет" />
+    </div>
+)
+
+const Row = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="rounded-xl bg-[#202B30] p-3">
+        <div className="mb-2 text-sm font-bold text-[#9FB0B8]">{title}</div>
+        <div className="flex flex-col gap-2">{children}</div>
+    </div>
+)
+
+const Slider = ({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) => (
+    <label className="flex items-center gap-3 text-sm text-[#C9D6DC]">
+        <span className="w-28 shrink-0">{label}</span>
+        <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="flex-1" />
+        <span className="w-10 text-right tabular-nums">{value}</span>
+    </label>
+)
+
+const Mark = ({ color, children }: { color: string; children: React.ReactNode }) => (
+    <span className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle" style={{ background: color, color: INK, lineHeight: 1.15 }}>{children}</span>
+)
+
+const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
+    const g = useMemo(() => {
+        const Op = P3(O3.x, O3.y, 0)
+        const top = aPoint(S_HIGH)
+        const T = P3(top.x, top.y, top.z)
+        const H = P3(O3.x, O3.y + S_HIGH, 0)
+        const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
+        const para = PLANE_CORNERS.map(([x, y]) => { const q = P3(x, y, 0); return `${f(q.x)},${f(q.y)}` }).join(' ')
+        const rx = 6.9, ry = 4.55
+        const oval = Array.from({ length: 96 }, (_, i) => {
+            const a = (i / 96) * Math.PI * 2
+            const q = P3(CXW + rx * Math.cos(a), CYW + ry * Math.sin(a), 0)
+            return `${f(q.x)},${f(q.y)}`
+        }).join(' ')
+        const vx = T.x - Op.x, vy = T.y - Op.y, vl = Math.hypot(vx, vy)
+        return { Op, T, H, bL, bR, para, oval, vx, vy, vl }
+    }, [])
+    const { Op, T, H, bL, bR, vx, vy, vl } = g
+    const ux = vx / vl, uy = vy / vl, nx = -uy, ny = ux
+    const spearRot = (Math.atan2(-vx / vl, vy / vl) * 180) / Math.PI
+    const spearW = vl / 8.3
+    return (
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="mx-auto w-full max-w-[448px]" style={{ overflow: 'visible' }}>
+            <polygon
+                points={c.shape === 'oval' ? g.oval : g.para}
+                fill={hexToRgba(c.planeFill, c.planeOp)} stroke={hexToRgba(c.planeStroke, c.strokeOp)}
+                strokeWidth={c.strokeW} strokeLinejoin="round"
+            />
+            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.95} strokeWidth={12} strokeLinecap="round" />}
+            <line x1={bL.x} y1={bL.y} x2={bR.x} y2={bR.y} stroke={c.line} strokeWidth={4} strokeLinecap="round" />
+            {full && (
+                <>
+                    {c.arrowKind === 'image' ? (
+                        <g transform={`translate(${f(Op.x)},${f(Op.y)})`}>
+                            <g transform={`rotate(${spearRot})`}>
+                                <g transform={`translate(${-spearW / 2},${vl}) rotate(-90)`}>
+                                    <image href="/ttp-arrow.webp" x={0} y={0} width={vl} height={spearW} preserveAspectRatio="none" />
+                                </g>
+                            </g>
+                        </g>
+                    ) : (
+                        <g>
+                            <line x1={Op.x} y1={Op.y} x2={T.x} y2={T.y} stroke={c.arrow} strokeWidth={4} strokeLinecap="round" />
+                            <polygon points={`${f(Op.x)},${f(Op.y)} ${f(Op.x + ux * 16 + nx * 6)},${f(Op.y + uy * 16 + ny * 6)} ${f(Op.x + ux * 16 - nx * 6)},${f(Op.y + uy * 16 - ny * 6)}`} fill={c.arrow} />
+                            {[0, 10, 20].map((d) => (
+                                <path key={d} d={`M${f(T.x - ux * d)},${f(T.y - uy * d)} l${f(nx * 8 - ux * 6)},${f(ny * 8 - uy * 6)} M${f(T.x - ux * d)},${f(T.y - uy * d)} l${f(-nx * 8 - ux * 6)},${f(-ny * 8 - uy * 6)}`} stroke={c.arrow} strokeWidth={3} strokeLinecap="round" fill="none" />
+                            ))}
+                        </g>
+                    )}
+                    <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeWidth={2.4} strokeLinecap="round" strokeDasharray="5 5" />
+                    <circle cx={H.x} cy={H.y} r={5} fill={c.perp} stroke="#0B1216" strokeWidth={1.5} />
+                    <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
+                </>
+            )}
+            <circle cx={Op.x} cy={Op.y} r={5.5} fill={c.line === c.shadow ? WHITE : '#9BE3B8'} stroke="#0B1216" strokeWidth={1.5} />
+        </svg>
+    )
+}
+
+export default function Page() {
+    const [c, setC] = useState<Cfg>(DEFAULT)
+    const [full, setFull] = useState(true)
+    const [preset, setPreset] = useState(0)
+    const set = <K extends keyof Cfg>(k: K, v: Cfg[K]) => { setC((p) => ({ ...p, [k]: v })); setPreset(-1) }
+    return (
+        <div className="min-h-screen bg-[#161F23] px-4 py-5 text-[#F2F7FB]">
+            <div className="mx-auto flex max-w-[560px] flex-col gap-4">
+                <h1 className="text-xl font-extrabold">Цвета чертежа ТТП</h1>
+
+                <div className="flex flex-wrap gap-2">
+                    {PRESETS.map((p, i) => (
+                        <button
+                            key={p.name} type="button" title={p.hint}
+                            onClick={() => { setC(p.cfg); setPreset(i) }}
+                            className="rounded-xl border-2 border-b-4 px-3 py-2 text-sm font-bold active:border-b-2"
+                            style={{ background: preset === i ? '#3A454E' : '#202B30', borderColor: preset === i ? '#F2F7FB' : '#2E383E' }}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="sticky top-0 z-10 -mx-4 bg-[#161F23] px-4 pb-2 pt-1">
+                    <div className="rounded-2xl border-2 border-[#2E383E] p-3">
+                        <div className="mb-2 text-center text-base">
+                            <Mark color={c.planeMark}>Это плоскость</Mark>
+                            {full && <span className="ml-2 text-sm text-[#9FB0B8]">линия <Mark color={c.line}>b</Mark></span>}
+                        </div>
+                        <Preview c={c} full={full} />
+                        <div className="mt-2 flex justify-center gap-2 text-sm">
+                            <button type="button" onClick={() => setFull(false)} className="rounded-lg px-3 py-1 font-bold" style={{ background: !full ? '#3A454E' : '#202B30' }}>Начало: плоскость и линия</button>
+                            <button type="button" onClick={() => setFull(true)} className="rounded-lg px-3 py-1 font-bold" style={{ background: full ? '#3A454E' : '#202B30' }}>Со стрелой и тенью</button>
+                        </div>
+                    </div>
+                </div>
+
+                <Row title="Плоскость: форма">
+                    <div className="flex gap-2">
+                        {(['oval', 'para'] as Shape[]).map((s) => (
+                            <button key={s} type="button" onClick={() => set('shape', s)} className="rounded-lg px-3 py-1.5 text-sm font-bold" style={{ background: c.shape === s ? '#3A454E' : '#161F23', border: '2px solid #2E383E' }}>
+                                {s === 'oval' ? 'Овал' : 'Параллелограмм'}
+                            </button>
+                        ))}
+                    </div>
+                </Row>
+                <Row title="Плоскость: заливка">
+                    <Swatches value={c.planeFill} onChange={(v) => set('planeFill', v)} />
+                    <Slider label="Прозрачность" value={c.planeOp} min={0} max={0.5} step={0.01} onChange={(v) => set('planeOp', v)} />
+                </Row>
+                <Row title="Плоскость: граница">
+                    <Swatches value={c.planeStroke} onChange={(v) => set('planeStroke', v)} />
+                    <Slider label="Яркость" value={c.strokeOp} min={0} max={1} step={0.05} onChange={(v) => set('strokeOp', v)} />
+                    <Slider label="Толщина" value={c.strokeW} min={0} max={5} step={0.5} onChange={(v) => set('strokeW', v)} />
+                </Row>
+                <Row title="Маркер слова «плоскость»">
+                    <Swatches value={c.planeMark} onChange={(v) => set('planeMark', v)} />
+                </Row>
+                <Row title="Линия b">
+                    <Swatches value={c.line} onChange={(v) => set('line', v)} />
+                </Row>
+                <Row title="Стрела">
+                    <div className="flex gap-2">
+                        {(['image', 'color'] as ArrowKind[]).map((k) => (
+                            <button key={k} type="button" onClick={() => set('arrowKind', k)} className="rounded-lg px-3 py-1.5 text-sm font-bold" style={{ background: c.arrowKind === k ? '#3A454E' : '#161F23', border: '2px solid #2E383E' }}>
+                                {k === 'image' ? 'Картинка (деревянная)' : 'Однотонная'}
+                            </button>
+                        ))}
+                    </div>
+                    {c.arrowKind === 'color' && <Swatches value={c.arrow} onChange={(v) => set('arrow', v)} />}
+                </Row>
+                <Row title="Тень стрелы (проекция)">
+                    <Swatches value={c.shadow} onChange={(v) => set('shadow', v)} />
+                </Row>
+                <Row title="Перпендикуляр и точка H">
+                    <Swatches value={c.perp} onChange={(v) => set('perp', v)} />
+                </Row>
+
+                <pre className="overflow-x-auto rounded-xl bg-[#202B30] p-3 text-xs text-[#9FB0B8]">{JSON.stringify(c, null, 1)}</pre>
+            </div>
+        </div>
+    )
+}

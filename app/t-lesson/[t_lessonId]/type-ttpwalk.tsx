@@ -154,10 +154,12 @@ const GroundODot = ({ fresh, delay = 0 }: { fresh: boolean; delay?: number }) =>
 // Косая проекция 3D→2D, сцена повёрнута вокруг вертикали (по часовой, если смотреть сверху).
 // Стрела лежит в плоскости, перпендикулярной оси x; линия b вдоль x (φ = 0) ⟂ стреле.
 
-const VB_W = 340, VB_H = 290
+export const VB_W = 340
+export const VB_H = 290
 const ANG = (28 * Math.PI) / 180
-const PLANE_W = 12 // ширина площадки (по x); раньше 10 — плоскость казалась узкой
-const CXW = PLANE_W / 2, CYW = 3.5
+export const PLANE_W = 12 // ширина площадки (по x); раньше 10 — плоскость казалась узкой
+export const CXW = PLANE_W / 2
+export const CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.blue.button
 const B_COLOR = GGEGE_PALETTE.purple.button // линия: фиолетовый — не сливается ни с плоскостью (бирюзовой), ни с зелёной кнопкой
@@ -175,13 +177,13 @@ const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
 
 // Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
-const O3 = { x: PLANE_W / 2, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
-const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: 1.05 * s })
-const S_HIGH = 4.2 // тень верхушки стрелы ровно на краю площадки (y = 7)
+export const O3 = { x: PLANE_W / 2, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
+export const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: 1.05 * s })
+export const S_HIGH = 4.2 // тень верхушки стрелы ровно на краю площадки (y = 7)
 const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу стрелы, подальше от O
 const DEFAULT_PICK = 3.35
-const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
-const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
+export const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
+export const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
 const DEG = Math.PI / 180
 
 const rawProj = (x: number, y: number, z: number) => {
@@ -200,7 +202,7 @@ const FIT = (() => {
     const u = Math.min((VB_W - 2 * mX) / (maxX - minX), (VB_H - mT - mB) / (maxY - minY))
     return { u, offX: mX - minX * u + ((VB_W - 2 * mX) - (maxX - minX) * u) / 2, offY: mT - minY * u + ((VB_H - mT - mB) - (maxY - minY) * u) / 2 }
 })()
-const P3 = (x: number, y: number, z: number) => { const r = rawProj(x, y, z); return { x: FIT.offX + r.x * FIT.u, y: FIT.offY + r.y * FIT.u } }
+export const P3 = (x: number, y: number, z: number) => { const r = rawProj(x, y, z); return { x: FIT.offX + r.x * FIT.u, y: FIT.offY + r.y * FIT.u } }
 const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
 // Обратное преобразование: точка экрана (в координатах viewBox) → точка земли (x, y).
 const unproject = (sx: number, sy: number) => {
@@ -590,7 +592,7 @@ const GroundScene = ({ onSettled }: SceneProps) => {
     useEffect(() => () => timers.current.forEach(clearTimeout), [])
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Представим, что у нас есть ' }, { sticker: 'плоскость', color: PLANE_COLOR }]} onSettled={() => setPlane(true)} />
+            <TypedLineWithParts parts={[{ text: 'Это ' }, { sticker: 'плоскость', color: PLANE_COLOR }]} onSettled={() => setPlane(true)} />
             {plane && (
                 <DiagramBlock onSettled={() => timers.current.push(setTimeout(() => setLineText(true), 1200))}>
                     <Figure scene={0} pick={null} phi={GROUND_PHI} forceLine={line} lineFresh />
