@@ -174,7 +174,7 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
                     )}
                     <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeOpacity={0.78} strokeWidth={3} strokeLinecap="round" strokeDasharray="6 6" />
                     <path d={rightAngle} fill="none" stroke={c.perp} strokeOpacity={0.78} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx={H.x} cy={H.y} r={6} fill={c.oFill} stroke={oStrokeColor === c.line ? c.perp : oStrokeColor} strokeWidth={c.oStroke === 'none' ? 0 : 2.4} />
+                    <circle cx={H.x} cy={H.y} r={6} fill={c.oFill} />
                     <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
                 </>
             )}
@@ -185,13 +185,13 @@ const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }
                         <rect x={-30} y={-10} width={60} height={20} rx={3} fill={c.line} />
                         <text x={0} y={4.5} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={INK}>прямая</text>
                     </g>
-                    <text x={Op.x - 14} y={Op.y + 26} fontSize={14} fontWeight={800} fill={c.perp}>O</text>
+                    <text x={Op.x - 20} y={Op.y + 19} fontSize={14} fontWeight={800} fill={c.perp}>O</text>
                     {full && (
                         <>
                             <g transform={gm}>
-                                <text x={0} y={0.6} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>проекция</text>
+                                <text x={0} y={2.6} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>проекция</text>
                             </g>
-                            <g transform={`translate(${f(H.x + 26)},${f(T.y + (H.y - T.y) * 0.5)}) rotate(-90)`}>
+                            <g transform={`translate(${f(H.x + 20)},${f(T.y + (H.y - T.y) * 0.5)}) rotate(-90)`}>
                                 <rect x={-54} y={-10} width={108} height={20} rx={3} fill={c.perp} fillOpacity={0.78} />
                                 <text x={0} y={4.5} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={INK}>перпендикуляр</text>
                             </g>
