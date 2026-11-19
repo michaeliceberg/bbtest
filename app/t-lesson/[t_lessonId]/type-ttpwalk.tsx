@@ -156,7 +156,8 @@ const GroundODot = ({ fresh, delay = 0 }: { fresh: boolean; delay?: number }) =>
 
 const VB_W = 340, VB_H = 290
 const ANG = (28 * Math.PI) / 180
-const CXW = 5, CYW = 3.5
+const PLANE_W = 12 // ширина площадки (по x); раньше 10 — плоскость казалась узкой
+const CXW = PLANE_W / 2, CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.blue.button
 const B_COLOR = GGEGE_PALETTE.purple.button // линия: фиолетовый — не сливается ни с плоскостью (бирюзовой), ни с зелёной кнопкой
@@ -165,6 +166,8 @@ const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сам
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
 const SHADOW_LINE = GGEGE_SHADOW.text // отрезок O–H поверх широкой тени — тем же тёмно-зелёным, что и слово «тень»
 const PLANE_COLOR = GGEGE_PALETTE.teal.button
+// Заливка плоскости — бледный светлый оттенок цвета маркера «плоскость» (сам маркер — PLANE_COLOR)
+const PLANE_FILL = '#A6E4CC'
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
 // Точка O лежит на земле — «травяная» подпись: светло-зелёная буква в тёмно-зелёной рамке
@@ -172,12 +175,12 @@ const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
 
 // Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
-const O3 = { x: 5, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
-const aPoint = (s: number) => ({ x: 5, y: O3.y + s, z: 1.05 * s })
+const O3 = { x: PLANE_W / 2, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
+const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: 1.05 * s })
 const S_HIGH = 4.2 // тень верхушки стрелы ровно на краю площадки (y = 7)
 const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу стрелы, подальше от O
 const DEFAULT_PICK = 3.35
-const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 7], [0, 7]]
+const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
 const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
 const DEG = Math.PI / 180
 
@@ -402,7 +405,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {showH && (
                     <>
                         <FadeIn fresh={fresh4}>
-                            <path d={rightAngleMark({ x: 5, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={X_COLOR} strokeWidth={2.2} strokeLinecap="round" />
+                            <path d={rightAngleMark({ x: O3.x, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={X_COLOR} strokeWidth={2.2} strokeLinecap="round" />
                         </FadeIn>
                         <Dot x={H.x} y={H.y} color={X_COLOR} fresh={fresh4} />
                         <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={X_COLOR} delay={fresh4 ? 0.2 : 0} />
@@ -446,7 +449,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
             <g transform={`translate(${shake},0)`}>
                 {/* земля: заливка без яркой обводки (обводка — только «по-школьному») */}
                 <motion.polygon
-                    points={planePts} fill={hexToRgba(PLANE_COLOR, 0.4)}
+                    points={planePts} fill={hexToRgba(PLANE_FILL, 0.5)}
                     stroke={hexToRgba(PLANE_COLOR, school ? 0.95 : 0.5)} strokeWidth={school ? 3 : 1.5} strokeLinejoin="round"
                     initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}
                 />
