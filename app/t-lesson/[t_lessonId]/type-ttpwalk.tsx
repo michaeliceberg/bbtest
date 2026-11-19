@@ -166,8 +166,10 @@ const B_COLOR = GGEGE_PALETTE.blue.button // линия b: синяя — хор
 const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сама тень
 // стикер слова «тень» — тёмная плашка, как тень
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
-const SHADOW_BAND = '#070B0D' // широкая полоса тени — почти чёрная, чтобы читалась как тень на светлой плоскости
-const SHADOW_LINE = GGEGE_SHADOW.text // отрезок O–H поверх широкой тени — тем же тёмно-зелёным, что и слово «тень»
+const SHADOW_BAND = '#000' // тень — одним чёрным цветом с небольшой прозрачностью (SHADOW_OP)
+const SHADOW_OP = 0.78
+const SHADOW_W = 8
+const PERP_WHITE = 'rgba(242,247,251,0.78)' // перпендикуляр и прямой угол у H — белый, чуть прозрачный
 // Плоскость — песочная (выбрано на /test-ttp-colors): овал, почти прозрачная заливка и тот же песочный маркер слова «плоскость»
 const PLANE_COLOR = '#E3CB94'
 const PLANE_FILL_OP = 0.12
@@ -179,12 +181,13 @@ const X_COLOR = '#F2F7FB'
 const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
 
-// Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
+// Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, SLOPE) — наклон ~50° к земле (было 46°: круче — стрела выше при той же тени)
+export const SLOPE = 1.2
 export const O3 = { x: PLANE_W / 2, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
-export const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: 1.05 * s })
-export const S_HIGH = 4.2 // тень верхушки стрелы ровно на краю площадки (y = 7)
-const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу стрелы, подальше от O
-const DEFAULT_PICK = 3.35
+export const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: SLOPE * s })
+export const S_HIGH = 4.9 // длина стрелы по земле; тень верхушки — внутри большого овала
+const CANDIDATES = [3.0, 3.9, 4.6] // ближе к верхнему концу стрелы, подальше от O
+const DEFAULT_PICK = 3.9
 export const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
 // Плоскость — большой овал (эллипс на земле) вокруг центра площадки
 const PLANE_RX = 7.5, PLANE_RY = 5.5
@@ -362,7 +365,9 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const vx = aTop.x - Op.x, vy = aTop.y - Op.y
     const vLen = Math.hypot(vx, vy)
     const spearRot = (Math.atan2(-vx / vLen, vy / vLen) * 180) / Math.PI
-    const spearW = vLen / 8.3 // толщина стрелы: пропорция картинки 949×114
+    // толщина стрелы осталась прежней (по длине 4.2 при наклоне 1.05), хотя сама стрела стала длиннее
+    const oldTop = P3(O3.x, O3.y + 4.2, 1.05 * 4.2)
+    const spearW = Math.hypot(oldTop.x - Op.x, oldTop.y - Op.y) / 8.3
 
     // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
     const ph = phi * DEG
@@ -405,7 +410,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     let projEl: React.ReactNode = null
     if (s != null) {
         const pP = aPoint(s)
-        const H = P3(5, O3.y + s, 0)
+        const H = P3(O3.x, O3.y + s, 0)
         const Pp = P3(pP.x, pP.y, pP.z)
         const dx = H.x - Op.x, dy = H.y - Op.y
         const len = Math.hypot(dx, dy) || 1
@@ -417,14 +422,18 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
             <>
                 {showPerp && (
                     <>
-                        <DrawPath d={`M${Pp.x},${Pp.y} L${H.x},${H.y}`} color={X_COLOR} w={LINE_W} fresh={fresh4} dur={0.8} />
+                        <motion.line
+                            x1={Pp.x} y1={Pp.y} stroke={PERP_WHITE} strokeWidth={LINE_W - 1} strokeLinecap="round" strokeDasharray="6 6"
+                            initial={fresh4 ? { x2: Pp.x, y2: Pp.y } : { x2: H.x, y2: H.y }} animate={{ x2: H.x, y2: H.y }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                        />
                         <Dot x={Pp.x} y={Pp.y} color={A_COLOR} fresh={fresh4} />
                     </>
                 )}
                 {showH && (
                     <>
                         <FadeIn fresh={fresh4}>
-                            <path d={rightAngleMark({ x: O3.x, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={X_COLOR} strokeWidth={2.2} strokeLinecap="round" />
+                            <path d={rightAngleMark({ x: O3.x, y: O3.y + s, z: 0 }, [0, -0.9, 0], [0, 0, 0.9])} fill="none" stroke={PERP_WHITE} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
                         </FadeIn>
                         <Dot x={H.x} y={H.y} color={X_COLOR} fresh={fresh4} />
                         <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={X_COLOR} delay={fresh4 ? 0.2 : 0} />
@@ -432,7 +441,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 )}
                 {showProj && (
                     <>
-                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={SHADOW_LINE} w={LINE_W} fresh={fresh4} dur={0.9} />
+                        {!shadowOn && <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={hexToRgba(SHADOW_BAND, SHADOW_OP)} w={SHADOW_W} fresh={false} dur={0.9} />}
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
                             <motion.g
                                 key={school ? 's' : 'l'}
@@ -480,12 +489,12 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
 
                 {/* тёмная тень стрелы на земле (bounce) */}
                 {shadowOn && (() => {
-                    const Hm = P3(5, O3.y + S_HIGH, 0)
+                    const Hm = P3(O3.x, O3.y + S_HIGH, 0)
                     const dx = Hm.x - Op.x, dy = Hm.y - Op.y
                     // тень «выстреливает» из точки O вверх-вправо с крупным перелётом (bounce)
                     return (
                         <motion.line
-                            x1={Op.x} y1={Op.y} stroke={SHADOW_BAND} strokeOpacity={0.9} strokeWidth={9} strokeLinecap="round"
+                            x1={Op.x} y1={Op.y} stroke={SHADOW_BAND} strokeOpacity={SHADOW_OP} strokeWidth={SHADOW_W} strokeLinecap="round"
                             initial={fresh4 ? { x2: Op.x, y2: Op.y, opacity: 0 } : { x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
                             animate={{ x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
                             transition={{ type: 'spring', bounce: 0.6, duration: 1.1, opacity: { duration: 0.15 } }}
@@ -511,7 +520,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                             <g transform={`rotate(${spearRot})`}>
                                 {/* стрела (949×114, остриё справа): поворачиваем остриём вверх, остриё — в точке O */}
                                 <g transform={`translate(${-spearW / 2},${vLen}) rotate(-90)`}>
-                                    <image href="/ttp-arrow.webp" x={0} y={0} width={vLen} height={spearW} preserveAspectRatio="none" />
+                                    <image href="/ttp-arrow-bright.webp" x={0} y={0} width={vLen} height={spearW} preserveAspectRatio="none" />
                                 </g>
                             </g>
                         </g>
@@ -995,7 +1004,7 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
     const aTag = tagAlong(Op, T, 0.62, 18)
     const bTag = tagAlong(Op, bL, 0.78, -17)
     const pTag = tagAlong(Op, Hf, 0.55, -17)
-    const aLen = Math.hypot(0, 1, 1.05)
+    const aLen = Math.hypot(0, 1, SLOPE)
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
             <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, PLANE_FILL_OP)} stroke={hexToRgba(PLANE_COLOR, PLANE_STROKE_OP)} strokeWidth={2} strokeLinejoin="round" />
@@ -1019,7 +1028,7 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
                 </>
             )}
             {stage >= 3 && (
-                <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} />
+                <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * SLOPE) / aLen])} />
             )}
             {stage >= 5 && (
                 <BounceMark d={rightAngleMark(O3, [-0.9, 0, 0], [0, 0.9, 0])} />
@@ -1415,7 +1424,7 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
     const aTag = tagAlong(Op, T, 0.6, 18)
     const bTag = tagAlong(Op, bR, 0.8, -17)
     const pTag = tagAlong(Op, Hp, 0.55, -17)
-    const aLen = Math.hypot(1, 1.05)
+    const aLen = Math.hypot(1, SLOPE)
     const bdir: [number, number, number] = [-0.9 * Math.cos(ph), -0.9 * Math.sin(ph), 0]
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
@@ -1450,7 +1459,7 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
             {stage >= 6 && (fresh && stage === 6 ? <BounceMark d={rightAngleMark(O3, bdir, [0, 0.9, 0])} /> : (
                 <path d={rightAngleMark(O3, bdir, [0, 0.9, 0])} fill="none" stroke={X_COLOR} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
             ))}
-            {stage >= 7 && <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} />}
+            {stage >= 7 && <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * SLOPE) / aLen])} />}
             {angleLabel && (
                 (() => { const L = bisectorPoint(Op, Hp, bR, 44); return <text x={L.x} y={L.y + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill={MARK_COLOR}>{Math.round(90 - Math.abs(phi))}°</text> })()
             )}

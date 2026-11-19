@@ -33,7 +33,7 @@ type Cfg = {
 // Выбрано для урока 497 (2026-11-19): песочная плоскость, синяя линия, тёмная тень
 const DEFAULT: Cfg = {
     shape: 'oval', planeFill: '#E3CB94', planeOp: 0.12, planeStroke: '#E3CB94', strokeOp: 0.8, strokeW: 2,
-    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#070B0D', perp: WHITE, planeMark: '#E3CB94',
+    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#000000', perp: WHITE, planeMark: '#E3CB94',
 }
 
 const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
@@ -121,9 +121,12 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
         return { Op, T, H, bL, bR, para, oval, vx, vy, vl }
     }, [])
     const { Op, T, H, bL, bR, vx, vy, vl } = g
+    const ra = (dy: number, dz: number) => { const q = P3(O3.x, O3.y + S_HIGH + dy, dz); return `${f(q.x)},${f(q.y)}` }
+    const rightAngle = `M${ra(-0.9, 0)} L${ra(-0.9, 0.9)} L${ra(0, 0.9)}`
     const ux = vx / vl, uy = vy / vl, nx = -uy, ny = ux
     const spearRot = (Math.atan2(-vx / vl, vy / vl) * 180) / Math.PI
-    const spearW = vl / 8.3
+    const oldTop = P3(O3.x, O3.y + 4.2, 1.05 * 4.2)
+    const spearW = Math.hypot(oldTop.x - Op.x, oldTop.y - Op.y) / 8.3
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="mx-auto w-full max-w-[448px]" style={{ overflow: 'visible' }}>
             <polygon
@@ -131,16 +134,15 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
                 fill={hexToRgba(c.planeFill, c.planeOp)} stroke={hexToRgba(c.planeStroke, c.strokeOp)}
                 strokeWidth={c.strokeW} strokeLinejoin="round"
             />
-            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.9} strokeWidth={9} strokeLinecap="round" />}
-            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke="#3A7D59" strokeWidth={4} strokeLinecap="round" />}
-            <line x1={bL.x} y1={bL.y} x2={bR.x} y2={bR.y} stroke={c.line} strokeWidth={4} strokeLinecap="round" />
+            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.78} strokeWidth={8} strokeLinecap="round" />}
+                        <line x1={bL.x} y1={bL.y} x2={bR.x} y2={bR.y} stroke={c.line} strokeWidth={4} strokeLinecap="round" />
             {full && (
                 <>
                     {c.arrowKind === 'image' ? (
                         <g transform={`translate(${f(Op.x)},${f(Op.y)})`}>
                             <g transform={`rotate(${spearRot})`}>
                                 <g transform={`translate(${-spearW / 2},${vl}) rotate(-90)`}>
-                                    <image href="/ttp-arrow.webp" x={0} y={0} width={vl} height={spearW} preserveAspectRatio="none" />
+                                    <image href="/ttp-arrow-bright.webp" x={0} y={0} width={vl} height={spearW} preserveAspectRatio="none" />
                                 </g>
                             </g>
                         </g>
@@ -153,7 +155,8 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
                             ))}
                         </g>
                     )}
-                    <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeWidth={4} strokeLinecap="round" />
+                    <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeOpacity={0.78} strokeWidth={3} strokeLinecap="round" strokeDasharray="6 6" />
+                    <path d={rightAngle} fill="none" stroke={c.perp} strokeOpacity={0.78} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx={H.x} cy={H.y} r={5} fill={c.perp} stroke="#0B1216" strokeWidth={1.5} />
                     <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
                 </>
