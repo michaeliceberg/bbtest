@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
-import { CXW, CYW, LB, O3, PLANE_CORNERS, S_HIGH, VB_H, VB_W, P3, aPoint } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
+import { CXW, CYW, LB, O3, PLANE_RX, PLANE_RY, S_HIGH, VB_H, VB_W, P3, aPoint, groundMatrix, ovalAlphaPos, SLOPE } from '@/app/t-lesson/[t_lessonId]/type-ttpwalk'
 
 const INK = '#10181C'
 const WHITE = '#F2F7FB'
@@ -17,31 +17,28 @@ const SWATCHES = [
 ]
 const P = GGEGE_PALETTE
 
-type Shape = 'oval' | 'para'
 type ArrowKind = 'image' | 'color'
 type Cfg = {
-    shape: Shape
     planeFill: string; planeOp: number
     planeStroke: string; strokeOp: number; strokeW: number
     line: string
     arrowKind: ArrowKind; arrow: string
     shadow: string
     perp: string
-    planeMark: string
 }
 
 // Выбрано для урока 497 (2026-11-19): песочная плоскость, синяя линия, тёмная тень
 const DEFAULT: Cfg = {
-    shape: 'oval', planeFill: '#E3CB94', planeOp: 0.12, planeStroke: '#E3CB94', strokeOp: 0.8, strokeW: 2,
-    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#000000', perp: WHITE, planeMark: '#E3CB94',
+    planeFill: '#E3CB94', planeOp: 0.16, planeStroke: '#E3CB94', strokeOp: 0.8, strokeW: 2,
+    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#000000', perp: WHITE,
 }
 
 const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
     { name: 'Песок (выбран)', hint: 'то, что стоит в уроке', cfg: DEFAULT },
-    { name: 'Бледная бирюза', hint: 'овал, почти прозрачный', cfg: { ...DEFAULT, planeFill: P.teal.button, planeStroke: P.teal.button, planeMark: P.teal.button, planeOp: 0.1, line: P.purple.button } },
+    { name: 'Бледная бирюза', hint: 'овал, почти прозрачный', cfg: { ...DEFAULT, planeFill: P.teal.button, planeStroke: P.teal.button, planeOp: 0.1, line: P.purple.button } },
     {
         name: 'Голубой лёд', hint: 'голубая дымка, оранжевая линия',
-        cfg: { ...DEFAULT, planeFill: '#7dd3fc', planeStroke: '#7dd3fc', planeOp: 0.09, line: P.orange.button, planeMark: '#7dd3fc', shadow: '#7dd3fc' },
+        cfg: { ...DEFAULT, planeFill: '#7dd3fc', planeStroke: '#7dd3fc', planeOp: 0.09, line: P.orange.button, shadow: '#7dd3fc' },
     },
     {
         name: 'Контур без заливки', hint: 'только граница-овал',
@@ -49,19 +46,15 @@ const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
     },
     {
         name: 'Песок', hint: 'тёплый светлый овал, синяя линия',
-        cfg: { ...DEFAULT, planeFill: '#F0DDB0', planeStroke: '#F0DDB0', planeOp: 0.1, line: P.blue.button, planeMark: '#F0DDB0', arrow: P.orange.button, shadow: '#F0DDB0' },
+        cfg: { ...DEFAULT, planeFill: '#F0DDB0', planeStroke: '#F0DDB0', planeOp: 0.1, line: P.blue.button, arrow: P.orange.button, shadow: '#F0DDB0' },
     },
     {
         name: 'Сиреневая дымка', hint: 'фиолетовая плоскость, зелёная линия',
-        cfg: { ...DEFAULT, planeFill: P.purple.button, planeStroke: P.purple.button, planeOp: 0.1, line: P.green.button, planeMark: P.purple.button, shadow: P.purple.button },
-    },
-    {
-        name: 'Параллелограмм бледный', hint: 'прежняя форма, но почти прозрачная',
-        cfg: { ...DEFAULT, shape: 'para', planeOp: 0.1 },
+        cfg: { ...DEFAULT, planeFill: P.purple.button, planeStroke: P.purple.button, planeOp: 0.1, line: P.green.button, shadow: P.purple.button },
     },
     {
         name: 'Контраст', hint: 'синяя плоскость, оранжевая линия и жёлтая стрела',
-        cfg: { ...DEFAULT, planeFill: P.blue.button, planeStroke: P.blue.button, planeOp: 0.12, line: P.orange.button, planeMark: P.blue.button, arrowKind: 'color', arrow: '#FFE27A', shadow: '#7dd3fc' },
+        cfg: { ...DEFAULT, planeFill: P.blue.button, planeStroke: P.blue.button, planeOp: 0.12, line: P.orange.button, arrowKind: 'color', arrow: '#FFE27A', shadow: '#7dd3fc' },
     },
     {
         name: 'Мята + розовая линия', hint: 'малиновая линия на мятной плоскости',
@@ -103,38 +96,49 @@ const Mark = ({ color, children }: { color: string; children: React.ReactNode })
     <span className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle" style={{ background: color, color: INK, lineHeight: 1.15 }}>{children}</span>
 )
 
-const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
+const MarkTag = ({ x, y, text, color }: { x: number; y: number; text: string; color: string }) => (
+    <g transform={`translate(${x},${y})`}>
+        <rect x={-12} y={-13} width={24} height={26} rx={3} fill={color} />
+        <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={INK}>{text}</text>
+    </g>
+)
+
+const Preview = ({ c, full, labels }: { c: Cfg; full: boolean; labels: boolean }) => {
     const g = useMemo(() => {
         const Op = P3(O3.x, O3.y, 0)
         const top = aPoint(S_HIGH)
         const T = P3(top.x, top.y, top.z)
         const H = P3(O3.x, O3.y + S_HIGH, 0)
         const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
-        const para = PLANE_CORNERS.map(([x, y]) => { const q = P3(x, y, 0); return `${f(q.x)},${f(q.y)}` }).join(' ')
-        const rx = 7.5, ry = 5.5
+        const rx = PLANE_RX, ry = PLANE_RY
         const oval = Array.from({ length: 96 }, (_, i) => {
             const a = (i / 96) * Math.PI * 2
             const q = P3(CXW + rx * Math.cos(a), CYW + ry * Math.sin(a), 0)
             return `${f(q.x)},${f(q.y)}`
         }).join(' ')
         const vx = T.x - Op.x, vy = T.y - Op.y, vl = Math.hypot(vx, vy)
-        return { Op, T, H, bL, bR, para, oval, vx, vy, vl }
+        return { Op, T, H, bL, bR, oval, vx, vy, vl }
     }, [])
     const { Op, T, H, bL, bR, vx, vy, vl } = g
     const ra = (dy: number, dz: number) => { const q = P3(O3.x, O3.y + S_HIGH + dy, dz); return `${f(q.x)},${f(q.y)}` }
     const rightAngle = `M${ra(-0.9, 0)} L${ra(-0.9, 0.9)} L${ra(0, 0.9)}`
     const ux = vx / vl, uy = vy / vl, nx = -uy, ny = ux
+    const mid = { x: (Op.x + H.x) / 2, y: (Op.y + H.y) / 2 }
+    const al = ovalAlphaPos()
+    const gm = groundMatrix(O3.x, O3.y + S_HIGH / 2)
+    const sh = { x: O3.x, y: O3.y + S_HIGH / 2 }
+    void sh; void mid; void SLOPE
     const spearRot = (Math.atan2(-vx / vl, vy / vl) * 180) / Math.PI
     const oldTop = P3(O3.x, O3.y + 4.2, 1.05 * 4.2)
     const spearW = Math.hypot(oldTop.x - Op.x, oldTop.y - Op.y) / 8.3
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="mx-auto w-full max-w-[448px]" style={{ overflow: 'visible' }}>
             <polygon
-                points={c.shape === 'oval' ? g.oval : g.para}
+                points={g.oval}
                 fill={hexToRgba(c.planeFill, c.planeOp)} stroke={hexToRgba(c.planeStroke, c.strokeOp)}
                 strokeWidth={c.strokeW} strokeLinejoin="round"
             />
-            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.78} strokeWidth={8} strokeLinecap="round" />}
+            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.78} strokeWidth={10} strokeLinecap="round" />}
                         <line x1={bL.x} y1={bL.y} x2={bR.x} y2={bR.y} stroke={c.line} strokeWidth={4} strokeLinecap="round" />
             {full && (
                 <>
@@ -161,7 +165,23 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
                     <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
                 </>
             )}
-            <circle cx={Op.x} cy={Op.y} r={5.5} fill={c.line === c.shadow ? WHITE : '#9BE3B8'} stroke="#0B1216" strokeWidth={1.5} />
+            <circle cx={Op.x} cy={Op.y} r={5.5} fill="#9BE3B8" stroke="#0B1216" strokeWidth={1.5} />
+            {labels && (
+                <>
+                    <text x={al.x} y={al.y + 6} textAnchor="middle" fontSize={20} fontStyle="italic" fontWeight={800} fill={c.planeStroke}>α</text>
+                    <MarkTag x={bL.x - 14} y={bL.y + 2} text="b" color={c.line} />
+                    <text x={Op.x - 14} y={Op.y + 20} textAnchor="middle" fontSize={14} fontWeight={800} fill="#9BE3B8">O</text>
+                    {full && (
+                        <>
+                            <MarkTag x={T.x + 18} y={T.y + 2} text="a" color={P.purple.button} />
+                            <g transform={gm}>
+                                <text x={0} y={4.2} textAnchor="middle" fontSize={12} fontWeight={800} fill={WHITE}>тень</text>
+                            </g>
+                            <text transform={`translate(${f(H.x - 9)},${f(T.y + (H.y - T.y) * 0.7)}) rotate(-90)`} textAnchor="middle" fontSize={12} fontWeight={700} fill={c.perp} fillOpacity={0.9}>перпендикуляр</text>
+                        </>
+                    )}
+                </>
+            )}
         </svg>
     )
 }
@@ -169,6 +189,7 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
 export default function Page() {
     const [c, setC] = useState<Cfg>(DEFAULT)
     const [full, setFull] = useState(true)
+    const [labels, setLabels] = useState(true)
     const [preset, setPreset] = useState(0)
     const set = <K extends keyof Cfg>(k: K, v: Cfg[K]) => { setC((p) => ({ ...p, [k]: v })); setPreset(-1) }
     return (
@@ -192,26 +213,17 @@ export default function Page() {
                 <div className="sticky top-0 z-10 -mx-4 bg-[#161F23] px-4 pb-2 pt-1">
                     <div className="rounded-2xl border-2 border-[#2E383E] p-3">
                         <div className="mb-2 text-center text-base">
-                            <Mark color={c.planeMark}>Это плоскость</Mark>
-                            {full && <span className="ml-2 text-sm text-[#9FB0B8]">линия <Mark color={c.line}>b</Mark></span>}
+                            Это <Mark color={hexToRgba(c.planeStroke, c.strokeOp)}>плоскость</Mark>
+                            
                         </div>
-                        <Preview c={c} full={full} />
+                        <Preview c={c} full={full} labels={labels} />
                         <div className="mt-2 flex justify-center gap-2 text-sm">
                             <button type="button" onClick={() => setFull(false)} className="rounded-lg px-3 py-1 font-bold" style={{ background: !full ? '#3A454E' : '#202B30' }}>Начало: плоскость и линия</button>
+                            <button type="button" onClick={() => setLabels(!labels)} className="rounded-lg px-3 py-1 font-bold" style={{ background: labels ? '#3A454E' : '#202B30' }}>Подписи: {labels ? 'есть' : 'нет'}</button>
                             <button type="button" onClick={() => setFull(true)} className="rounded-lg px-3 py-1 font-bold" style={{ background: full ? '#3A454E' : '#202B30' }}>Со стрелой и тенью</button>
                         </div>
                     </div>
                 </div>
-
-                <Row title="Плоскость: форма">
-                    <div className="flex gap-2">
-                        {(['oval', 'para'] as Shape[]).map((s) => (
-                            <button key={s} type="button" onClick={() => set('shape', s)} className="rounded-lg px-3 py-1.5 text-sm font-bold" style={{ background: c.shape === s ? '#3A454E' : '#161F23', border: '2px solid #2E383E' }}>
-                                {s === 'oval' ? 'Овал' : 'Параллелограмм'}
-                            </button>
-                        ))}
-                    </div>
-                </Row>
                 <Row title="Плоскость: заливка">
                     <Swatches value={c.planeFill} onChange={(v) => set('planeFill', v)} />
                     <Slider label="Прозрачность" value={c.planeOp} min={0} max={0.5} step={0.01} onChange={(v) => set('planeOp', v)} />
@@ -220,9 +232,6 @@ export default function Page() {
                     <Swatches value={c.planeStroke} onChange={(v) => set('planeStroke', v)} />
                     <Slider label="Яркость" value={c.strokeOp} min={0} max={1} step={0.05} onChange={(v) => set('strokeOp', v)} />
                     <Slider label="Толщина" value={c.strokeW} min={0} max={5} step={0.5} onChange={(v) => set('strokeW', v)} />
-                </Row>
-                <Row title="Маркер слова «плоскость»">
-                    <Swatches value={c.planeMark} onChange={(v) => set('planeMark', v)} />
                 </Row>
                 <Row title="Линия b">
                     <Swatches value={c.line} onChange={(v) => set('line', v)} />

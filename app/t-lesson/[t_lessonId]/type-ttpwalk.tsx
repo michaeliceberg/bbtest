@@ -111,7 +111,7 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
 // Базис плоскости земли на экране: единичные векторы вдоль её краёв (оси x и y земли).
 // «Буква» идёт вдоль края, поднимающегося вправо (ось y), «вниз» — вдоль края, уходящего
 // вправо-вниз (ось x). Так стикер и точка O лежат на земле параллельно её краям.
-const groundMatrix = (cx: number, cy: number) => {
+export const groundMatrix = (cx: number, cy: number) => {
     const C = P3(cx, cy, 0), X = P3(cx + 1, cy, 0), Y = P3(cx, cy + 1, 0)
     const ux = { x: X.x - C.x, y: X.y - C.y }, uy = { x: Y.x - C.x, y: Y.y - C.y }
     const lx = Math.hypot(ux.x, ux.y), ly = Math.hypot(uy.x, uy.y)
@@ -168,11 +168,13 @@ const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сам
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
 const SHADOW_BAND = '#000' // тень — одним чёрным цветом с небольшой прозрачностью (SHADOW_OP)
 const SHADOW_OP = 0.78
-const SHADOW_W = 8
+const SHADOW_W = 10
 const PERP_WHITE = 'rgba(242,247,251,0.78)' // перпендикуляр и прямой угол у H — белый, чуть прозрачный
 // Плоскость — песочная (выбрано на /test-ttp-colors): овал, почти прозрачная заливка и тот же песочный маркер слова «плоскость»
 const PLANE_COLOR = '#E3CB94'
-const PLANE_FILL_OP = 0.12
+const PLANE_FILL_OP = 0.16
+// маркер слова «плоскость» — того же цвета и яркости, что и граница плоскости (песок с прозрачностью 0.8)
+const PLANE_MARK = 'rgba(227, 203, 148, 0.8)'
 const PLANE_STROKE_OP = 0.8
 const LINE_W = 4 // единая толщина линий чертежа: b, проекция, перпендикуляр
 const MARK_COLOR = GGEGE_PALETTE.orange.button
@@ -183,19 +185,20 @@ const O_FILL = '#173A2D'
 
 // Точка O, где стрела входит в землю; a(s) = O + s·(0, 1, SLOPE) — наклон ~50° к земле (было 46°: круче — стрела выше при той же тени)
 export const SLOPE = 1.2
-export const O3 = { x: PLANE_W / 2, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
+export const O3 = { x: PLANE_W / 2, y: 2.0, z: 0 } // ближе к дальнему краю, чтобы длинное стрела и его тень помещались на площадке
 export const aPoint = (s: number) => ({ x: O3.x, y: O3.y + s, z: SLOPE * s })
-export const S_HIGH = 4.9 // длина стрелы по земле; тень верхушки — внутри большого овала
-const CANDIDATES = [3.0, 3.9, 4.6] // ближе к верхнему концу стрелы, подальше от O
-const DEFAULT_PICK = 3.9
+export const S_HIGH = 5.6 // длина стрелы по земле; тень верхушки — внутри большого овала
+const CANDIDATES = [3.4, 4.5, 5.3] // ближе к верхнему концу стрелы, подальше от O
+const DEFAULT_PICK = 4.5
 export const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
 // Плоскость — большой овал (эллипс на земле) вокруг центра площадки
-const PLANE_RX = 7.5, PLANE_RY = 5.5
+export const PLANE_RX = 8.3
+export const PLANE_RY = 6.0
 const OVAL_G: [number, number][] = Array.from({ length: 96 }, (_, i) => {
     const a = (i / 96) * Math.PI * 2
     return [CXW + PLANE_RX * Math.cos(a), CYW + PLANE_RY * Math.sin(a)]
 })
-export const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
+export const LB = 3.9 // полудлина линии b (при любом угле остаётся в пределах земли)
 const DEG = Math.PI / 180
 
 const rawProj = (x: number, y: number, z: number) => {
@@ -219,7 +222,7 @@ const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); retu
 const PLANE_OVAL_PTS = OVAL_G.map(([x, y]) => ptStr(x, y, 0)).join(' ')
 const PLANE_OVAL_PATH = `M${OVAL_G.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
 // Место подписи α: правый нижний край овала, чуть внутрь
-const ovalAlphaPos = () => {
+export const ovalAlphaPos = () => {
     const pts = OVAL_G.map(([x, y]) => P3(x, y, 0))
     const best = pts.reduce((b, c) => (c.x + c.y > b.x + b.y ? c : b), pts[0])
     const ctr = P3(CXW, CYW, 0)
@@ -618,7 +621,7 @@ const GroundScene = ({ onSettled }: SceneProps) => {
     useEffect(() => () => timers.current.forEach(clearTimeout), [])
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Это ' }, { sticker: 'плоскость', color: PLANE_COLOR }]} onSettled={() => setPlane(true)} />
+            <TypedLineWithParts parts={[{ text: 'Это ' }, { sticker: 'плоскость', color: PLANE_MARK }]} onSettled={() => setPlane(true)} />
             {plane && (
                 <DiagramBlock onSettled={() => timers.current.push(setTimeout(() => setLineText(true), 1200))}>
                     <Figure scene={0} pick={null} phi={GROUND_PHI} forceLine={line} lineFresh />
@@ -626,7 +629,7 @@ const GroundScene = ({ onSettled }: SceneProps) => {
             )}
             {lineText && (
                 <TypedLineWithParts
-                    parts={[{ text: 'И на ' }, { sticker: 'плоскости', color: PLANE_COLOR }, { text: ' проведена ' }, { sticker: 'линия', color: B_COLOR }]}
+                    parts={[{ text: 'И на ' }, { sticker: 'плоскости', color: PLANE_MARK }, { text: ' проведена ' }, { sticker: 'линия', color: B_COLOR }]}
                     onSettled={() => { setLine(true); timers.current.push(setTimeout(() => onSettled?.('Вижу 👀 плоскость и линию на ней'), 1500)) }}
                 />
             )}
@@ -937,7 +940,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
 
 // «А теперь по-школьному»: те же объекты, но с настоящими названиями.
 const SCHOOL_ROWS: { life: string; lifeColor: string; school: string; schoolColor: string }[] = [
-    { life: 'земля', lifeColor: PLANE_COLOR, school: 'плоскость α', schoolColor: PLANE_COLOR },
+    { life: 'земля', lifeColor: PLANE_MARK, school: 'плоскость α', schoolColor: PLANE_MARK },
     { life: 'стрела', lifeColor: A_COLOR, school: 'наклонная a', schoolColor: A_COLOR },
     { life: 'линия', lifeColor: B_COLOR, school: 'прямая b', schoolColor: B_COLOR },
     { life: 'тень', lifeColor: PROJ_COLOR, school: 'проекция a', schoolColor: PROJ_COLOR },
@@ -1500,7 +1503,7 @@ const quickScene = (parts: LinePart[], stage: number, nextLabel?: string) => {
     return S
 }
 
-const QPlaneScene = quickScene([{ text: 'Вот ' }, { sticker: 'плоскость α', color: PLANE_COLOR }], 1)
+const QPlaneScene = quickScene([{ text: 'Вот ' }, { sticker: 'плоскость α', color: PLANE_MARK }], 1)
 const QLineScene = quickScene([{ text: 'На ней лежит ' }, { sticker: 'прямая b', color: B_COLOR }], 2)
 const QSlantScene = quickScene([
     { sticker: 'Наклонная a', color: A_COLOR }, { text: ' втыкается в плоскость прямо' }, { break: true },
@@ -1793,7 +1796,7 @@ const K0Scene = ({ onSettled }: SceneProps) => {
             {typed && <DiagramBlock onSettled={() => setTimeout(() => setFloor(true), 600)}><CubeFig floorGlow={floor} /></DiagramBlock>}
             {floor && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Пол ' }, { sticker: 'ABCD', color: PLANE_COLOR }, { text: ' — это наша ' }, { sticker: 'плоскость', color: PLANE_COLOR }]}
+                    parts={[{ text: 'Пол ' }, { sticker: 'ABCD', color: PLANE_MARK }, { text: ' — это наша ' }, { sticker: 'плоскость', color: PLANE_MARK }]}
                     onSettled={() => onSettled?.()}
                 />
             )}
