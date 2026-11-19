@@ -30,13 +30,15 @@ type Cfg = {
     planeMark: string
 }
 
+// Выбрано для урока 497 (2026-11-19): песочная плоскость, синяя линия, тёмная тень
 const DEFAULT: Cfg = {
-    shape: 'oval', planeFill: P.teal.button, planeOp: 0.1, planeStroke: P.teal.button, strokeOp: 0.75, strokeW: 2,
-    line: P.purple.button, arrowKind: 'image', arrow: P.blue.button, shadow: '#3A7D59', perp: WHITE, planeMark: P.teal.button,
+    shape: 'oval', planeFill: '#E3CB94', planeOp: 0.12, planeStroke: '#E3CB94', strokeOp: 0.8, strokeW: 2,
+    line: P.blue.button, arrowKind: 'image', arrow: P.orange.button, shadow: '#070B0D', perp: WHITE, planeMark: '#E3CB94',
 }
 
 const PRESETS: { name: string; hint: string; cfg: Cfg }[] = [
-    { name: 'Бледная бирюза', hint: 'овал, почти прозрачный, как сейчас по цвету', cfg: DEFAULT },
+    { name: 'Песок (выбран)', hint: 'то, что стоит в уроке', cfg: DEFAULT },
+    { name: 'Бледная бирюза', hint: 'овал, почти прозрачный', cfg: { ...DEFAULT, planeFill: P.teal.button, planeStroke: P.teal.button, planeMark: P.teal.button, planeOp: 0.1, line: P.purple.button } },
     {
         name: 'Голубой лёд', hint: 'голубая дымка, оранжевая линия',
         cfg: { ...DEFAULT, planeFill: '#7dd3fc', planeStroke: '#7dd3fc', planeOp: 0.09, line: P.orange.button, planeMark: '#7dd3fc', shadow: '#7dd3fc' },
@@ -109,7 +111,7 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
         const H = P3(O3.x, O3.y + S_HIGH, 0)
         const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
         const para = PLANE_CORNERS.map(([x, y]) => { const q = P3(x, y, 0); return `${f(q.x)},${f(q.y)}` }).join(' ')
-        const rx = 6.9, ry = 4.55
+        const rx = 7.5, ry = 5.5
         const oval = Array.from({ length: 96 }, (_, i) => {
             const a = (i / 96) * Math.PI * 2
             const q = P3(CXW + rx * Math.cos(a), CYW + ry * Math.sin(a), 0)
@@ -129,7 +131,8 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
                 fill={hexToRgba(c.planeFill, c.planeOp)} stroke={hexToRgba(c.planeStroke, c.strokeOp)}
                 strokeWidth={c.strokeW} strokeLinejoin="round"
             />
-            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.95} strokeWidth={12} strokeLinecap="round" />}
+            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke={c.shadow} strokeOpacity={0.9} strokeWidth={9} strokeLinecap="round" />}
+            {full && <line x1={Op.x} y1={Op.y} x2={H.x} y2={H.y} stroke="#3A7D59" strokeWidth={4} strokeLinecap="round" />}
             <line x1={bL.x} y1={bL.y} x2={bR.x} y2={bR.y} stroke={c.line} strokeWidth={4} strokeLinecap="round" />
             {full && (
                 <>
@@ -150,7 +153,7 @@ const Preview = ({ c, full }: { c: Cfg; full: boolean }) => {
                             ))}
                         </g>
                     )}
-                    <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeWidth={2.4} strokeLinecap="round" strokeDasharray="5 5" />
+                    <line x1={T.x} y1={T.y} x2={H.x} y2={H.y} stroke={c.perp} strokeWidth={4} strokeLinecap="round" />
                     <circle cx={H.x} cy={H.y} r={5} fill={c.perp} stroke="#0B1216" strokeWidth={1.5} />
                     <text x={H.x + 18} y={H.y + 4} fontSize={14} fontWeight={800} fill={c.perp}>H</text>
                 </>

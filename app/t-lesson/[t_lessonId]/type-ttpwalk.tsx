@@ -161,15 +161,18 @@ export const PLANE_W = 12 // ширина площадки (по x); раньш�
 export const CXW = PLANE_W / 2
 export const CYW = 3.5
 
-const A_COLOR = GGEGE_PALETTE.blue.button
-const B_COLOR = GGEGE_PALETTE.purple.button // линия: фиолетовый — не сливается ни с плоскостью (бирюзовой), ни с зелёной кнопкой
+const A_COLOR = GGEGE_PALETTE.purple.button // наклонная a (с 2026-11-19 меняется местами с b: линия b — синяя)
+const B_COLOR = GGEGE_PALETTE.blue.button // линия b: синяя — хорошо видна на светлой песочной плоскости
 const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сама тень
 // стикер слова «тень» — тёмная плашка, как тень
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
+const SHADOW_BAND = '#070B0D' // широкая полоса тени — почти чёрная, чтобы читалась как тень на светлой плоскости
 const SHADOW_LINE = GGEGE_SHADOW.text // отрезок O–H поверх широкой тени — тем же тёмно-зелёным, что и слово «тень»
-const PLANE_COLOR = GGEGE_PALETTE.teal.button
-// Заливка плоскости — бледный светлый оттенок цвета маркера «плоскость» (сам маркер — PLANE_COLOR)
-const PLANE_FILL = '#A6E4CC'
+// Плоскость — песочная (выбрано на /test-ttp-colors): овал, почти прозрачная заливка и тот же песочный маркер слова «плоскость»
+const PLANE_COLOR = '#E3CB94'
+const PLANE_FILL_OP = 0.12
+const PLANE_STROKE_OP = 0.8
+const LINE_W = 4 // единая толщина линий чертежа: b, проекция, перпендикуляр
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
 // Точка O лежит на земле — «травяная» подпись: светло-зелёная буква в тёмно-зелёной рамке
@@ -183,6 +186,12 @@ export const S_HIGH = 4.2 // тень верхушки стрелы ровно �
 const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу стрелы, подальше от O
 const DEFAULT_PICK = 3.35
 export const PLANE_CORNERS: [number, number][] = [[0, 0], [PLANE_W, 0], [PLANE_W, 7], [0, 7]]
+// Плоскость — большой овал (эллипс на земле) вокруг центра площадки
+const PLANE_RX = 7.5, PLANE_RY = 5.5
+const OVAL_G: [number, number][] = Array.from({ length: 96 }, (_, i) => {
+    const a = (i / 96) * Math.PI * 2
+    return [CXW + PLANE_RX * Math.cos(a), CYW + PLANE_RY * Math.sin(a)]
+})
 export const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
 const DEG = Math.PI / 180
 
@@ -195,7 +204,7 @@ const rawProj = (x: number, y: number, z: number) => {
 // Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + верх стрелы).
 const FIT = (() => {
     const top = aPoint(S_HIGH)
-    const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), rawProj(top.x, top.y, top.z)]
+    const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), ...OVAL_G.map(([x, y]) => rawProj(x, y, 0)), rawProj(top.x, top.y, top.z)]
     const minX = Math.min(...pts.map((q) => q.x)), maxX = Math.max(...pts.map((q) => q.x))
     const minY = Math.min(...pts.map((q) => q.y)), maxY = Math.max(...pts.map((q) => q.y))
     const mX = 12, mT = 16, mB = 16
@@ -204,6 +213,15 @@ const FIT = (() => {
 })()
 export const P3 = (x: number, y: number, z: number) => { const r = rawProj(x, y, z); return { x: FIT.offX + r.x * FIT.u, y: FIT.offY + r.y * FIT.u } }
 const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
+const PLANE_OVAL_PTS = OVAL_G.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+const PLANE_OVAL_PATH = `M${OVAL_G.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
+// Место подписи α: правый нижний край овала, чуть внутрь
+const ovalAlphaPos = () => {
+    const pts = OVAL_G.map(([x, y]) => P3(x, y, 0))
+    const best = pts.reduce((b, c) => (c.x + c.y > b.x + b.y ? c : b), pts[0])
+    const ctr = P3(CXW, CYW, 0)
+    return { x: best.x + (ctr.x - best.x) * 0.22, y: best.y + (ctr.y - best.y) * 0.22 }
+}
 // Обратное преобразование: точка экрана (в координатах viewBox) → точка земли (x, y).
 const unproject = (sx: number, sy: number) => {
     const ryRaw = (sy - FIT.offY) / FIT.u, rxRaw = (sx - FIT.offX) / FIT.u
@@ -336,8 +354,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const flight = spearFlight(t)
 
     const Op = P3(O3.x, O3.y, 0)
-    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
-    const planePath = `M${PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
+    const planePts = PLANE_OVAL_PTS
+    const planePath = PLANE_OVAL_PATH
 
     const top = aPoint(S_HIGH)
     const aTop = P3(top.x, top.y, top.z)
@@ -371,8 +389,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
 
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
     const center = P3(CXW, CYW, 0)
-    const alphaCorner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
-    const alphaPos = { x: alphaCorner.x + (center.x - alphaCorner.x) * 0.35, y: alphaCorner.y + (center.y - alphaCorner.y) * 0.35 }
+    const alphaPos = ovalAlphaPos()
 
     const onHandleMove = (e: React.PointerEvent) => {
         if (!rotate || rotate.locked || !svgRef.current) return
@@ -400,7 +417,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
             <>
                 {showPerp && (
                     <>
-                        <DrawPath d={`M${Pp.x},${Pp.y} L${H.x},${H.y}`} color={X_COLOR} w={2.6} fresh={fresh4} dur={0.8} />
+                        <DrawPath d={`M${Pp.x},${Pp.y} L${H.x},${H.y}`} color={X_COLOR} w={LINE_W} fresh={fresh4} dur={0.8} />
                         <Dot x={Pp.x} y={Pp.y} color={A_COLOR} fresh={fresh4} />
                     </>
                 )}
@@ -415,7 +432,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 )}
                 {showProj && (
                     <>
-                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={SHADOW_LINE} w={4.5} fresh={fresh4} dur={0.9} />
+                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={SHADOW_LINE} w={LINE_W} fresh={fresh4} dur={0.9} />
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
                             <motion.g
                                 key={school ? 's' : 'l'}
@@ -451,8 +468,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
             <g transform={`translate(${shake},0)`}>
                 {/* земля: заливка без яркой обводки (обводка — только «по-школьному») */}
                 <motion.polygon
-                    points={planePts} fill={hexToRgba(PLANE_FILL, 0.5)}
-                    stroke={hexToRgba(PLANE_COLOR, school ? 0.95 : 0.5)} strokeWidth={school ? 3 : 1.5} strokeLinejoin="round"
+                    points={planePts} fill={hexToRgba(PLANE_COLOR, PLANE_FILL_OP)}
+                    stroke={hexToRgba(PLANE_COLOR, PLANE_STROKE_OP)} strokeWidth={school ? 3 : 2} strokeLinejoin="round"
                     initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}
                 />
                 {school && <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh dur={0.9} />}
@@ -468,7 +485,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     // тень «выстреливает» из точки O вверх-вправо с крупным перелётом (bounce)
                     return (
                         <motion.line
-                            x1={Op.x} y1={Op.y} stroke={GGEGE_SHADOW.button} strokeOpacity={0.95} strokeWidth={12} strokeLinecap="round"
+                            x1={Op.x} y1={Op.y} stroke={SHADOW_BAND} strokeOpacity={0.9} strokeWidth={9} strokeLinecap="round"
                             initial={fresh4 ? { x2: Op.x, y2: Op.y, opacity: 0 } : { x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
                             animate={{ x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
                             transition={{ type: 'spring', bounce: 0.6, duration: 1.1, opacity: { duration: 0.15 } }}
@@ -478,7 +495,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
 
                 {hasB && (
                     <>
-                        <DrawPath d={bPath} color={B_COLOR} w={4} fresh={(scene === 2 && !rotate) || lineFresh} dur={0.9} />
+                        <DrawPath d={bPath} color={B_COLOR} w={LINE_W} fresh={(scene === 2 && !rotate) || lineFresh} dur={0.9} />
                         {!school && <SvgWordTag x={tagPos.x} y={tagPos.y} angle={tagAng} text="линия" color={B_COLOR} delay={scene === 2 || lineFresh ? 0.7 : 0} />}
                         {school && <SvgTag x={tagEnd.x - 4} y={tagEnd.y - 18} text="b" color={B_COLOR} delay={0.3} />}
                     </>
@@ -970,7 +987,7 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
     const T = P3(top.x, top.y, top.z)
     const Hf = P3(O3.x, O3.y + S_HIGH, 0)
     const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
-    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const planePts = PLANE_OVAL_PTS
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
     const farCorner = cs.reduce((best, c) => (c.x < best.x ? c : best), cs[0])
     const center = P3(CXW, CYW, 0)
@@ -981,7 +998,7 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
     const aLen = Math.hypot(0, 1, 1.05)
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
-            <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)} stroke={hexToRgba(PLANE_COLOR, 0.22)} strokeWidth={1.5} strokeLinejoin="round" />
+            <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, PLANE_FILL_OP)} stroke={hexToRgba(PLANE_COLOR, PLANE_STROKE_OP)} strokeWidth={2} strokeLinejoin="round" />
             <g transform={`translate(${bush.x},${bush.y}) scale(0.62)`} opacity={0.85}>
                 <ellipse cx={2} cy={2} rx={34} ry={9} fill="#04080A" opacity={0.28} />
                 <circle cx={-17} cy={-9} r={15} fill="#3E7D3C" />
@@ -1391,11 +1408,10 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
     const LQ = 4.3 // прямая b длиннее, чем в «копейном» уроке — её не крутят
     const bL = P3(O3.x - LQ * Math.cos(ph), O3.y - LQ * Math.sin(ph), 0)
     const bR = P3(O3.x + LQ * Math.cos(ph), O3.y + LQ * Math.sin(ph), 0)
-    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const planePts = PLANE_OVAL_PTS
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
     const center = P3(CXW, CYW, 0)
-    const ac = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
-    const alphaPos = { x: ac.x + (center.x - ac.x) * 0.3, y: ac.y + (center.y - ac.y) * 0.3 }
+    const alphaPos = ovalAlphaPos()
     const aTag = tagAlong(Op, T, 0.6, 18)
     const bTag = tagAlong(Op, bR, 0.8, -17)
     const pTag = tagAlong(Op, Hp, 0.55, -17)
@@ -1405,7 +1421,7 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
             {stage >= 1 && (
                 <motion.g initial={fresh ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-                    <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)} stroke={hexToRgba(PLANE_COLOR, 0.9)} strokeWidth={2.5} strokeLinejoin="round" />
+                    <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, PLANE_FILL_OP)} stroke={hexToRgba(PLANE_COLOR, PLANE_STROKE_OP)} strokeWidth={2.5} strokeLinejoin="round" />
                     <text x={alphaPos.x} y={alphaPos.y + 6} textAnchor="middle" fontSize={22} fontStyle="italic" fill={PLANE_COLOR} fontWeight={800}>α</text>
                 </motion.g>
             )}
