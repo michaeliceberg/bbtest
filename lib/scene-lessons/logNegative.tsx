@@ -126,6 +126,97 @@ const FlipDemo = ({ b, n, label, intro, onDone }: { b: string; n: string; label:
 }
 const flip = (b: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <FlipDemo b={b} n={n} label={label} intro={intro} onDone={done} /> })
 
+// Обратный «перевёртыш»: слева 1 / a⁻ⁿ. По кнопке справа появляется копия дроби, единица и черта растворяются,
+// aⁿ с отскоком поднимается на уровень строки, минус становится плюсом и исчезает: получается aⁿ.
+// Идея: минус в степени меняет этаж дроби (был внизу — поднялся наверх).
+const UpFlipDemo = ({ b, n, label, intro, onDone }: { b: string; n: string; label: string; intro?: boolean; onDone: () => void }) => {
+    const col = useRef<HTMLSpanElement>(null)
+    const dst = useRef<HTMLSpanElement>(null)
+    const [phase, setPhase] = useState<'idle' | 'copy' | 'fade' | 'rise' | 'plus' | 'gone'>('idle')
+    const yv = useMotionValue(0)
+    // ip: -1 пауза, 0 печатается первая строка, 1 маркер и стрелка, 2 печатается вторая строка, 3 кнопка
+    const [ip, setIp] = useState(intro ? -1 : 3)
+    useEffect(() => {
+        if (!intro) return
+        const t = setTimeout(() => setIp(0), 800)
+        return () => clearTimeout(t)
+    }, [intro])
+    const go = () => {
+        if (phase !== 'idle' || ip < 3) return
+        playJustClick()
+        setPhase('copy')
+        setTimeout(() => setPhase('fade'), 900)
+        setTimeout(() => {
+            const c = col.current, d = dst.current
+            if (c && d) {
+                const cc = c.getBoundingClientRect(), dd = d.getBoundingClientRect()
+                animate(yv, (cc.top + cc.height / 2) - (dd.top + dd.height / 2), { type: 'spring', stiffness: 220, damping: 10 })
+            }
+            setPhase('rise')
+        }, 1600)
+        setTimeout(() => setPhase('plus'), 2600)
+        setTimeout(() => setPhase('gone'), 3600)
+        setTimeout(onDone, 4700)
+    }
+    const shown = phase !== 'idle'
+    const away = phase === 'fade' || phase === 'rise' || phase === 'plus' || phase === 'gone'
+    const plus = phase === 'plus' || phase === 'gone'
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center gap-4 text-6xl font-black text-[#F2F7FB] h-[210px]">
+                <span className="inline-flex flex-col items-center gap-1">
+                    <span>1</span>
+                    <span className="block h-[4px] w-full rounded-full bg-[#F2F7FB]" />
+                    <Pw b={b}>
+                        <span className="relative inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: ip >= 1 ? KEY : 'transparent' }}>
+                            −{n}
+                            {ip >= 1 && phase === 'idle' && (
+                                <motion.span className="absolute left-full top-0 ml-1 block" style={{ color: GGEGE_PALETTE.blue.button }}
+                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: [0, -9, 0] }}
+                                    transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}>
+                                    <ArrowUp size={30} strokeWidth={3.5} />
+                                </motion.span>
+                            )}
+                        </span>
+                    </Pw>
+                </span>
+                <span className={ip >= 1 && phase === 'idle' ? 'ml-6' : undefined}>=</span>
+                <span ref={col} className="inline-flex flex-col items-center gap-1" style={{ visibility: shown ? 'visible' : 'hidden' }}>
+                    <motion.span className="inline-block" initial={false} animate={{ scale: shown && !away ? 1 : 0, opacity: shown && !away ? 1 : 0 }} transition={shown && !away ? SPRING : { duration: 0.4 }}>1</motion.span>
+                    <motion.span className="block h-[4px] w-full rounded-full bg-[#F2F7FB] origin-center" initial={false} animate={{ scaleX: shown && !away ? 1 : 0 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+                    <motion.span ref={dst} className="inline-block" style={{ y: yv }} initial={false} animate={{ scale: shown ? 1 : 0.5, opacity: shown ? 1 : 0 }} transition={SPRING}>
+                        <Pw b={b}>
+                            <span className="inline-block rounded-[4px] px-[3px] transition-colors duration-500" style={{ backgroundColor: phase === 'gone' ? 'transparent' : KEY }}>
+                                <motion.span key={plus ? 'p' : 'm'} className="inline-block overflow-hidden whitespace-nowrap align-top"
+                                    initial={phase === 'plus' ? { scale: 0.2, opacity: 0 } : false}
+                                    animate={phase === 'gone' ? { opacity: 0, scale: 0, width: 0 } : { opacity: 1, scale: 1 }}
+                                    transition={phase === 'plus' ? { type: 'spring', stiffness: 380, damping: 9 } : { duration: 0.4 }}>
+                                    {plus ? '+' : '−'}
+                                </motion.span>
+                                {n}
+                            </span>
+                        </Pw>
+                    </motion.span>
+                </span>
+            </div>
+            {intro && ip >= 0 && (
+                <MarkSay key="u1" segs={[{ t: 'А если ' }, { t: 'минус уже внизу', c: KEY }, { t: '?' }]}
+                    onDone={() => { setTimeout(() => setIp(1), 600); setTimeout(() => setIp(2), 1700) }} />
+            )}
+            {intro && ip >= 2 && (
+                <MarkSay key="u2" segs={[{ t: 'Тогда он ' }, { t: 'поднимает наверх', c: KEY }]}
+                    onDone={() => setTimeout(() => setIp(3), 600)} />
+            )}
+            {phase === 'idle' && ip >= 3 && (
+                <div className="w-full flex">
+                    <button type="button" className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)} onClick={go}>{label}</button>
+                </div>
+            )}
+        </div>
+    )
+}
+const upFlip = (b: string, n: string, label: string, intro = false) => ({ t: 'custom' as const, render: (done: () => void) => <UpFlipDemo b={b} n={n} label={label} intro={intro} onDone={done} /> })
+
 // Мини-игра «опусти сам»: сначала в ответе только «?», нажимаем «опустить в знаменатель» — сверху прилетает единица,
 // потом выбираем, что осталось внизу. Вариантов мало и они похожи, чтобы внимание не разбегалось.
 const SinkBuild = ({ onDone }: { onDone: () => void }) => {
@@ -407,6 +498,24 @@ export const LOG_NEGATIVE: SceneLesson = {
                 { t: 'say', text: 'Ещё раз, теперь сам' },
                 flip('7', '3', 'Отправить вниз'),
                 { t: 'remember', title: 'ЗАПОМНИ', lines: ['$7^{-3} = \\dfrac{1}{7^3}$', 'Минус в степени — опусти в знаменатель'] },
+            ],
+        },
+        {
+            title: 'Минус меняет этаж', next: 'Минус меняет этаж дроби', parts: [
+                upFlip('7', '3', 'Поднять наверх', true),
+                { t: 'ack', label: 'Понял, снизу — наверх' },
+                { t: 'say', text: 'Лифт ездит в обе стороны' },
+                { t: 'pause', ms: 800 },
+                { t: 'remember', title: 'ЗАПОМНИ', lines: ['$7^{-3} = \\dfrac{1}{7^3}$', '$\\dfrac{1}{7^{-3}} = 7^3$', 'Минус в степени меняет этаж дроби'] },
+                {
+                    t: 'choice', label: 'Во что превратится?', rounds: [
+                        { prompt: '$\\dfrac{1}{2^{-5}} = \\ ?$', options: ['$2^5$', '$\\dfrac{1}{2^5}$', '$-2^5$'], correct: '$2^5$', hint: 'Минус внизу поднимает двойку наверх', ok: '$\\dfrac{1}{2^{-5}} = 2^5$' },
+                        { prompt: '$\\dfrac{3}{5^{-2}} = \\ ?$', options: ['$3 \\cdot 5^2$', '$\\dfrac{3}{5^2}$', '$\\dfrac{5^2}{3}$'], correct: '$3 \\cdot 5^2$', hint: 'Этаж меняет только $5^{-2}$, тройка стоит на месте', ok: '$\\dfrac{3}{5^{-2}} = 3 \\cdot 5^2$' },
+                        { prompt: 'Видишь $\\dfrac{1}{9^{-4}}$. Что делаем?', options: ['Поднимаем наверх', 'Плачем', 'Закрываем тетрадь', 'Звоним маме'], correct: 'Поднимаем наверх', hint: 'Мама тоже скажет: минус внизу, значит наверх', ok: '$\\dfrac{1}{9^{-4}} = 9^4$' },
+                        { prompt: '$\\dfrac{2^{-3}}{5} = \\ ?$', options: ['$\\dfrac{1}{5 \\cdot 2^3}$', '$\\dfrac{2^3}{5}$', '$-\\dfrac{2^3}{5}$'], correct: '$\\dfrac{1}{5 \\cdot 2^3}$', hint: 'Двойка с минусом наверху, значит едет вниз к пятёрке', ok: '$\\dfrac{2^{-3}}{5} = \\dfrac{1}{5 \\cdot 2^3}$' },
+                        { prompt: '$\\dfrac{4^{-2}}{3^{-5}} = \\ ?$', options: ['$\\dfrac{3^5}{4^2}$', '$\\dfrac{4^2}{3^5}$', '$4^2 \\cdot 3^5$'], correct: '$\\dfrac{3^5}{4^2}$', hint: 'Оба с минусом, значит оба меняются этажами', ok: '$\\dfrac{4^{-2}}{3^{-5}} = \\dfrac{3^5}{4^2}$' },
+                    ],
+                },
             ],
         },
         {
