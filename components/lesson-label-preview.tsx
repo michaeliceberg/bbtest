@@ -155,6 +155,25 @@ const NegPowPreview = () => (
     </span>
 )
 
+// «Минус в степени»: 7⁻³ — минус подпрыгивает, рядом дробь 1/7³.
+const MinusPowPreview = () => (
+    <span className="inline-flex items-center text-[20px] font-black leading-none">
+        <span className="inline-flex items-start">7<span className="ml-px text-[0.6em]"><motion.span className="inline-block" animate={{ scale: [1, 1.7, 1], y: [0, 4, 0] }} transition={{ ...LOOP, duration: 1.4 }}>−</motion.span>3</span></span>
+        <span className="mx-1.5">=</span>
+        <span className="inline-block text-center text-[0.7em]"><span className="block border-b-2 border-current px-0.5 pb-0.5">1</span><span className="block px-0.5 pt-0.5">7<sup className="text-[0.65em]" style={{ lineHeight: 0 }}>3</sup></span></span>
+    </span>
+)
+
+// «Дробь в степени»: 5^⅓ = ∛5 — тройки подпрыгивают по очереди.
+const FracPowPreview = () => (
+    <span className="inline-flex items-center text-[20px] font-black leading-none">
+        <span className="inline-flex items-center">5<span className="mb-3 ml-0.5 inline-block text-center text-[0.55em]"><span className="block border-b-2 border-current pb-0.5">1</span><Bounce delay={0} className="pt-0.5">3</Bounce></span></span>
+        <span className="mx-1.5">=</span>
+        <Bounce delay={0.6} className="mb-3 text-[0.55em]">3</Bounce>
+        <span>√</span><span className="border-t-2 border-current">5</span>
+    </span>
+)
+
 const norm = (t: string) => t.trim().toLowerCase().replace(/\?+$/, '')
 const PREVIEWS: Record<string, () => ReactNode> = {
     'что такое логарифм': () => <LogDefPreview />,
@@ -166,6 +185,8 @@ const PREVIEWS: Record<string, () => ReactNode> = {
     'деление логарифмов': () => <LogDivPreview />,
     'к-к-комбо логарифмов': () => <ComboPreview />,
     'перевёртыш': () => <FlipPreview />,
+    'минус в степени': () => <MinusPowPreview />,
+    'дробь в степени': () => <FracPowPreview />,
     'минус и дробь в степенях': () => <NegPowPreview />,
 }
 

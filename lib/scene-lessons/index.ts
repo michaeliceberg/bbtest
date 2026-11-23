@@ -1,5 +1,5 @@
 import type { SceneLesson } from './types'
-import { LOG_NEGATIVE } from './logNegative'
+import { LOG_NEGATIVE, POW_FRAC, POW_MINUS } from './logNegative'
 import { LOG_INEQUALITY } from './logInequality'
 import { PROB_CLASSIC, PROB_COINS, PROB_AND_OR } from './probability'
 import { DERIV_BASIC } from './derivative'
@@ -15,6 +15,6 @@ import { LOG_COMBO } from './logCombo'
 import { LOG_FLIP } from './logFlip'
 
 // Реестр уроков SCENEWALK: ключ — t_challenges.question.
-export const SCENE_LESSONS: SceneLesson[] = [LOG_NEGATIVE, LOG_INEQUALITY, PROB_CLASSIC, PROB_COINS, PROB_AND_OR, DERIV_BASIC, PERCENT_BANK, PROJECTILE_BASIC, LOG_SUM, LOG_DEF, LOG_SUB, LOG_POW, LOG_SWAP, LOG_DIV, LOG_COMBO, LOG_FLIP]
+export const SCENE_LESSONS: SceneLesson[] = [LOG_NEGATIVE, POW_MINUS, POW_FRAC, LOG_INEQUALITY, PROB_CLASSIC, PROB_COINS, PROB_AND_OR, DERIV_BASIC, PERCENT_BANK, PROJECTILE_BASIC, LOG_SUM, LOG_DEF, LOG_SUB, LOG_POW, LOG_SWAP, LOG_DIV, LOG_COMBO, LOG_FLIP]
 export const findSceneLesson = (question: string): SceneLesson =>
     SCENE_LESSONS.find((l) => l.question === question) ?? SCENE_LESSONS[0]

@@ -189,6 +189,9 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
     const nestedExp = round.options.some((o) => /\^\{-?\\d?frac/.test(o))
     const tall = round.options.some((o) => /\\d?frac|\\tfrac|\\sqrt/.test(o))
     const long = round.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
+    // на 375px длинные слова и произведения крупным шрифтом вылезают за плитку
+    const words = round.options.some((o) => !o.includes('$') && o.length > 9)
+    const product = round.options.some((o) => o.includes('\\cdot'))
     return (
         <div className="w-full flex flex-col gap-2">
             {/* номер задания — слева сверху над вопросом, как в других уроках */}
@@ -202,7 +205,7 @@ export const ChoiceGame = ({ rounds, onDone, onRound, onPick: onCorrectPick, opt
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (
                         <button key={o} type="button" disabled={isWrong || done} onClick={() => pick(o)}
-                            className={cn('px-2 rounded-xl border-2 border-b-4 font-black transition-colors flex items-center justify-center', nestedExp ? 'text-4xl' : 'text-3xl', tall ? 'min-h-[112px] py-3' : 'min-h-[68px]',
+                            className={cn('px-2 rounded-xl border-2 border-b-4 font-black transition-colors flex items-center justify-center', nestedExp ? 'text-4xl' : words ? 'text-xl leading-tight' : product ? 'text-2xl' : 'text-3xl', tall ? 'min-h-[112px] py-3' : 'min-h-[68px]',
                                 isRight ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
                                     : isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
                                         : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
