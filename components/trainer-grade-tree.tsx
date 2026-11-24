@@ -723,7 +723,8 @@ export const StagePath = ({
                                         ? <LessonLabelPreview title={s.title} color={unlocked ? accent.button : 'rgba(114,131,141,0.75)'} />
                                         : s.title}
                                 </div>
-                                {s.badge && (
+                                {/* живая картинка уже показывает то же самое — мелкий повтор не нужен */}
+                                {s.badge && !hasLessonPreview(s.title) && (
                                     <div className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.75) : 'rgba(114,131,141,0.6)', textShadow: LABEL_SHADOW }}>
                                         {s.badge.replace(/\s*\n\s*/g, ' ')}
                                     </div>
