@@ -1383,6 +1383,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
             return {
                 questionType: 'VIETA' as const,
+                // одно равенство → оба, корни положительные → корни с минусом → из уравнения (внутри уровня порядок случайный)
+                contentTier: vieta.mode ? 0 : vieta.quadratic ? 3 : vieta.correctRoots.some((r) => r < 0) ? 2 : 1,
                 question: t_challenge.question,
                 imageSrc: t_challenge.imageSrc,
                 options: [],
@@ -1853,7 +1855,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 timeLimit: 25,
             };
         }
-    }).map((q, idx): QuestionType | undefined => q ? { ...crossShuffleConnect(q), contentTier: contentTiers[idx], challengeId: lessonChallenges[idx]?.id, topicSticker: topicStickers[idx] ?? undefined } : q)
+    }).map((q, idx): QuestionType | undefined => q ? { ...crossShuffleConnect(q), contentTier: q.contentTier ?? contentTiers[idx], challengeId: lessonChallenges[idx]?.id, topicSticker: topicStickers[idx] ?? undefined } : q)
       .filter((q): q is QuestionType => q !== undefined);
 
     // Реально увеличиваем число заданий INSERT (явная просьба
