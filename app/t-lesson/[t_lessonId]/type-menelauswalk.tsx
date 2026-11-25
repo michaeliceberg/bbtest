@@ -143,7 +143,7 @@ const ArcLeg = ({ from, to, color, bend, dim }: ArcSpec) => {
     )
 }
 // Слова «вершина / точка» во время путешествия (рядом с буквой, у каждой точки своё место).
-const LETTER_OFF_WIDE: Record<Id, Pt> = { ...LETTER_OFF, D: { x: -38, y: -22 } }
+const LETTER_OFF_WIDE: Record<Id, Pt> = { ...LETTER_OFF, D: { x: -24, y: -16 } }
 const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -46, y: 8 }, E: { x: 52, y: -16 } }
 
 type FigureProps = {
@@ -415,10 +415,22 @@ const VerticesScene = ({ onSettled }: SceneProps) => {
 }
 
 const RoleWord = ({ v }: { v: boolean }) => <span style={{ color: v ? V_COLOR : P_COLOR }}>{v ? 'вершина' : 'точка'}</span>
+// Кусок заклинания, который «вылетает» отскоком, когда на него нужно посмотреть.
+const SpellPiece = ({ on, children }: { on: boolean; children: React.ReactNode }) => (
+    <motion.span className="inline-block" initial={false} animate={on ? { scale: 1, opacity: 1 } : { scale: 0.3, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 12 }}>{children}</motion.span>
+)
 // ===== 3. Заклинание =====
 const SpellScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
-    const W = RoleWord
+    const [step, setStep] = useState(0) // 1 вершина, 2 стрелка, 3 точка, 4 черта дроби, 5 точка, 6 стрелка, 7 вершина
+    useEffect(() => {
+        if (phase !== 2) return
+        if (step < 7) { const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 400 : 800); return () => clearTimeout(t) }
+        const t = setTimeout(next(4), 1100)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, step])
     return (
         <>
             <TypedBig small text="Сама теорема — это волшебное заклинание 🪄" onDone={next(1)} readMs={300} />
@@ -429,12 +441,24 @@ const SpellScene = ({ onSettled }: SceneProps) => {
                     onAnimationComplete={() => setTimeout(next(2), 600)}>
                     <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">Заклинание</div>
                     <div className="text-2xl md:text-3xl font-black text-[#F2F7FB]">
-                        <Frac color={FR_COLORS[0]} num={<><W v /> → <W v={false} /></>} den={<><W v={false} /> → <W v /></>} />
+                        <span className="inline-flex flex-col items-center leading-none">
+                            <span className="px-1.5 pb-1 whitespace-nowrap">
+                                <SpellPiece on={step >= 1}><RoleWord v /></SpellPiece>{' '}
+                                <SpellPiece on={step >= 2}>→</SpellPiece>{' '}
+                                <SpellPiece on={step >= 3}><RoleWord v={false} /></SpellPiece>
+                            </span>
+                            <motion.span className="block w-full h-[3px] rounded-full" style={{ backgroundColor: FR_COLORS[0], originX: 0 }}
+                                initial={false} animate={{ scaleX: step >= 4 ? 1 : 0 }} transition={{ duration: 0.5, ease: 'easeOut' }} />
+                            <span className="px-1.5 pt-1 whitespace-nowrap">
+                                <SpellPiece on={step >= 5}><RoleWord v={false} /></SpellPiece>{' '}
+                                <SpellPiece on={step >= 6}>→</SpellPiece>{' '}
+                                <SpellPiece on={step >= 7}><RoleWord v /></SpellPiece>
+                            </span>
+                        </span>
                     </div>
                 </motion.div>
             )}
-            {phase >= 2 && <PauseThen ms={800} onDone={next(4)} />}
-            {phase >= 4 && <TypedBig small text="Повторяем заклинание 3 раза, пока не вернёмся домой 🏠" onDone={next(5)} readMs={200} />}
+            {phase >= 4 && <TypedBig small text={'Повторяем заклинание 3 раза,\nпока не вернёмся домой 🏠'} onDone={next(5)} readMs={200} />}
             {phase >= 5 && <Spell big slots={[null, null, null, null, null, null]} showOne />}
             {phase >= 5 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </>
@@ -475,6 +499,11 @@ const FlyingLabel = ({ text, color, from, to }: { text: string; color: string; f
         </motion.div>
     )
 }
+// Строка заклинания, на которую сейчас надо смотреть: подпрыгивает.
+const BounceRow = ({ active, children }: { active: boolean; children: React.ReactNode }) => (
+    <motion.span className="inline-block" initial={false} animate={active ? { scale: [1, 1.3, 0.94, 1] } : { scale: 1 }}
+        transition={{ duration: 0.7, ease: 'easeOut' }}>{children}</motion.span>
+)
 const TravelScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
     const boxRef = useRef<HTMLDivElement>(null)
@@ -482,6 +511,7 @@ const TravelScene = ({ onSettled }: SceneProps) => {
     const [leg, setLeg] = useState(0)                    // текущий шаг 0..5 (6 — всё пройдено)
     // стадии шага: 0 слово «откуда», 1 дуга, 2 слово «куда», 3 название стороны, 4 оно летит в дробь, 5 подпись в дроби, 6 ждём кнопку
     const [ls, setLs] = useState(0)
+    const [ring, setRing] = useState(false)
     const [fly, setFly] = useState<{ from: Pt; to: Pt } | null>(null)
     const [words, setWords] = useState<Partial<Record<Id, number>>>({})
     const V_ORDER: Id[] = ['A', 'B', 'C'], P_ORDER: Id[] = ['D', 'E', 'F']
@@ -501,7 +531,9 @@ const TravelScene = ({ onSettled }: SceneProps) => {
         const from = PATH_LEFT[leg], to = PATH_LEFT[leg + 1]
         const go = (n: number, ms: number) => { const t = setTimeout(() => setLs(n), ms); return () => clearTimeout(t) }
         if (ls === 0) {
-            const t1 = setTimeout(() => bounceWord(from), 900), t2 = setTimeout(() => setLs(1), 1900)
+            // 1) строка заклинания подпрыгивает (при смене leg), 2) только потом — слово и кольцо на рисунке, 3) потом дуга
+            setRing(false)
+            const t1 = setTimeout(() => { bounceWord(from); setRing(true) }, 1300), t2 = setTimeout(() => setLs(1), 2700)
             return () => { clearTimeout(t1); clearTimeout(t2) }
         }
         if (ls === 1) return go(2, 1600)
@@ -545,7 +577,7 @@ const TravelScene = ({ onSettled }: SceneProps) => {
                 <DiagramBlock onSettled={() => setTimeout(next(2), 500)}>
                     <Center><Figure wide fill="left" vertices={vShown} points={pShown} letters lettersFor={[...vShown, ...pShown]}
                         arcs={arcs} twords={words} sideLabel={sideLabel}
-                        current={phase >= 5 && leg <= 5 && ls <= 1 ? PATH_LEFT[leg] : null} /></Center>
+                        current={phase >= 5 && leg <= 5 && ls <= 1 && ring ? PATH_LEFT[leg] : null} /></Center>
                 </DiagramBlock>
             )}
             {phase === 3 && <StepButton label="Точки поставили" onClick={next(4)} />}
@@ -557,7 +589,8 @@ const TravelScene = ({ onSettled }: SceneProps) => {
                     <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">Заклинание</div>
                     <div className="text-xl md:text-2xl font-black text-[#F2F7FB]">
                         <Frac color={FR_COLORS[curFrac]} dimNum={leg % 2 === 1} dimDen={leg % 2 === 0}
-                            num={<><RoleWord v /> → <RoleWord v={false} /></>} den={<><RoleWord v={false} /> → <RoleWord v /></>} />
+                            num={<BounceRow key={`n${leg}`} active={leg % 2 === 0}><RoleWord v /> → <RoleWord v={false} /></BounceRow>}
+                            den={<BounceRow key={`d${leg}`} active={leg % 2 === 1}><RoleWord v={false} /> → <RoleWord v /></BounceRow>} />
                     </div>
                 </motion.div>
             )}
