@@ -90,9 +90,11 @@ const Txt = ({ p, children, color = LINE, size = 18 }: { p: Pt; children: React.
         style={{ fontFamily: 'var(--font-nunito), sans-serif', paintOrder: 'stroke', stroke: '#131D22', strokeWidth: 4 }}>{children}</text>
 )
 // Текст/точка с отскоком: позиция на статичном <g>, framer у motion-узла перезаписывает transform.
-const Pop = ({ p, delay = 0, children }: { p: Pt; delay?: number; children: React.ReactNode }) => (
+const Pop = ({ p, delay = 0, strong, children }: { p: Pt; delay?: number; strong?: boolean; children: React.ReactNode }) => (
     <g transform={`translate(${p.x} ${p.y})`}>
-        <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11, delay }}>
+        <motion.g initial={{ scale: 0, opacity: 0 }}
+            animate={strong ? { scale: [0.3, 2, 0.8, 1.25, 1], opacity: 1 } : { scale: 1, opacity: 1 }}
+            transition={strong ? { duration: 0.8, times: [0, 0.3, 0.55, 0.8, 1], ease: 'easeOut', delay } : { type: 'spring', stiffness: 380, damping: 11, delay }}>
             {children}
         </motion.g>
     </g>
@@ -166,8 +168,9 @@ type FigureProps = {
     flash?: { id: Id; ok: boolean } | null
     current?: Id | null
     picked?: Id[]
+    hits?: Partial<Record<Id, number>>   // сколько раз верно нажали на точку: новый hit — сильный отскок
 }
-const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [] }: FigureProps) => {
+const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [], hits = {} }: FigureProps) => {
     const triFill = (which: 'left' | 'right') => {
         const t = which === 'left' ? LEFT : RIGHT
         const on = fill === which
@@ -205,7 +208,7 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
                         {current === id && (
                             <circle cx={p.x} cy={p.y} r={13} fill="none" stroke={LINE} strokeWidth={2.5} className="animate-sel-pulse" />
                         )}
-                        <Pop p={p}><circle r={isV || picked.includes(id) ? 7.5 : 6} fill={color} stroke="#131D22" strokeWidth={2} /></Pop>
+                        <Pop key={`d${id}-${isV || picked.includes(id) ? 1 : 0}-${hits[id] ?? 0}`} p={p} strong={(hits[id] ?? 0) > 0}><circle r={isV || picked.includes(id) ? 7.5 : 6} fill={color} stroke="#131D22" strokeWidth={2} /></Pop>
                     </g>
                 )
             })}
@@ -220,8 +223,8 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
             {letters && IDS.map((id) => {
                 if (lettersFor && !lettersFor.includes(id)) return null
                 const p = PTS[id], o = (wide ? LETTER_OFF_WIDE : LETTER_OFF)[id]
-                const isV = vertices.includes(id)
-                return <Pop key={`l${id}`} p={{ x: p.x + o.x, y: p.y + o.y }}>
+                const isV = vertices.includes(id) || picked.includes(id)
+                return <Pop key={`l${id}-${isV ? 1 : 0}-${hits[id] ?? 0}`} p={{ x: p.x + o.x, y: p.y + o.y }} strong={(hits[id] ?? 0) > 0}>
                     <Txt p={{ x: 0, y: 0 }} size={19} color={isV ? '#D9B8FF' : points.includes(id) ? '#9FE5C9' : LINE}>{id}</Txt>
                 </Pop>
             })}
@@ -631,7 +634,7 @@ const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Верши
 // ===== Тренировка =====
 type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[] }
 const TRIALS: Trial[] = [
-    { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
+    { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми на 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
     { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами. Пройди заклинание — соберём числа' }] },
     { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами. Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
 ]
@@ -660,6 +663,8 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     const [picked, setPicked] = useState<Id[]>(trial.pickFirst ? [] : trial.tri.vertices)
     const [path, setPath] = useState<Id[]>([])
     const [flash, setFlash] = useState<{ id: Id; ok: boolean } | null>(null)
+    const [hits, setHits] = useState<Partial<Record<Id, number>>>({})
+    const hit = (id: Id) => setHits((h) => ({ ...h, [id]: (h[id] ?? 0) + 1 }))
     const [msg, setMsg] = useState<string | null>(null)
     const [mistakes, setMistakes] = useState(0)
     const [walkTyped, setWalkTyped] = useState(!trial.pickFirst)
@@ -676,7 +681,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
         if (picking) {
             if (picked.includes(id)) return
             if (!trial.tri.vertices.includes(id)) { miss(id, 'Это не вершина правого треугольника'); return }
-            setMsg(null); setPicked((p) => [...p, id])
+            setMsg(null); hit(id); setPicked((p) => [...p, id])
             return
         }
         if (!walkTyped) return
@@ -684,7 +689,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
         if (err) { miss(id, err); return }
         setMsg(null)
         const nextPath = [...path, id]
-        setPath(nextPath)
+        hit(id); setPath(nextPath)
         if (nextPath.length === 7) {
             showAnswerMeme(true)
             onSolved(mistakes === 0)
@@ -700,7 +705,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                     vertices={picking ? [] : trial.tri.vertices} points={picking ? [] : pointsOf(trial.tri)}
                     picked={picking ? picked : []}
                     letters lengths={trial.labels} legs={legsOf(path)}
-                    onPick={typed && !done ? click : undefined} flash={flash}
+                    onPick={typed && !done ? click : undefined} flash={flash} hits={hits}
                     current={!picking && path.length > 0 && !done ? path[path.length - 1] : null} />
             </Center>
             <TypedRich small parts={trial.intro} onDone={() => setTyped(true)} readMs={100} />
