@@ -120,7 +120,36 @@ const Leg = ({ from, to, color, instant }: { from: Id; to: Id; color: string; in
     )
 }
 
+// Дуговая стрелка (не вдоль стороны): bend — на сколько пикселей дуга отходит от прямой, + это слева по ходу движения.
+type ArcSpec = { from: Id; to: Id; color: string; bend: number; dim?: boolean }
+const ArcLeg = ({ from, to, color, bend, dim }: ArcSpec) => {
+    const a = PTS[from], b = PTS[to]
+    const len = Math.hypot(b.x - a.x, b.y - a.y)
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len
+    const c = { x: (a.x + b.x) / 2 + uy * 2 * bend, y: (a.y + b.y) / 2 - ux * 2 * bend }
+    const unit = (dx: number, dy: number) => { const l = Math.hypot(dx, dy); return { x: dx / l, y: dy / l } }
+    const t0 = unit(c.x - a.x, c.y - a.y), t1 = unit(b.x - c.x, b.y - c.y)
+    const s0 = { x: a.x + t0.x * 9, y: a.y + t0.y * 9 }
+    const e = { x: b.x - t1.x * 13, y: b.y - t1.y * 13 }
+    const ang = (Math.atan2(t1.y, t1.x) * 180) / Math.PI
+    return (
+        <motion.g initial={false} animate={{ opacity: dim ? 0.3 : 1 }} transition={{ duration: 0.4 }}>
+            <motion.path d={`M ${s0.x} ${s0.y} Q ${c.x} ${c.y} ${e.x} ${e.y}`} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: 'easeInOut' }} />
+            <g transform={`translate(${e.x} ${e.y}) rotate(${ang})`}>
+                <motion.path d="M 4 0 L -8 -7 L -8 7 Z" fill={color} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75, duration: 0.15 }} />
+            </g>
+        </motion.g>
+    )
+}
+// Слова «вершина / точка» во время путешествия (рядом с буквой, у каждой точки своё место).
+const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -36, y: 16 }, E: { x: 30, y: 6 } }
+
 type FigureProps = {
+    wide?: boolean
+    lettersFor?: Id[]
+    arcs?: ArcSpec[]
+    twords?: Partial<Record<Id, number>>   // id → nonce (каждое новое значение — новый отскок)
     fill?: 'left' | 'right' | null
     fillPulse?: boolean
     onPickTri?: (side: 'left' | 'right') => void
@@ -136,7 +165,7 @@ type FigureProps = {
     current?: Id | null
     picked?: Id[]
 }
-const Figure = ({ fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [] }: FigureProps) => {
+const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [] }: FigureProps) => {
     const triFill = (which: 'left' | 'right') => {
         const t = which === 'left' ? LEFT : RIGHT
         const on = fill === which
@@ -150,7 +179,7 @@ const Figure = ({ fill, fillPulse, onPickTri, vertices = [], points = [], words,
         )
     }
     return (
-        <svg viewBox="0 0 300 262" className="w-full max-w-[340px] overflow-visible select-none">
+        <svg viewBox={wide ? '-52 -14 392 306' : '0 0 300 262'} className={cn('w-full overflow-visible select-none', wide ? 'max-w-[460px]' : 'max-w-[340px]')}>
             {/* правый снизу: общая часть кликается как левый (его и просим нажать) */}
             {triFill('right')}
             {triFill('left')}
@@ -158,6 +187,7 @@ const Figure = ({ fill, fillPulse, onPickTri, vertices = [], points = [], words,
                 <line key={a + b} x1={PTS[a].x} y1={PTS[a].y} x2={PTS[b].x} y2={PTS[b].y} stroke={LINE} strokeWidth={3.5} strokeLinecap="round"
                     style={{ pointerEvents: 'none' }} />
             ))}
+            {arcs.map((l, i) => <ArcLeg key={`arc${i}-${l.from}${l.to}`} {...l} />)}
             {legs.map((l, i) => <Leg key={`${i}-${l.from}${l.to}`} {...l} instant={i < instantLegs} />)}
             {lengths.map((s) => (
                 <g key={s.key} style={{ pointerEvents: 'none' }}><Txt p={s.at} size={16} color="#F2C35B">{s.text}</Txt></g>
@@ -186,10 +216,19 @@ const Figure = ({ fill, fillPulse, onPickTri, vertices = [], points = [], words,
                 </Pop>
             })}
             {letters && IDS.map((id) => {
+                if (lettersFor && !lettersFor.includes(id)) return null
                 const p = PTS[id], o = LETTER_OFF[id]
                 const isV = vertices.includes(id)
                 return <Pop key={`l${id}`} p={{ x: p.x + o.x, y: p.y + o.y }}>
                     <Txt p={{ x: 0, y: 0 }} size={19} color={isV ? '#D9B8FF' : points.includes(id) ? '#9FE5C9' : LINE}>{id}</Txt>
+                </Pop>
+            })}
+            {IDS.map((id) => {
+                const n = twords[id]
+                if (n === undefined) return null
+                const p = PTS[id], o = TWORD_OFF[id], isV = LEFT.vertices.includes(id)
+                return <Pop key={`tw${id}-${n}`} p={{ x: p.x + o.x, y: p.y + o.y }}>
+                    <Txt p={{ x: 0, y: 0 }} size={14} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
                 </Pop>
             })}
             {onPick && IDS.map((id) => (
@@ -347,37 +386,82 @@ const slotsOf = (path: Id[], lens?: Record<string, Len>) => Array.from({ length:
     const a = path[i], b = path[i + 1]
     return lens ? lens[segKey(a, b)]?.label ?? '?' : a + b
 })
+const BENDS = [16, 16, -38, -26, 16, 16] // дуги: A→D, D→B, B→F, F→C, C→E, E→A
+const FRAC_DONE_LABELS = ['Первая дробь готова', 'Вторая дробь готова', 'Третья дробь готова']
+const StepButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
+    <motion.div className="w-full" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}>
+        <button type="button" onClick={onClick} className={cn('w-full', walkthroughButtonClass(true))} style={walkthroughButtonStyle(true)}>{label}</button>
+    </motion.div>
+)
 const TravelScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
-    const [legs, setLegs] = useState(0)
+    const [lettersShown, setLettersShown] = useState(0) // 0..6: A,B,C, потом D,E,F
+    const [leg, setLeg] = useState(0)                    // текущий шаг 0..5 (6 — всё пройдено)
+    const [ls, setLs] = useState(0)                      // стадия шага: 0 слово «откуда», 1 дуга, 2 слово «куда», 3 подпись в дроби, 4 ждём кнопку
+    const [words, setWords] = useState<Partial<Record<Id, number>>>({})
+    const V_ORDER: Id[] = ['A', 'B', 'C'], P_ORDER: Id[] = ['D', 'E', 'F']
+    const vShown = V_ORDER.slice(0, Math.min(lettersShown, 3)), pShown = P_ORDER.slice(0, Math.max(0, lettersShown - 3))
+
+    // буквы по очереди: сначала вершины, потом точки
     useEffect(() => {
-        if (phase !== 3) return
-        if (legs < 6) { const t = setTimeout(() => setLegs((n) => n + 1), legs === 0 ? 300 : 1400); return () => clearTimeout(t) }
-        const t = setTimeout(next(4), 900)
+        if (phase !== 2) return
+        if (lettersShown < 6) { const t = setTimeout(() => setLettersShown((n) => n + 1), lettersShown === 3 ? 1100 : 750); return () => clearTimeout(t) }
+        const t = setTimeout(next(3), 600)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, legs])
-    const path = PATH_LEFT.slice(0, legs + 1)
-    const cur = legs >= 1 ? legs - 1 : -1
-    const role = (id: Id) => (LEFT.vertices.includes(id) ? 'вершина' : 'точка')
+    }, [phase, lettersShown])
+
+    const bounceWord = (id: Id) => setWords((w) => ({ ...w, [id]: (w[id] ?? 0) + 1 }))
+    // стадии одного шага
+    useEffect(() => {
+        if (phase < 5 || leg > 5) return
+        const from = PATH_LEFT[leg], to = PATH_LEFT[leg + 1]
+        if (ls === 0) { bounceWord(from); const t = setTimeout(() => setLs(1), 900); return () => clearTimeout(t) }
+        if (ls === 1) { const t = setTimeout(() => setLs(2), 1500); return () => clearTimeout(t) }
+        if (ls === 2) { bounceWord(to); const t = setTimeout(() => setLs(3), 1000); return () => clearTimeout(t) }
+        if (ls === 3) {
+            const t = setTimeout(() => {
+                if (leg % 2 === 0) { setLeg((l) => l + 1); setLs(0) } else setLs(4)
+            }, 1300)
+            return () => clearTimeout(t)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, leg, ls])
+
+    const fractionDone = () => {
+        if (leg >= 5) { setLeg(6); setLs(0); next(6)(); return }
+        setLeg((l) => l + 1); setLs(0)
+    }
+    const filled = leg > 5 ? 6 : ls >= 3 ? leg + 1 : leg
+    const curFrac = Math.min(2, Math.floor(leg / 2))
+    const shownLegs = leg > 5 ? 6 : ls >= 1 ? leg + 1 : leg
+    const arcs: ArcSpec[] = Array.from({ length: shownLegs }, (_, i) => ({
+        from: PATH_LEFT[i], to: PATH_LEFT[i + 1], color: FR_COLORS[Math.floor(i / 2)], bend: BENDS[i], dim: leg <= 5 && Math.floor(i / 2) < curFrac,
+    }))
+    const wordLine = leg <= 5 && phase >= 5 && ls < 4
+        ? `${PATH_LEFT[leg]} → ${PATH_LEFT[leg + 1]}: ${LEFT.vertices.includes(PATH_LEFT[leg]) ? 'вершина' : 'точка'} → ${LEFT.vertices.includes(PATH_LEFT[leg + 1]) ? 'вершина' : 'точка'}`
+        : null
+
     return (
         <>
             <TypedBig small text="Подпишем: вершины A, B, C, а точки D, E, F" onDone={next(1)} readMs={200} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(next(2), 400)}>
-                    <Center><Figure fill="left" vertices={LEFT.vertices} points={pointsOf(LEFT)} letters legs={legsOf(path)}
-                        current={phase >= 3 ? path[path.length - 1] : null} /></Center>
+                <DiagramBlock onSettled={() => setTimeout(next(2), 500)}>
+                    <Center><Figure wide fill="left" vertices={vShown} points={pShown} letters lettersFor={[...vShown, ...pShown]}
+                        arcs={arcs} twords={words} /></Center>
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig small text="Стартуем из вершины A и колдуем!" onDone={next(3)} readMs={300} />}
-            {phase >= 3 && <Spell big slots={slotsOf(path)} showOne={phase >= 4} />}
-            {phase >= 3 && cur >= 0 && phase < 4 && (
-                <motion.div key={cur} className="w-full text-center font-bold text-base md:text-lg"
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ color: FR_COLORS[Math.floor(cur / 2)] }}>
-                    {PATH_LEFT[cur]} → {PATH_LEFT[cur + 1]} · {role(PATH_LEFT[cur])} → {role(PATH_LEFT[cur + 1])}
+            {phase === 3 && <StepButton label="Точки поставили" onClick={next(4)} />}
+            {phase >= 4 && <TypedBig small text="Стартуем из вершины A и колдуем!" onDone={next(5)} readMs={300} />}
+            {phase >= 5 && <Spell big slots={slotsOf(PATH_LEFT.slice(0, filled + 1))} showOne={leg > 5} />}
+            {wordLine && (
+                <motion.div key={leg} className="w-full text-center font-bold text-base md:text-lg"
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ color: FR_COLORS[Math.floor(leg / 2)] }}>
+                    {wordLine}
                 </motion.div>
             )}
-            {phase >= 4 && <TypedBig small text="Вернулись в A — заклинание сработало! Всегда ровно 1 ✨" onDone={() => onSettled?.()} readMs={300} />}
+            {phase >= 5 && leg <= 5 && ls === 4 && <StepButton key={`done${leg}`} label={FRAC_DONE_LABELS[curFrac]} onClick={fractionDone} />}
+            {phase >= 6 && <TypedBig small text="Вернулись в A — заклинание сработало! Всегда ровно 1 ✨" onDone={() => onSettled?.()} readMs={300} />}
         </>
     )
 }
