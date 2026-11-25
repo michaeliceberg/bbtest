@@ -634,11 +634,11 @@ const SCENE_TITLES = ['Картинка', 'Левый или правый', 'В�
 const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
 
 // ===== Тренировка =====
-type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[] }
+type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[]; intro2?: Part[] }
 const TRIALS: Trial[] = [
     { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми на 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
-    { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами. Пройди заклинание — соберём числа' }] },
-    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами. Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
+    { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами' }], intro2: [{ t: 'Пройди заклинание — соберём числа' }] },
+    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами' }], intro2: [{ t: 'Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
 ]
 const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -727,6 +727,10 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     const [anim, setAnim] = useState<null | 'arc' | 'label' | 'fly'>(null)
     const [filled, setFilled] = useState(0)          // сколько шагов уже перенесено в дробь
     const [fly, setFly] = useState<{ from: Pt; to: Pt } | null>(null)
+    const [line2, setLine2] = useState(false)
+    const [tplOn, setTplOn] = useState(false)
+    const [spellOn, setSpellOn] = useState(false)
+    const [tplStage, setTplStage] = useState<'from' | 'to'>('from')
     const [done, setDone] = useState(false)
     const [flash, setFlash] = useState<{ id: Id; ok: boolean } | null>(null)
     const [hits, setHits] = useState<Partial<Record<Id, number>>>({})
@@ -741,6 +745,18 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     const stage: 'from' | 'to' = fromClicked ? 'to' : 'from'
     const lettersMode = !trial.lens
     const plans = planArcs(trial.tri, path)
+    // всё по очереди: текст → заклинание → три дроби
+    useEffect(() => {
+        if (!(walking && walkTyped)) return
+        const t1 = setTimeout(() => setTplOn(true), 500), t2 = setTimeout(() => setSpellOn(true), 1700)
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [walking, walkTyped])
+    // слово «куда» в заклинании отскакивает не сразу после клика, а через паузу
+    useEffect(() => {
+        if (anim || !fromClicked) { setTplStage(anim ? 'to' : 'from'); return }
+        const t = setTimeout(() => setTplStage('to'), 700)
+        return () => clearTimeout(t)
+    }, [fromClicked, anim])
 
     const flashFor = (id: Id, ok: boolean) => { setFlash({ id, ok }); setTimeout(() => setFlash((f) => (f?.id === id ? null : f)), 700) }
     const miss = (id: Id, text: string) => {
@@ -798,7 +814,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
             setPickedP(next)
             return
         }
-        if (!walkTyped) return
+        if (!walkTyped || !spellOn) return
         if (path.length === 0) {
             if (!tri.vertices.includes(id)) { miss(id, 'Начинаем с ВЕРШИНЫ 🟣'); return }
             setMsg(null); hit(id); setPath([id]); setFromClicked(true); return
@@ -834,15 +850,21 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                     onPick={typed && !done && !anim ? click : undefined} flash={flash} hits={hits}
                     current={walking && path.length > 0 && !done && !anim ? path[path.length - 1] : null} />
             </Center>
-            {(pickingV || !trial.pickFirst) && <TypedRich small parts={trial.intro} onDone={() => { setTyped(true); if (!trial.pickFirst) setWalkTyped(true) }} readMs={100} />}
+            {(pickingV || !trial.pickFirst) && (
+                <TypedRich small parts={trial.intro} readMs={250}
+                    onDone={() => { if (trial.intro2) setLine2(true); else { setTyped(true); if (!trial.pickFirst) setWalkTyped(true) } }} />
+            )}
+            {!trial.pickFirst && trial.intro2 && line2 && (
+                <TypedRich small parts={trial.intro2} readMs={250} onDone={() => { setTyped(true); setWalkTyped(true) }} />
+            )}
             {trial.pickFirst && pickingP && (
                 <TypedRich small parts={[{ t: 'А теперь выбери ' }, { t: 'точки', c: P_COLOR }]} onDone={() => setPointsTyped(true)} readMs={100} />
             )}
             {trial.pickFirst && walking && (
                 <TypedRich small parts={[{ t: 'А теперь колдуй' }]} onDone={() => setWalkTyped(true)} readMs={500} />
             )}
-            {showWalkUI && <TrialTemplate leg={Math.min(5, tplLeg)} stage={anim ? 'to' : stage} />}
-            {showWalkUI && <Spell big slots={slotsOf(path.slice(0, filled + 1), trial.lens)} showOne={done} />}
+            {showWalkUI && tplOn && <TrialTemplate leg={Math.min(5, tplLeg)} stage={tplStage} />}
+            {showWalkUI && spellOn && <Spell big slots={slotsOf(path.slice(0, filled + 1), trial.lens)} showOne={done} />}
             {msg && !done && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{msg}</div>}
             {done && trial.lens && (
                 <motion.div className="w-full text-center font-bold text-base md:text-lg text-[#8FA3AE]" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
