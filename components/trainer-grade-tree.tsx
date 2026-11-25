@@ -1031,10 +1031,17 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
         navSet({ title: t.imageSrc === HERO_HALF_CIRCLE ? HERO_HALF_CIRCLE_TITLE.join(' ') : t.title, button: u.button, bottom: u.bottom });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [simple, currentTopicId, topics]);
+    // Запоминаем раздел, в который перешли через меню, — чтобы после выхода из урока вернуться в него,
+    // а не в «последний активный» раздел с сервера.
+    const NAV_KEY = 'trainerNav';
+    const saveNav = (key: string, topicTitle?: string) => {
+        try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ key, topicTitle: topicTitle ?? null })); } catch { /* приватный режим */ }
+    };
     // Переход по меню: переключаем группу и (если указан раздел) докручиваем к его карточке так,
     // чтобы баннер раздела оказался сразу под шапкой, а не под ней.
     const goToGroup = (key: string, topicTitle?: string) => {
         setActiveGroupKey(key);
+        saveNav(key, topicTitle);
         setUnitMenuOpen(false);
         const target = topicTitle ? topics.find((t) => t.title === topicTitle) : undefined;
         setMenuTopicId(target?.id ?? null);
@@ -1079,6 +1086,14 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
     // при переходе к разделу (?topic=) — своя прокрутка: тогда не трогаем.
     useEffect(() => {
         if (!simple || topicParam) return;
+        try {
+            const raw = sessionStorage.getItem(NAV_KEY);
+            const nav = raw ? JSON.parse(raw) as { key: string; topicTitle: string | null } : null;
+            if (nav && renderGroups.some((g) => groupKey(g) === nav.key && !isGroupLocked(g))) {
+                goToGroup(nav.key, nav.topicTitle ?? undefined);
+                return;
+            }
+        } catch { /* нет доступа к sessionStorage */ }
         const t = setTimeout(() => {
             document.querySelector('[data-trainer-pet]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 400);
@@ -1533,7 +1548,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                     key={key}
                                     type="button"
                                     disabled={locked}
-                                    onClick={() => { if (!locked) setActiveGroupKey(key); }}
+                                    onClick={() => { if (!locked) { setActiveGroupKey(key); saveNav(key); } }}
                                     title={locked ? 'Скоро откроется' : undefined}
                                     className={cn("relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors", locked && "opacity-40 cursor-not-allowed")}
                                     style={{ color: isActive ? (cozy ? COZY.darkText : '#FFFFFF') : (cozy ? '#D9C4A3' : '#9AA7B0') }}
