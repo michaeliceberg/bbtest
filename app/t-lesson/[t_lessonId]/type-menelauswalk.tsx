@@ -49,7 +49,7 @@ const PTS: Record<Id, Pt> = {
     F: { x: 280, y: 230 }, D: { x: 70 - 50 / 3, y: 40 + 190 / 3 }, E: { x: 110, y: 135 },
 }
 const LETTER_OFF: Record<Id, Pt> = { A: { x: 0, y: -18 }, B: { x: -12, y: 16 }, C: { x: 0, y: 20 }, F: { x: 12, y: 16 }, D: { x: -17, y: -4 }, E: { x: 10, y: -16 } }
-const WORD_OFF: Record<Id, Pt> = { A: { x: 0, y: -18 }, B: { x: 0, y: 20 }, C: { x: 0, y: 20 }, F: { x: 0, y: 20 }, D: { x: -30, y: -4 }, E: { x: 26, y: -14 } }
+const WORD_OFF: Record<Id, Pt> = { A: { x: 0, y: -18 }, B: { x: 0, y: 20 }, C: { x: 0, y: 20 }, F: { x: 0, y: 20 }, D: { x: -38, y: -4 }, E: { x: 34, y: -14 } }
 const LINES: [Id, Id][] = [['B', 'A'], ['A', 'C'], ['B', 'F'], ['D', 'F']]
 const IDS: Id[] = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -212,7 +212,7 @@ const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onP
                 if (!isV && !isP) return null
                 const p = PTS[id], o = WORD_OFF[id]
                 return <Pop key={`w${id}`} p={{ x: p.x + o.x, y: p.y + o.y }} delay={0.15}>
-                    <Txt p={{ x: 0, y: 0 }} size={12} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
+                    <Txt p={{ x: 0, y: 0 }} size={16} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
                 </Pop>
             })}
             {letters && IDS.map((id) => {
@@ -285,15 +285,63 @@ const useSteps = () => {
     return { phase, setPhase, next }
 }
 const Center = ({ children }: { children: React.ReactNode }) => <div className="w-full flex justify-center">{children}</div>
+// Текст с цветными кусками: печатается кусок за куском.
+type Part = { t: string; c?: string }
+const TypedRich = ({ parts, onDone, readMs = 400, small }: { parts: Part[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
+    const [i, setI] = useState(0)
+    useEffect(() => {
+        if (i < parts.length) return
+        const t = setTimeout(() => onDone?.(), readMs)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [i])
+    return (
+        <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>
+            {parts.slice(0, i).map((p, k) => <span key={k} style={p.c ? { color: p.c } : undefined}>{p.t}</span>)}
+            {i < parts.length && <span key={`cur${i}`} style={parts[i].c ? { color: parts[i].c } : undefined}><Typewriter text={parts[i].t} onDone={() => setI((n) => n + 1)} /></span>}
+        </div>
+    )
+}
+
+// Фигура Менелая, которая рисуется линиями: сначала левый треугольник (3 стороны), потом дополнительная часть.
+const DRAW_SEGS: [Id, Id][] = [['A', 'B'], ['A', 'C'], ['B', 'C'], ['C', 'F'], ['F', 'D']]
+const DrawnFigure = ({ count }: { count: number }) => (
+    <svg viewBox="0 0 300 262" className="w-full max-w-[340px] overflow-visible select-none">
+        {DRAW_SEGS.map(([a, b], i) => count > i ? (
+            <motion.line key={i} x1={PTS[a].x} y1={PTS[a].y} x2={PTS[b].x} y2={PTS[b].y} stroke={LINE} strokeWidth={3.5} strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 0.6, ease: 'easeInOut' }} />
+        ) : null)}
+    </svg>
+)
+const TelegramLogo = () => (
+    <motion.svg viewBox="0 0 24 24" width={72} height={72} initial={{ scale: 0, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 11 }}>
+        <circle cx="12" cy="12" r="11" fill="#FFFFFF" />
+        <path fillRule="evenodd" fill="#2AABEE" d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0Zm5.89 8.22c-.2 2-1.04 6.86-1.47 9.1-.18.95-.54 1.27-.88 1.3-.74.07-1.3-.49-2.02-.96-1.12-.74-1.76-1.2-2.85-1.92-1.26-.83-.44-1.28.27-2.02.19-.19 3.44-3.15 3.5-3.42a.26.26 0 0 0-.06-.23c-.08-.07-.19-.04-.27-.02-.12.03-1.9 1.21-5.36 3.55-.51.35-.97.52-1.38.51-.45-.01-1.32-.26-1.97-.46-.79-.25-1.42-.38-1.36-.8.03-.22.34-.45.94-.69 3.7-1.61 6.17-2.68 7.4-3.19 3.53-1.47 4.26-1.72 4.74-1.73.1 0 .34.03.5.15.13.11.16.25.18.36-.01.07.01.28 0 .42Z" />
+    </motion.svg>
+)
+
 // ===== 0. Картинка =====
 const PictureScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
+    const [count, setCount] = useState(0)
+    useEffect(() => {
+        if (phase !== 1) return
+        if (count < 3) { const t = setTimeout(() => setCount((n) => n + 1), count === 0 ? 300 : 750); return () => clearTimeout(t) }
+        if (count === 3) { const t = setTimeout(() => setCount(4), 1400); return () => clearTimeout(t) }
+        if (count === 4) { const t = setTimeout(() => setCount(5), 800); return () => clearTimeout(t) }
+        const t = setTimeout(next(2), 1000)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, count])
     return (
         <>
-            <TypedBig text="Теорема Менелая 🧙" onDone={next(1)} readMs={300} />
-            {phase >= 1 && <DiagramBlock onSettled={() => setTimeout(next(2), 600)}><Center><Figure /></Center></DiagramBlock>}
-            {phase >= 2 && <TypedBig small text="Вот так она выглядит. Похоже на логотип Telegram ✈️" onDone={next(3)} />}
-            {phase >= 3 && <TypedBig small text="Только вместо чатика здесь — магия 🪄" onDone={() => onSettled?.()} readMs={200} />}
+            <TypedBig text="Теорема Менелая" onDone={next(1)} readMs={300} />
+            {phase >= 1 && <Center><DrawnFigure count={count} /></Center>}
+            {phase >= 2 && <TypedBig small text="Вот так она выглядит. Похоже на логотип Telegram" onDone={next(3)} readMs={500} />}
+            {phase >= 3 && <Center><TelegramLogo /></Center>}
+            {phase >= 3 && <PauseThen ms={1200} onDone={next(4)} />}
+            {phase >= 4 && <TypedBig small text="Только вместо чата здесь — магия" onDone={() => onSettled?.()} readMs={200} />}
         </>
     )
 }
@@ -303,26 +351,31 @@ const ChooseScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
     const [fill, setFill] = useState<'left' | 'right' | null>(null)
     const [wrong, setWrong] = useState(false)
+    // два «блинка»: бам-бам
     useEffect(() => {
-        if (phase !== 1) return
-        const t1 = setTimeout(() => setFill('left'), 300)
-        const t2 = setTimeout(() => setFill('right'), 1700)
-        const t3 = setTimeout(() => { setFill(null); next(2)() }, 3100)
-        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+        if (phase !== 1 && phase !== 3) return
+        const side = phase === 1 ? 'left' : 'right'
+        const ts = [
+            setTimeout(() => setFill(side), 300), setTimeout(() => setFill(null), 800),
+            setTimeout(() => setFill(side), 1200), setTimeout(() => setFill(null), 1700),
+            setTimeout(next(phase + 1), 2100),
+        ]
+        return () => ts.forEach(clearTimeout)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
     const pick = (s: 'left' | 'right') => {
-        if (phase !== 3) return
-        if (s === 'left') { setFill('left'); setWrong(false); showAnswerMeme(true); next(4)() }
+        if (phase !== 5) return
+        if (s === 'left') { setFill('left'); setWrong(false); showAnswerMeme(true); next(6)() }
         else { setFill('right'); setWrong(true); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setTimeout(() => setFill(null), 700) }
     }
     return (
         <>
-            <TypedBig small text="Сначала выбираем ТРЕУГОЛЬНИК: левый или правый" onDone={next(1)} readMs={200} />
-            <Center><Figure fill={fill} fillPulse={phase === 1} onPickTri={phase === 3 ? pick : undefined} /></Center>
-            {phase >= 2 && <TypedBig small text="Нажми на ЛЕВЫЙ 👆" onDone={next(3)} readMs={100} />}
-            {phase === 3 && wrong && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">Это правый 🙃 Левый — тот, что с острой макушкой</div>}
-            {phase >= 4 && <TypedBig small text="Отлично, работаем с ним 👌" onDone={() => onSettled?.()} readMs={200} />}
+            <TypedBig small text="Сначала выбираем ТРЕУГОЛЬНИК: ЛЕВЫЙ" onDone={next(1)} readMs={200} />
+            <Center><Figure fill={fill} onPickTri={phase === 5 ? pick : undefined} /></Center>
+            {phase >= 2 && <TypedBig small text="или ПРАВЫЙ" onDone={next(3)} readMs={200} />}
+            {phase >= 4 && <TypedBig small text="Нажми на ЛЕВЫЙ 👆" onDone={next(5)} readMs={100} />}
+            {phase === 5 && wrong && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">Это правый 🙃 Левый — тот, что с острой макушкой</div>}
+            {phase >= 6 && <TypedBig small text="Отлично, работаем с ним 👌" onDone={() => onSettled?.()} readMs={200} />}
         </>
     )
 }
@@ -334,10 +387,10 @@ const VerticesScene = ({ onSettled }: SceneProps) => {
     const [pShown, setPShown] = useState(0)
     const V: Id[] = ['A', 'B', 'C'], P: Id[] = ['D', 'E', 'F']
     useEffect(() => {
-        if (phase === 1 && vShown < 3) { const t = setTimeout(() => setVShown((n) => n + 1), 650); return () => clearTimeout(t) }
-        if (phase === 1 && vShown >= 3) { const t = setTimeout(next(2), 500); return () => clearTimeout(t) }
-        if (phase === 3 && pShown < 3) { const t = setTimeout(() => setPShown((n) => n + 1), 650); return () => clearTimeout(t) }
-        if (phase === 3 && pShown >= 3) { const t = setTimeout(next(4), 500); return () => clearTimeout(t) }
+        if (phase === 2 && vShown < 3) { const t = setTimeout(() => setVShown((n) => n + 1), 700); return () => clearTimeout(t) }
+        if (phase === 2 && vShown >= 3) { const t = setTimeout(next(3), 800); return () => clearTimeout(t) }
+        if (phase === 4 && pShown < 3) { const t = setTimeout(() => setPShown((n) => n + 1), 700); return () => clearTimeout(t) }
+        if (phase === 4 && pShown >= 3) { const t = setTimeout(next(5), 800); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase, vShown, pShown])
     return (
@@ -345,8 +398,9 @@ const VerticesScene = ({ onSettled }: SceneProps) => {
             <DiagramBlock onSettled={() => setTimeout(next(1), 400)}>
                 <Center><Figure fill="left" vertices={V.slice(0, vShown)} points={P.slice(0, pShown)} words /></Center>
             </DiagramBlock>
-            {phase >= 2 && <TypedBig small text="Его 3 угла — ВЕРШИНЫ" onDone={next(3)} readMs={200} />}
-            {phase >= 4 && <TypedBig small text="А 3 другие точки — просто ТОЧКИ. Итого 3 вершины и 3 точки" onDone={() => onSettled?.()} readMs={300} />}
+            {phase >= 1 && <TypedRich parts={[{ t: 'Его 3 угла — ' }, { t: 'ВЕРШИНЫ', c: V_COLOR }]} onDone={next(2)} readMs={300} />}
+            {phase >= 3 && <TypedRich parts={[{ t: 'А 3 другие точки — просто ' }, { t: 'ТОЧКИ', c: P_COLOR }]} onDone={next(4)} readMs={300} />}
+            {phase >= 5 && <TypedRich parts={[{ t: 'Итого ' }, { t: '3 вершины', c: V_COLOR }, { t: ' и ' }, { t: '3 точки', c: P_COLOR }]} onDone={() => onSettled?.()} readMs={300} />}
         </>
     )
 }
@@ -364,13 +418,13 @@ const SpellScene = ({ onSettled }: SceneProps) => {
                     initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 13 }}
                     onAnimationComplete={() => setTimeout(next(2), 600)}>
                     <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">Заклинание</div>
-                    <div className="text-lg md:text-xl font-black text-[#F2F7FB]">
+                    <div className="text-2xl md:text-3xl font-black text-[#F2F7FB]">
                         <Frac color={FR_COLORS[0]} num={<><W v /> → <W v={false} /></>} den={<><W v={false} /> → <W v /></>} />
                     </div>
                 </motion.div>
             )}
             {phase >= 2 && <PauseThen ms={800} onDone={next(3)} />}
-            {phase >= 3 && <TypedBig small text="Сверху идём из вершины в точку, снизу — из точки в следующую вершину" onDone={next(4)} />}
+            {phase >= 3 && <TypedRich small parts={[{ t: 'Сверху идём из ' }, { t: 'вершины', c: V_COLOR }, { t: ' в ' }, { t: 'точку', c: P_COLOR }, { t: ', снизу — из ' }, { t: 'точки', c: P_COLOR }, { t: ' в следующую ' }, { t: 'вершину', c: V_COLOR }]} onDone={next(4)} />}
             {phase >= 4 && <TypedBig small text="Повторяем 3 раза, пока не вернёмся домой 🏠 И получается ровно 1" onDone={next(5)} readMs={200} />}
             {phase >= 5 && <Spell big slots={[null, null, null, null, null, null]} showOne />}
             {phase >= 5 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
@@ -490,7 +544,7 @@ const SummaryScene = ({ onSettled }: SceneProps) => {
 
 const SCENES = [PictureScene, ChooseScene, VerticesScene, SpellScene, TravelScene, SummaryScene]
 const SCENE_TITLES = ['Картинка', 'Левый или правый', 'Вершины и точки', 'Заклинание', 'Путешествие', 'Шпаргалка']
-const NEXT_LABELS = ['Телега, понял ✈️', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
+const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
 
 // ===== Тренировка =====
 type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: string }
