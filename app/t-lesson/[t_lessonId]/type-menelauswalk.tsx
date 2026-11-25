@@ -168,9 +168,10 @@ type FigureProps = {
     flash?: { id: Id; ok: boolean } | null
     current?: Id | null
     picked?: Id[]
+    pickedP?: Id[]   // выбранные учеником точки (зелёные)
     hits?: Partial<Record<Id, number>>   // сколько раз верно нажали на точку: новый hit — сильный отскок
 }
-const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [], hits = {} }: FigureProps) => {
+const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [], pickedP = [], hits = {} }: FigureProps) => {
     const triFill = (which: 'left' | 'right') => {
         const t = which === 'left' ? LEFT : RIGHT
         const on = fill === which
@@ -199,16 +200,16 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
             ))}
             {IDS.map((id) => {
                 const isV = vertices.includes(id), isP = points.includes(id)
-                if (!isV && !isP && !onPick && !picked.includes(id)) return null
+                if (!isV && !isP && !onPick && !picked.includes(id) && !pickedP.includes(id)) return null
                 const p = PTS[id]
                 const fl = flash?.id === id ? flash : null
-                const color = fl && !fl.ok ? WRONG : isV || picked.includes(id) ? V_COLOR : isP ? P_COLOR : '#8FA3AE'
+                const color = fl && !fl.ok ? WRONG : isV || picked.includes(id) ? V_COLOR : isP || pickedP.includes(id) ? P_COLOR : '#8FA3AE'
                 return (
                     <g key={id} style={{ pointerEvents: 'none' }}>
                         {current === id && (
                             <circle cx={p.x} cy={p.y} r={13} fill="none" stroke={LINE} strokeWidth={2.5} className="animate-sel-pulse" />
                         )}
-                        <Pop key={`d${id}-${isV || picked.includes(id) ? 1 : 0}-${hits[id] ?? 0}`} p={p} strong={(hits[id] ?? 0) > 0}><circle r={isV || picked.includes(id) ? 7.5 : 6} fill={color} stroke="#131D22" strokeWidth={2} /></Pop>
+                        <Pop key={`d${id}-${isV || picked.includes(id) ? 1 : isP || pickedP.includes(id) ? 2 : 0}-${hits[id] ?? 0}`} p={p} strong={(hits[id] ?? 0) > 0}><circle r={isV || picked.includes(id) ? 7.5 : 6} fill={color} stroke="#131D22" strokeWidth={2} /></Pop>
                     </g>
                 )
             })}
@@ -224,8 +225,9 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
                 if (lettersFor && !lettersFor.includes(id)) return null
                 const p = PTS[id], o = (wide ? LETTER_OFF_WIDE : LETTER_OFF)[id]
                 const isV = vertices.includes(id) || picked.includes(id)
-                return <Pop key={`l${id}-${isV ? 1 : 0}-${hits[id] ?? 0}`} p={{ x: p.x + o.x, y: p.y + o.y }} strong={(hits[id] ?? 0) > 0}>
-                    <Txt p={{ x: 0, y: 0 }} size={19} color={isV ? '#D9B8FF' : points.includes(id) ? '#9FE5C9' : LINE}>{id}</Txt>
+                const isPt = points.includes(id) || pickedP.includes(id)
+                return <Pop key={`l${id}-${isV ? 1 : isPt ? 2 : 0}-${hits[id] ?? 0}`} p={{ x: p.x + o.x, y: p.y + o.y }} strong={(hits[id] ?? 0) > 0}>
+                    <Txt p={{ x: 0, y: 0 }} size={19} color={isV ? '#D9B8FF' : isPt ? '#9FE5C9' : LINE}>{id}</Txt>
                 </Pop>
             })}
             {IDS.map((id) => {
@@ -322,10 +324,10 @@ const DrawnFigure = ({ count }: { count: number }) => (
     </svg>
 )
 const TelegramLogo = () => (
-    <motion.svg viewBox="0 0 24 24" width={72} height={72} initial={{ scale: 0, rotate: 0, opacity: 0 }} animate={{ scale: 1, rotate: 180, opacity: 1 }}
+    <motion.svg viewBox="0 0 24 24" width={72} height={72} initial={{ scale: 0, rotate: 0, opacity: 0 }} animate={{ scale: 1, rotate: 200, opacity: 1 }}
         transition={{
             scale: { type: 'spring', stiffness: 300, damping: 11 }, opacity: { duration: 0.2 },
-            // пауза после отскока, потом поворот по часовой на 180° с разгоном и покачиванием в конце
+            // пауза после отскока, потом поворот по часовой на 200° (нижняя сторона логотипа становится горизонтальной) с разгоном и покачиванием в конце
             rotate: { type: 'spring', stiffness: 70, damping: 7, mass: 1.1, delay: 0.9 },
         }}>
         <circle cx="12" cy="12" r="11" fill="#FFFFFF" />
@@ -658,62 +660,189 @@ const checkStep = (tri: Tri, path: Id[], id: Id): string | null => {
     return null
 }
 
+// ===== Тренировка: ученик сам проходит заклинание =====
+const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
+// Дуга для шага from→to: наружу от треугольника; если отрезок накладывается на уже пройденный — с другой стороны.
+const planArcs = (tri: Tri, path: Id[]): { bend: number; label: Pt }[] => {
+    const g = { x: tri.vertices.reduce((s, v) => s + PTS[v].x, 0) / 3, y: tri.vertices.reduce((s, v) => s + PTS[v].y, 0) / 3 }
+    const out: { bend: number; label: Pt }[] = []
+    const sides: Pt[] = []
+    for (let i = 0; i + 1 < path.length; i++) {
+        const a = PTS[path[i]], b = PTS[path[i + 1]]
+        const len = dist(a, b), ux = (b.x - a.x) / len, uy = (b.y - a.y) / len
+        const n = { x: uy, y: -ux }, mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        let sign = (mid.x - g.x) * n.x + (mid.y - g.y) * n.y >= 0 ? 1 : -1
+        let mag = Math.min(40, Math.max(18, len * 0.15))
+        for (let j = 0; j < i; j++) {
+            const c = PTS[path[j]], d = PTS[path[j + 1]]
+            const onLine = (q: Pt) => Math.abs((q.x - a.x) * uy - (q.y - a.y) * ux) < 2
+            if (!onLine(c) || !onLine(d)) continue
+            const pr = (q: Pt) => (q.x - a.x) * ux + (q.y - a.y) * uy
+            const lo = Math.max(0, Math.min(pr(c), pr(d))), hi = Math.min(len, Math.max(pr(c), pr(d)))
+            if (hi - lo > 4) { sign = (sides[j].x * n.x + sides[j].y * n.y) > 0 ? -1 : 1; mag = Math.max(mag, 26) }
+        }
+        const sv = { x: n.x * sign, y: n.y * sign }
+        sides.push(sv)
+        out.push({ bend: sign * mag, label: { x: mid.x + sv.x * (mag + 20), y: mid.y + sv.y * (mag + 20) } })
+    }
+    return out
+}
+// Заклинание-подсказка: подсвечено то, что надо нажать сейчас (слово отскакивает).
+const TrialWord = ({ v, on, bk }: { v: boolean; on: boolean; bk: string }) => (
+    <motion.span key={bk} className="inline-block" initial={false} animate={on ? { opacity: 1, scale: [1, 1.3, 0.94, 1] } : { opacity: 0.25, scale: 1 }}
+        transition={{ duration: 0.7, ease: 'easeOut' }}><RoleWord v={v} /></motion.span>
+)
+const TrialTemplate = ({ leg, stage }: { leg: number; stage: 'from' | 'to' }) => {
+    const row = (r: 0 | 1) => {
+        const active = leg % 2 === r
+        const firstV = r === 0
+        return (
+            <span className="whitespace-nowrap">
+                <TrialWord v={firstV} on={active} bk={`${r}-${leg}-f`} />{' '}
+                <span style={{ opacity: active && stage === 'to' ? 1 : 0.25 }}>→</span>{' '}
+                <TrialWord v={!firstV} on={active && stage === 'to'} bk={`${r}-${leg}-${stage}-t`} />
+            </span>
+        )
+    }
+    return (
+        <motion.div className="w-full flex flex-col items-center gap-1 rounded-2xl border-2 px-3 py-3" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 14 }} style={{ borderColor: 'rgba(232,182,54,0.6)', backgroundColor: '#161F23' }}>
+            <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">Заклинание</div>
+            <div className="text-xl md:text-2xl font-black text-[#F2F7FB]">
+                <Frac color={FR_COLORS[Math.min(2, Math.floor(leg / 2))]} num={row(0)} den={row(1)} />
+            </div>
+        </motion.div>
+    )
+}
+
 const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: () => void; onSolved: (clean: boolean) => void }) => {
+    const boxRef = useRef<HTMLDivElement>(null)
     const [typed, setTyped] = useState(false)
-    const [picked, setPicked] = useState<Id[]>(trial.pickFirst ? [] : trial.tri.vertices)
+    const [pickedV, setPickedV] = useState<Id[]>(trial.pickFirst ? [] : trial.tri.vertices)
+    const [pickedP, setPickedP] = useState<Id[]>(trial.pickFirst ? [] : pointsOf(trial.tri))
+    const [pointsTyped, setPointsTyped] = useState(!trial.pickFirst)
+    const [walkTyped, setWalkTyped] = useState(!trial.pickFirst)
     const [path, setPath] = useState<Id[]>([])
+    const [fromClicked, setFromClicked] = useState(false)
+    const [anim, setAnim] = useState<null | 'arc' | 'label' | 'fly'>(null)
+    const [filled, setFilled] = useState(0)          // сколько шагов уже перенесено в дробь
+    const [fly, setFly] = useState<{ from: Pt; to: Pt } | null>(null)
+    const [done, setDone] = useState(false)
     const [flash, setFlash] = useState<{ id: Id; ok: boolean } | null>(null)
     const [hits, setHits] = useState<Partial<Record<Id, number>>>({})
-    const hit = (id: Id) => setHits((h) => ({ ...h, [id]: (h[id] ?? 0) + 1 }))
     const [msg, setMsg] = useState<string | null>(null)
     const [mistakes, setMistakes] = useState(0)
-    const [walkTyped, setWalkTyped] = useState(!trial.pickFirst)
-    const picking = picked.length < 3
-    const done = path.length === 7
+    const hit = (id: Id) => setHits((h) => ({ ...h, [id]: (h[id] ?? 0) + 1 }))
+    const pickingV = pickedV.length < 3
+    const pickingP = !pickingV && pickedP.length < 3
+    const walking = !pickingV && !pickingP
+    const legsDone = Math.max(0, path.length - 1)
+    const leg = Math.max(0, path.length - 1)
+    const stage: 'from' | 'to' = fromClicked ? 'to' : 'from'
+    const lettersMode = !trial.lens
+    const plans = planArcs(trial.tri, path)
 
     const flashFor = (id: Id, ok: boolean) => { setFlash({ id, ok }); setTimeout(() => setFlash((f) => (f?.id === id ? null : f)), 700) }
     const miss = (id: Id, text: string) => {
         playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); onMistake(); setMistakes((m) => m + 1)
         flashFor(id, false); setMsg(`${pickWrongTryPhrase()} ${text}`)
     }
+
+    // анимация после верного шага: дуга → название стороны → полёт в дробь → подпись в дроби
+    useEffect(() => {
+        if (anim === 'arc') {
+            const t = setTimeout(() => {
+                if (lettersMode) setAnim('label')
+                else finishLeg()
+            }, 1100)
+            return () => clearTimeout(t)
+        }
+        if (anim === 'label') {
+            const t = setTimeout(() => {
+                const box = boxRef.current
+                const src = box?.querySelector('[data-sidelabel]') as Element | null
+                const dst = box?.querySelector(`[data-slot="${legsDone - 1}"]`) as Element | null
+                if (box && src && dst) {
+                    const b = box.getBoundingClientRect(), r1 = src.getBoundingClientRect(), r2 = dst.getBoundingClientRect()
+                    setFly({ from: { x: r1.left + r1.width / 2 - b.left, y: r1.top + r1.height / 2 - b.top }, to: { x: r2.left + r2.width / 2 - b.left, y: r2.top + r2.height / 2 - b.top } })
+                }
+                setAnim('fly')
+            }, 1000)
+            return () => clearTimeout(t)
+        }
+        if (anim === 'fly') {
+            const t = setTimeout(() => { setFly(null); finishLeg() }, 1300)
+            return () => clearTimeout(t)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [anim])
+    const finishLeg = () => {
+        setAnim(null)
+        setFilled(legsDone)
+        if (legsDone === 6) { setDone(true); showAnswerMeme(true); onSolved(mistakes === 0) }
+    }
+
     const click = (id: Id) => {
-        if (!typed || done) return
-        if (picking) {
-            if (picked.includes(id)) return
-            if (!trial.tri.vertices.includes(id)) { miss(id, 'Это не вершина правого треугольника'); return }
-            setMsg(null); hit(id); setPicked((p) => [...p, id])
+        if (!typed || done || anim) return
+        const tri = trial.tri
+        if (pickingV) {
+            if (pickedV.includes(id)) return
+            if (!tri.vertices.includes(id)) { miss(id, 'Это не вершина этого треугольника'); return }
+            setMsg(null); hit(id); setPickedV((p) => [...p, id]); return
+        }
+        if (pickingP) {
+            if (!pointsTyped || pickedP.includes(id)) return
+            if (!pointsOf(tri).includes(id)) { miss(id, 'Это вершина, а нужны ТОЧКИ 🟢'); return }
+            setMsg(null); hit(id)
+            const next = [...pickedP, id]
+            setPickedP(next)
             return
         }
         if (!walkTyped) return
-        const err = checkStep(trial.tri, path, id)
-        if (err) { miss(id, err); return }
-        setMsg(null)
-        const nextPath = [...path, id]
-        hit(id); setPath(nextPath)
-        if (nextPath.length === 7) {
-            showAnswerMeme(true)
-            onSolved(mistakes === 0)
+        if (path.length === 0) {
+            if (!tri.vertices.includes(id)) { miss(id, 'Начинаем с ВЕРШИНЫ 🟣'); return }
+            setMsg(null); hit(id); setPath([id]); setFromClicked(true); return
         }
+        if (!fromClicked) {
+            const last = path[path.length - 1]
+            if (id !== last) { miss(id, `Сначала снова нажми на ${last}: от неё идём дальше`); return }
+            setMsg(null); hit(id); setFromClicked(true); return
+        }
+        const err = checkStep(tri, path, id)
+        if (err) { miss(id, err); return }
+        setMsg(null); hit(id)
+        setPath([...path, id]); setFromClicked(false); setAnim('arc')
     }
+    const arcs: ArcSpec[] = plans.map((pl, i) => ({
+        from: path[i], to: path[i + 1], color: FR_COLORS[Math.floor(i / 2)], bend: pl.bend,
+        dim: !done && Math.floor(i / 2) < Math.floor(Math.max(0, leg - (anim ? 1 : 0)) / 2) && !anim,
+    }))
+    const sideLabel = anim === 'label' && lettersMode && plans[legsDone - 1]
+        ? { text: path[legsDone - 1] + path[legsDone], color: FR_COLORS[Math.floor((legsDone - 1) / 2)], at: plans[legsDone - 1].label, key: `tl${legsDone}` } : null
     const product = trial.lens && done
         ? [0, 1, 2].reduce((acc, k) => acc * trial.lens![segKey(path[2 * k], path[2 * k + 1])].v / trial.lens![segKey(path[2 * k + 1], path[2 * k + 2])].v, 1)
         : 1
+    const showWalkUI = walking && walkTyped
+    const tplLeg = anim ? legsDone - 1 : leg
     return (
-        <>
+        <div ref={boxRef} className="relative w-full flex flex-col gap-4">
             <Center>
-                <Figure fill={trial.tri === LEFT ? 'left' : 'right'}
-                    vertices={picking ? [] : trial.tri.vertices} points={picking ? [] : pointsOf(trial.tri)}
-                    picked={picking ? picked : []}
-                    letters lengths={trial.labels} legs={legsOf(path)}
-                    onPick={typed && !done ? click : undefined} flash={flash} hits={hits}
-                    current={!picking && path.length > 0 && !done ? path[path.length - 1] : null} />
+                <Figure wide fill={trial.tri === LEFT ? 'left' : 'right'}
+                    vertices={walking ? trial.tri.vertices : []} points={walking ? pointsOf(trial.tri) : []}
+                    picked={pickingV || pickingP ? pickedV : []} pickedP={pickingV || pickingP ? pickedP : []}
+                    letters lengths={trial.labels} arcs={arcs} sideLabel={sideLabel}
+                    onPick={typed && !done && !anim ? click : undefined} flash={flash} hits={hits}
+                    current={walking && path.length > 0 && !done && !anim ? path[path.length - 1] : null} />
             </Center>
-            <TypedRich small parts={trial.intro} onDone={() => setTyped(true)} readMs={100} />
-            {!picking && trial.pickFirst && (
-                <TypedRich small onDone={() => setWalkTyped(true)} readMs={100}
-                    parts={[{ t: 'Есть! ' }, { t: 'Вершины B, D, F', c: V_COLOR }, { t: '. Значит ' }, { t: 'A, E, C — точки', c: P_COLOR }, { t: '. Теперь колдуй: нажимай по пути 👆' }]} />
+            {(pickingV || !trial.pickFirst) && <TypedRich small parts={trial.intro} onDone={() => { setTyped(true); if (!trial.pickFirst) setWalkTyped(true) }} readMs={100} />}
+            {trial.pickFirst && pickingP && (
+                <TypedRich small parts={[{ t: 'А теперь выбери ' }, { t: 'точки', c: P_COLOR }]} onDone={() => setPointsTyped(true)} readMs={100} />
             )}
-            {!picking && <Spell big slots={slotsOf(path, trial.lens)} showOne={done} />}
+            {trial.pickFirst && walking && (
+                <TypedRich small parts={[{ t: 'А теперь колдуй' }]} onDone={() => setWalkTyped(true)} readMs={500} />
+            )}
+            {showWalkUI && <TrialTemplate leg={Math.min(5, tplLeg)} stage={anim ? 'to' : stage} />}
+            {showWalkUI && <Spell big slots={slotsOf(path.slice(0, filled + 1), trial.lens)} showOne={done} />}
             {msg && !done && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{msg}</div>}
             {done && trial.lens && (
                 <motion.div className="w-full text-center font-bold text-base md:text-lg text-[#8FA3AE]" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -723,7 +852,8 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                     }).join(' · ')} = {Math.round(product * 100) / 100} ✅
                 </motion.div>
             )}
-        </>
+            {fly && <FlyingLabel key={`tf${legsDone}`} text={path[legsDone - 1] + path[legsDone]} color={FR_COLORS[Math.floor((legsDone - 1) / 2)]} from={fly.from} to={fly.to} />}
+        </div>
     )
 }
 
