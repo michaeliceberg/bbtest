@@ -10,7 +10,7 @@
 // Тренировка: правый треугольник B, D, F (вершины) — путь буквами; потом те же два треугольника с длинами сторон.
 // Конфигурация: D на AB (AD:DB = 1:2), E — середина AC, F на продолжении BC за C (BC = CF), D, E, F на одной прямой.
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { QuestionType } from './page'
 import {
@@ -143,10 +143,12 @@ const ArcLeg = ({ from, to, color, bend, dim }: ArcSpec) => {
     )
 }
 // Слова «вершина / точка» во время путешествия (рядом с буквой, у каждой точки своё место).
-const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -36, y: 16 }, E: { x: 30, y: 6 } }
+const LETTER_OFF_WIDE: Record<Id, Pt> = { ...LETTER_OFF, D: { x: 16, y: -14 } }
+const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -44, y: -2 }, E: { x: 52, y: -16 } }
 
 type FigureProps = {
     wide?: boolean
+    sideLabel?: { text: string; color: string; at: Pt; key: string } | null
     lettersFor?: Id[]
     arcs?: ArcSpec[]
     twords?: Partial<Record<Id, number>>   // id → nonce (каждое новое значение — новый отскок)
@@ -165,7 +167,7 @@ type FigureProps = {
     current?: Id | null
     picked?: Id[]
 }
-const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [] }: FigureProps) => {
+const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [] }: FigureProps) => {
     const triFill = (which: 'left' | 'right') => {
         const t = which === 'left' ? LEFT : RIGHT
         const on = fill === which
@@ -179,7 +181,7 @@ const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onP
         )
     }
     return (
-        <svg viewBox={wide ? '-52 -14 392 306' : '0 0 300 262'} className={cn('w-full overflow-visible select-none', wide ? 'max-w-[460px]' : 'max-w-[340px]')}>
+        <svg viewBox={wide ? '-52 -14 392 322' : '0 0 300 262'} className={cn('w-full overflow-visible select-none', wide ? 'max-w-[460px]' : 'max-w-[340px]')}>
             {/* правый снизу: общая часть кликается как левый (его и просим нажать) */}
             {triFill('right')}
             {triFill('left')}
@@ -217,7 +219,7 @@ const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onP
             })}
             {letters && IDS.map((id) => {
                 if (lettersFor && !lettersFor.includes(id)) return null
-                const p = PTS[id], o = LETTER_OFF[id]
+                const p = PTS[id], o = (wide ? LETTER_OFF_WIDE : LETTER_OFF)[id]
                 const isV = vertices.includes(id)
                 return <Pop key={`l${id}`} p={{ x: p.x + o.x, y: p.y + o.y }}>
                     <Txt p={{ x: 0, y: 0 }} size={19} color={isV ? '#D9B8FF' : points.includes(id) ? '#9FE5C9' : LINE}>{id}</Txt>
@@ -231,6 +233,9 @@ const Figure = ({ wide, lettersFor, arcs = [], twords = {}, fill, fillPulse, onP
                     <Txt p={{ x: 0, y: 0 }} size={14} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
                 </Pop>
             })}
+            {sideLabel && (
+                <g data-sidelabel key={sideLabel.key}><Pop p={sideLabel.at}><Txt p={{ x: 0, y: 0 }} size={20} color={sideLabel.color}>{sideLabel.text}</Txt></Pop></g>
+            )}
             {onPick && IDS.map((id) => (
                 <circle key={`h${id}`} cx={PTS[id].x} cy={PTS[id].y} r={20} fill="transparent" style={{ cursor: 'pointer' }}
                     onClick={() => onPick(id)} />
@@ -247,16 +252,16 @@ const Frac = ({ num, den, color, dimNum, dimDen }: { num: React.ReactNode; den: 
         <span className={cn('px-1.5 pt-1 transition-opacity', dimDen && 'opacity-30')}>{den}</span>
     </span>
 )
-const Slot = ({ text, color }: { text: string | null; color: string }) => text === null
-    ? <span className="text-[#5C6B73]">?</span>
-    : <motion.span key={text} initial={{ scale: 0.3, y: -16, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+const Slot = ({ text, color, idx }: { text: string | null; color: string; idx?: number }) => text === null
+    ? <span data-slot={idx} className="text-[#5C6B73]">?</span>
+    : <motion.span data-slot={idx} key={text} initial={{ scale: 0.3, y: -16, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color }} className="inline-block whitespace-nowrap">{text}</motion.span>
 const Spell = ({ slots, showOne, big }: { slots: (string | null)[]; showOne?: boolean; big?: boolean }) => (
     <div className={cn('w-full flex items-center justify-center flex-wrap font-black text-[#F2F7FB]', big ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl')}>
         {[0, 1, 2].map((k) => (
             <Fragment key={k}>
                 {k > 0 && <span className="mx-1 text-[#8FA3AE]">·</span>}
-                <Frac color={FR_COLORS[k]} num={<Slot text={slots[2 * k]} color={FR_COLORS[k]} />} den={<Slot text={slots[2 * k + 1]} color={FR_COLORS[k]} />} />
+                <Frac color={FR_COLORS[k]} num={<Slot idx={2 * k} text={slots[2 * k]} color={FR_COLORS[k]} />} den={<Slot idx={2 * k + 1} text={slots[2 * k + 1]} color={FR_COLORS[k]} />} />
             </Fragment>
         ))}
         {showOne && (
@@ -314,8 +319,12 @@ const DrawnFigure = ({ count }: { count: number }) => (
     </svg>
 )
 const TelegramLogo = () => (
-    <motion.svg viewBox="0 0 24 24" width={72} height={72} initial={{ scale: 0, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 11 }}>
+    <motion.svg viewBox="0 0 24 24" width={72} height={72} initial={{ scale: 0, rotate: 0, opacity: 0 }} animate={{ scale: 1, rotate: 180, opacity: 1 }}
+        transition={{
+            scale: { type: 'spring', stiffness: 300, damping: 11 }, opacity: { duration: 0.2 },
+            // пауза после отскока, потом поворот по часовой на 180° с разгоном и покачиванием в конце
+            rotate: { type: 'spring', stiffness: 70, damping: 7, mass: 1.1, delay: 0.9 },
+        }}>
         <circle cx="12" cy="12" r="11" fill="#FFFFFF" />
         <path fillRule="evenodd" fill="#2AABEE" d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0Zm5.89 8.22c-.2 2-1.04 6.86-1.47 9.1-.18.95-.54 1.27-.88 1.3-.74.07-1.3-.49-2.02-.96-1.12-.74-1.76-1.2-2.85-1.92-1.26-.83-.44-1.28.27-2.02.19-.19 3.44-3.15 3.5-3.42a.26.26 0 0 0-.06-.23c-.08-.07-.19-.04-.27-.02-.12.03-1.9 1.21-5.36 3.55-.51.35-.97.52-1.38.51-.45-.01-1.32-.26-1.97-.46-.79-.25-1.42-.38-1.36-.8.03-.22.34-.45.94-.69 3.7-1.61 6.17-2.68 7.4-3.19 3.53-1.47 4.26-1.72 4.74-1.73.1 0 .34.03.5.15.13.11.16.25.18.36-.01.07.01.28 0 .42Z" />
     </motion.svg>
@@ -423,9 +432,8 @@ const SpellScene = ({ onSettled }: SceneProps) => {
                     </div>
                 </motion.div>
             )}
-            {phase >= 2 && <PauseThen ms={800} onDone={next(3)} />}
-            {phase >= 3 && <TypedRich small parts={[{ t: 'Сверху идём из ' }, { t: 'вершины', c: V_COLOR }, { t: ' в ' }, { t: 'точку', c: P_COLOR }, { t: ', снизу — из ' }, { t: 'точки', c: P_COLOR }, { t: ' в следующую ' }, { t: 'вершину', c: V_COLOR }]} onDone={next(4)} />}
-            {phase >= 4 && <TypedBig small text="Повторяем 3 раза, пока не вернёмся домой 🏠 И получается ровно 1" onDone={next(5)} readMs={200} />}
+            {phase >= 2 && <PauseThen ms={800} onDone={next(4)} />}
+            {phase >= 4 && <TypedBig small text="Повторяем заклинание 3 раза, пока не вернёмся домой 🏠" onDone={next(5)} readMs={200} />}
             {phase >= 5 && <Spell big slots={[null, null, null, null, null, null]} showOne />}
             {phase >= 5 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </>
@@ -440,23 +448,44 @@ const slotsOf = (path: Id[], lens?: Record<string, Len>) => Array.from({ length:
     const a = path[i], b = path[i + 1]
     return lens ? lens[segKey(a, b)]?.label ?? '?' : a + b
 })
-const BENDS = [16, 16, -38, -26, 16, 16] // дуги: A→D, D→B, B→F, F→C, C→E, E→A
+const BENDS = [-18, -18, -38, -26, -16, -16] // дуги снаружи треугольника: A→D, D→B, B→F, F→C, C→E, E→A
+// где у стороны подписывается её название (снаружи), откуда оно улетает в дробь
+const SIDE_LABEL_AT: Pt[] = [{ x: 19, y: 61 }, { x: -2, y: 160 }, { x: 150, y: 292 }, { x: 222, y: 172 }, { x: 173, y: 191 }, { x: 132, y: 98 }]
 const FRAC_DONE_LABELS = ['Первая дробь готова', 'Вторая дробь готова', 'Третья дробь готова']
 const StepButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
     <motion.div className="w-full" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}>
         <button type="button" onClick={onClick} className={cn('w-full', walkthroughButtonClass(true))} style={walkthroughButtonStyle(true)}>{label}</button>
     </motion.div>
 )
+// Название отрезка летит из рисунка в дробь: по дуге слева, потом вниз.
+const FlyingLabel = ({ text, color, from, to }: { text: string; color: string; from: Pt; to: Pt }) => {
+    const N = 14
+    const xs: number[] = [], ys: number[] = []
+    for (let i = 0; i <= N; i++) {
+        const p = i / N
+        xs.push(from.x + (to.x - from.x) * p - 70 * 4 * p * (1 - p))
+        ys.push(from.y + (to.y - from.y) * p)
+    }
+    return (
+        <motion.div className="absolute z-20 font-black text-2xl pointer-events-none" style={{ left: 0, top: 0, color }}
+            initial={{ x: xs[0], y: ys[0] }} animate={{ x: xs, y: ys, scale: [1, 1.3, 1, 1] }}
+            transition={{ duration: 1.2, ease: 'easeInOut' }}>
+            <span className="inline-block -translate-x-1/2 -translate-y-1/2">{text}</span>
+        </motion.div>
+    )
+}
 const TravelScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
+    const boxRef = useRef<HTMLDivElement>(null)
     const [lettersShown, setLettersShown] = useState(0) // 0..6: A,B,C, потом D,E,F
     const [leg, setLeg] = useState(0)                    // текущий шаг 0..5 (6 — всё пройдено)
-    const [ls, setLs] = useState(0)                      // стадия шага: 0 слово «откуда», 1 дуга, 2 слово «куда», 3 подпись в дроби, 4 ждём кнопку
+    // стадии шага: 0 слово «откуда», 1 дуга, 2 слово «куда», 3 название стороны, 4 оно летит в дробь, 5 подпись в дроби, 6 ждём кнопку
+    const [ls, setLs] = useState(0)
+    const [fly, setFly] = useState<{ from: Pt; to: Pt } | null>(null)
     const [words, setWords] = useState<Partial<Record<Id, number>>>({})
     const V_ORDER: Id[] = ['A', 'B', 'C'], P_ORDER: Id[] = ['D', 'E', 'F']
     const vShown = V_ORDER.slice(0, Math.min(lettersShown, 3)), pShown = P_ORDER.slice(0, Math.max(0, lettersShown - 3))
 
-    // буквы по очереди: сначала вершины, потом точки
     useEffect(() => {
         if (phase !== 2) return
         if (lettersShown < 6) { const t = setTimeout(() => setLettersShown((n) => n + 1), lettersShown === 3 ? 1100 : 750); return () => clearTimeout(t) }
@@ -466,17 +495,28 @@ const TravelScene = ({ onSettled }: SceneProps) => {
     }, [phase, lettersShown])
 
     const bounceWord = (id: Id) => setWords((w) => ({ ...w, [id]: (w[id] ?? 0) + 1 }))
-    // стадии одного шага
     useEffect(() => {
         if (phase < 5 || leg > 5) return
         const from = PATH_LEFT[leg], to = PATH_LEFT[leg + 1]
-        if (ls === 0) { bounceWord(from); const t = setTimeout(() => setLs(1), 900); return () => clearTimeout(t) }
-        if (ls === 1) { const t = setTimeout(() => setLs(2), 1500); return () => clearTimeout(t) }
-        if (ls === 2) { bounceWord(to); const t = setTimeout(() => setLs(3), 1000); return () => clearTimeout(t) }
-        if (ls === 3) {
-            const t = setTimeout(() => {
-                if (leg % 2 === 0) { setLeg((l) => l + 1); setLs(0) } else setLs(4)
-            }, 1300)
+        const go = (n: number, ms: number) => { const t = setTimeout(() => setLs(n), ms); return () => clearTimeout(t) }
+        if (ls === 0) { bounceWord(from); return go(1, 1000) }
+        if (ls === 1) return go(2, 1600)
+        if (ls === 2) { bounceWord(to); return go(3, 1000) }
+        if (ls === 3) return go(4, 1500)
+        if (ls === 4) {
+            // меряем, откуда и куда лететь
+            const box = boxRef.current
+            const src = box?.querySelector('[data-sidelabel]') as Element | null
+            const dst = box?.querySelector(`[data-slot="${leg}"]`) as Element | null
+            if (box && src && dst) {
+                const b = box.getBoundingClientRect(), r1 = src.getBoundingClientRect(), r2 = dst.getBoundingClientRect()
+                setFly({ from: { x: r1.left + r1.width / 2 - b.left, y: r1.top + r1.height / 2 - b.top }, to: { x: r2.left + r2.width / 2 - b.left, y: r2.top + r2.height / 2 - b.top } })
+            }
+            const t = setTimeout(() => { setFly(null); setLs(5) }, 1250)
+            return () => clearTimeout(t)
+        }
+        if (ls === 5) {
+            const t = setTimeout(() => { if (leg % 2 === 0) { setLeg((l) => l + 1); setLs(0) } else setLs(6) }, 1300)
             return () => clearTimeout(t)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -486,23 +526,26 @@ const TravelScene = ({ onSettled }: SceneProps) => {
         if (leg >= 5) { setLeg(6); setLs(0); next(6)(); return }
         setLeg((l) => l + 1); setLs(0)
     }
-    const filled = leg > 5 ? 6 : ls >= 3 ? leg + 1 : leg
+    const filled = leg > 5 ? 6 : ls >= 5 ? leg + 1 : leg
     const curFrac = Math.min(2, Math.floor(leg / 2))
     const shownLegs = leg > 5 ? 6 : ls >= 1 ? leg + 1 : leg
     const arcs: ArcSpec[] = Array.from({ length: shownLegs }, (_, i) => ({
         from: PATH_LEFT[i], to: PATH_LEFT[i + 1], color: FR_COLORS[Math.floor(i / 2)], bend: BENDS[i], dim: leg <= 5 && Math.floor(i / 2) < curFrac,
     }))
-    const wordLine = leg <= 5 && phase >= 5 && ls < 4
+    const sideLabel = leg <= 5 && phase >= 5 && (ls === 3 || ls === 4) && !fly
+        ? { text: PATH_LEFT[leg] + PATH_LEFT[leg + 1], color: FR_COLORS[curFrac], at: SIDE_LABEL_AT[leg], key: `sl${leg}` } : null
+    const wordLine = leg <= 5 && phase >= 5 && ls < 5
         ? `${PATH_LEFT[leg]} → ${PATH_LEFT[leg + 1]}: ${LEFT.vertices.includes(PATH_LEFT[leg]) ? 'вершина' : 'точка'} → ${LEFT.vertices.includes(PATH_LEFT[leg + 1]) ? 'вершина' : 'точка'}`
         : null
 
     return (
-        <>
+        <div ref={boxRef} className="relative w-full flex flex-col gap-4">
             <TypedBig small text="Подпишем: вершины A, B, C, а точки D, E, F" onDone={next(1)} readMs={200} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(next(2), 500)}>
                     <Center><Figure wide fill="left" vertices={vShown} points={pShown} letters lettersFor={[...vShown, ...pShown]}
-                        arcs={arcs} twords={words} /></Center>
+                        arcs={arcs} twords={words} sideLabel={sideLabel}
+                        current={phase >= 5 && leg <= 5 && ls <= 1 ? PATH_LEFT[leg] : null} /></Center>
                 </DiagramBlock>
             )}
             {phase === 3 && <StepButton label="Точки поставили" onClick={next(4)} />}
@@ -514,9 +557,10 @@ const TravelScene = ({ onSettled }: SceneProps) => {
                     {wordLine}
                 </motion.div>
             )}
-            {phase >= 5 && leg <= 5 && ls === 4 && <StepButton key={`done${leg}`} label={FRAC_DONE_LABELS[curFrac]} onClick={fractionDone} />}
+            {phase >= 5 && leg <= 5 && ls === 6 && <StepButton key={`done${leg}`} label={FRAC_DONE_LABELS[curFrac]} onClick={fractionDone} />}
             {phase >= 6 && <TypedBig small text="Вернулись в A — заклинание сработало! Всегда ровно 1 ✨" onDone={() => onSettled?.()} readMs={300} />}
-        </>
+            {fly && <FlyingLabel key={`fl${leg}`} text={PATH_LEFT[leg] + PATH_LEFT[leg + 1]} color={FR_COLORS[curFrac]} from={fly.from} to={fly.to} />}
+        </div>
     )
 }
 
