@@ -59,7 +59,17 @@ const RIGHT: Tri = { vertices: ['B', 'D', 'F'], fill: RIGHT_FILL, sides: [{ ends
 const pointsOf = (t: Tri) => IDS.filter((i) => !t.vertices.includes(i))
 const sideOfPoint = (t: Tri, p: Id) => t.sides.find((s) => s.point === p)!.ends
 
-const poly = (ids: Id[]) => ids.map((i) => `${PTS[i].x.toFixed(1)},${PTS[i].y.toFixed(1)}`).join(' ')
+// Поворот всей фигуры (для «непривычных» заданий): вокруг центра рисунка (150, 135)
+type Pts = Record<Id, Pt>
+const rotPts = (deg: 0 | 90 | 180): Pts => {
+    if (deg === 0) return PTS
+    const out = {} as Pts
+    for (const id of IDS_ALL) out[id] = rotPt(PTS[id], deg)
+    return out
+}
+const rotPt = (p: Pt, deg: 0 | 90 | 180): Pt => deg === 0 ? p : deg === 180 ? { x: 300 - p.x, y: 270 - p.y } : { x: 285 - p.y, y: p.x + 15 }
+const IDS_ALL: Id[] = ['A', 'B', 'C', 'D', 'E', 'F']
+const poly = (ids: Id[], pts: Pts = PTS) => ids.map((i) => `${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`).join(' ')
 const segKey = (a: Id, b: Id) => [a, b].sort().join('')
 
 // Длины для «числовых» заданий (у каждого задания свои подписи; каждое по Менелаю сходится к 1).
@@ -83,6 +93,25 @@ const LABELS_RIGHT: SegLabel[] = [
     { key: 'AD', text: '2', at: { x: 50, y: 66 } }, { key: 'BD', text: '4', at: { x: 26, y: 166 } },
     { key: 'DE', text: '2', at: { x: 80, y: 108 } }, { key: 'EF', text: '6', at: { x: 198, y: 168 } },
     { key: 'BC', text: '5', at: { x: 85, y: 249 } }, { key: 'CF', text: '5', at: { x: 215, y: 249 } },
+]
+// Вторые наборы чисел (для перевёрнутых заданий) — те же пропорции фигуры, другие длины
+const LEN_LEFT2: Record<string, Len> = {
+    AD: { label: '3', v: 3 }, BD: { label: '6', v: 6 }, BF: { label: '4 + 4', v: 8 }, CF: { label: '4', v: 4 },
+    CE: { label: '5', v: 5 }, AE: { label: '5', v: 5 },
+}
+const LABELS_LEFT2: SegLabel[] = [
+    { key: 'AD', text: '3', at: { x: 50, y: 66 } }, { key: 'BD', text: '6', at: { x: 26, y: 166 } },
+    { key: 'BC', text: '4', at: { x: 85, y: 249 } }, { key: 'CF', text: '4', at: { x: 215, y: 249 } },
+    { key: 'CE', text: '5', at: { x: 143, y: 186 } }, { key: 'AE', text: '5', at: { x: 102, y: 78 } },
+]
+const LEN_RIGHT2: Record<string, Len> = {
+    AB: { label: '6 + 3', v: 9 }, AD: { label: '3', v: 3 }, DE: { label: '3', v: 3 }, EF: { label: '9', v: 9 },
+    CF: { label: '4', v: 4 }, BC: { label: '4', v: 4 },
+}
+const LABELS_RIGHT2: SegLabel[] = [
+    { key: 'AD', text: '3', at: { x: 50, y: 66 } }, { key: 'BD', text: '6', at: { x: 26, y: 166 } },
+    { key: 'DE', text: '3', at: { x: 80, y: 108 } }, { key: 'EF', text: '9', at: { x: 198, y: 168 } },
+    { key: 'BC', text: '4', at: { x: 85, y: 249 } }, { key: 'CF', text: '4', at: { x: 215, y: 249 } },
 ]
 
 const Txt = ({ p, children, color = LINE, size = 18 }: { p: Pt; children: React.ReactNode; color?: string; size?: number }) => (
@@ -123,9 +152,9 @@ const Leg = ({ from, to, color, instant }: { from: Id; to: Id; color: string; in
 }
 
 // Дуговая стрелка (не вдоль стороны): bend — на сколько пикселей дуга отходит от прямой, + это слева по ходу движения.
-type ArcSpec = { from: Id; to: Id; color: string; bend: number; dim?: boolean }
-const ArcLeg = ({ from, to, color, bend, dim }: ArcSpec) => {
-    const a = PTS[from], b = PTS[to]
+type ArcSpec = { from: Id; to: Id; color: string; bend: number; dim?: boolean; pts?: Pts }
+const ArcLeg = ({ from, to, color, bend, dim, pts = PTS }: ArcSpec) => {
+    const a = pts[from], b = pts[to]
     const len = Math.hypot(b.x - a.x, b.y - a.y)
     const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len
     const c = { x: (a.x + b.x) / 2 + uy * 2 * bend, y: (a.y + b.y) / 2 - ux * 2 * bend }
@@ -168,15 +197,18 @@ type FigureProps = {
     flash?: { id: Id; ok: boolean } | null
     current?: Id | null
     picked?: Id[]
+    rot?: 0 | 90 | 180
+    dimLabels?: string[]   // ключи подписей длин, которые стали бледными (число улетело в дробь)
     pickedP?: Id[]   // выбранные учеником точки (зелёные)
     hits?: Partial<Record<Id, number>>   // сколько раз верно нажали на точку: новый hit — сильный отскок
 }
-const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [], pickedP = [], hits = {} }: FigureProps) => {
+const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fillPulse, onPickTri, vertices = [], points = [], words, letters, legs = [], instantLegs = 0, lengths = [], onPick, flash, current, picked = [], pickedP = [], hits = {}, rot = 0, dimLabels = [] }: FigureProps) => {
+    const P = rotPts(rot)
     const triFill = (which: 'left' | 'right') => {
         const t = which === 'left' ? LEFT : RIGHT
         const on = fill === which
         return (
-            <motion.polygon key={which} points={poly(t.vertices)} fill={t.fill}
+            <motion.polygon key={which} points={poly(t.vertices, P)} fill={t.fill}
                 style={{ cursor: onPickTri ? 'pointer' : undefined }}
                 onClick={onPickTri ? () => onPickTri(which) : undefined}
                 initial={false}
@@ -190,18 +222,18 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
             {triFill('right')}
             {triFill('left')}
             {LINES.map(([a, b]) => (
-                <line key={a + b} x1={PTS[a].x} y1={PTS[a].y} x2={PTS[b].x} y2={PTS[b].y} stroke={LINE} strokeWidth={3.5} strokeLinecap="round"
+                <line key={a + b} x1={P[a].x} y1={P[a].y} x2={P[b].x} y2={P[b].y} stroke={LINE} strokeWidth={3.5} strokeLinecap="round"
                     style={{ pointerEvents: 'none' }} />
             ))}
-            {arcs.map((l, i) => <ArcLeg key={`arc${i}-${l.from}${l.to}`} {...l} />)}
+            {arcs.map((l, i) => <ArcLeg key={`arc${i}-${l.from}${l.to}`} {...l} pts={P} />)}
             {legs.map((l, i) => <Leg key={`${i}-${l.from}${l.to}`} {...l} instant={i < instantLegs} />)}
             {lengths.map((s) => (
-                <g key={s.key} style={{ pointerEvents: 'none' }}><Txt p={s.at} size={16} color="#F2C35B">{s.text}</Txt></g>
+                <g key={s.key} data-lenlabel={s.key} style={{ pointerEvents: 'none', opacity: dimLabels.includes(s.key) ? 0.25 : 1, transition: 'opacity 0.4s' }}><Txt p={rotPt(s.at, rot)} size={16} color="#F2C35B">{s.text}</Txt></g>
             ))}
             {IDS.map((id) => {
                 const isV = vertices.includes(id), isP = points.includes(id)
                 if (!isV && !isP && !onPick && !picked.includes(id) && !pickedP.includes(id)) return null
-                const p = PTS[id]
+                const p = P[id]
                 const fl = flash?.id === id ? flash : null
                 const color = fl && !fl.ok ? WRONG : isV || picked.includes(id) ? V_COLOR : isP || pickedP.includes(id) ? P_COLOR : '#8FA3AE'
                 return (
@@ -216,14 +248,14 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
             {words && IDS.map((id) => {
                 const isV = vertices.includes(id), isP = points.includes(id)
                 if (!isV && !isP) return null
-                const p = PTS[id], o = WORD_OFF[id]
+                const p = P[id], o = WORD_OFF[id]
                 return <Pop key={`w${id}`} p={{ x: p.x + o.x, y: p.y + o.y }} delay={0.15}>
                     <Txt p={{ x: 0, y: 0 }} size={16} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
                 </Pop>
             })}
             {letters && IDS.map((id) => {
                 if (lettersFor && !lettersFor.includes(id)) return null
-                const p = PTS[id], o = (wide ? LETTER_OFF_WIDE : LETTER_OFF)[id]
+                const p = P[id], o = (wide ? LETTER_OFF_WIDE : LETTER_OFF)[id]
                 const isV = vertices.includes(id) || picked.includes(id)
                 const isPt = points.includes(id) || pickedP.includes(id)
                 return <Pop key={`l${id}-${isV ? 1 : isPt ? 2 : 0}-${hits[id] ?? 0}`} p={{ x: p.x + o.x, y: p.y + o.y }} strong={(hits[id] ?? 0) > 0}>
@@ -233,7 +265,7 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
             {IDS.map((id) => {
                 const n = twords[id]
                 if (n === undefined) return null
-                const p = PTS[id], o = TWORD_OFF[id], isV = LEFT.vertices.includes(id)
+                const p = P[id], o = TWORD_OFF[id], isV = LEFT.vertices.includes(id)
                 return <Pop key={`tw${id}-${n}`} p={{ x: p.x + o.x, y: p.y + o.y }}>
                     <Txt p={{ x: 0, y: 0 }} size={14} color={isV ? V_COLOR : P_COLOR}>{isV ? 'вершина' : 'точка'}</Txt>
                 </Pop>
@@ -242,7 +274,7 @@ const Figure = ({ wide, sideLabel, lettersFor, arcs = [], twords = {}, fill, fil
                 <g data-sidelabel key={sideLabel.key}><Pop p={sideLabel.at}><Txt p={{ x: 0, y: 0 }} size={20} color={sideLabel.color}>{sideLabel.text}</Txt></Pop></g>
             )}
             {onPick && IDS.map((id) => (
-                <circle key={`h${id}`} cx={PTS[id].x} cy={PTS[id].y} r={20} fill="transparent" style={{ cursor: 'pointer' }}
+                <circle key={`h${id}`} cx={P[id].x} cy={P[id].y} r={20} fill="transparent" style={{ cursor: 'pointer' }}
                     onClick={() => onPick(id)} />
             ))}
         </svg>
@@ -634,11 +666,15 @@ const SCENE_TITLES = ['Картинка', 'Левый или правый', 'В�
 const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
 
 // ===== Тренировка =====
-type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[]; intro2?: Part[] }
+type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[]; intro2?: Part[]; rot?: 0 | 90 | 180; noHint?: boolean }
 const TRIALS: Trial[] = [
     { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми на 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
     { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами' }], intro2: [{ t: 'Пройди заклинание — соберём числа' }] },
     { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами' }], intro2: [{ t: 'Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
+    { tag: 'Фигура вверх ногами', tri: LEFT, mode: 'numbers', pickFirst: true, lens: LEN_LEFT2, labels: LABELS_LEFT2, rot: 180,
+        intro: [{ t: 'Фигура перевёрнута' }], intro2: [{ t: 'Нажми на 3 ' }, { t: 'вершины', c: V_COLOR }, { t: ' закрашенного треугольника' }] },
+    { tag: 'Фигура набок, без подсказки', tri: RIGHT, mode: 'numbers', pickFirst: true, lens: LEN_RIGHT2, labels: LABELS_RIGHT2, rot: 90, noHint: true,
+        intro: [{ t: 'Теперь фигура лежит набок' }], intro2: [{ t: 'Нажми на 3 ' }, { t: 'вершины', c: V_COLOR }, { t: ', подсказок в заклинании не будет' }] },
 ]
 const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -663,18 +699,18 @@ const checkStep = (tri: Tri, path: Id[], id: Id): string | null => {
 // ===== Тренировка: ученик сам проходит заклинание =====
 const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
 // Дуга для шага from→to: наружу от треугольника; если отрезок накладывается на уже пройденный — с другой стороны.
-const planArcs = (tri: Tri, path: Id[]): { bend: number; label: Pt }[] => {
-    const g = { x: tri.vertices.reduce((s, v) => s + PTS[v].x, 0) / 3, y: tri.vertices.reduce((s, v) => s + PTS[v].y, 0) / 3 }
+const planArcs = (tri: Tri, path: Id[], PP: Pts = PTS, extra = 0): { bend: number; label: Pt }[] => {
+    const g = { x: tri.vertices.reduce((s, v) => s + PP[v].x, 0) / 3, y: tri.vertices.reduce((s, v) => s + PP[v].y, 0) / 3 }
     const out: { bend: number; label: Pt }[] = []
     const sides: Pt[] = []
     for (let i = 0; i + 1 < path.length; i++) {
-        const a = PTS[path[i]], b = PTS[path[i + 1]]
+        const a = PP[path[i]], b = PP[path[i + 1]]
         const len = dist(a, b), ux = (b.x - a.x) / len, uy = (b.y - a.y) / len
         const n = { x: uy, y: -ux }, mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         let sign = (mid.x - g.x) * n.x + (mid.y - g.y) * n.y >= 0 ? 1 : -1
-        let mag = Math.min(40, Math.max(18, len * 0.15))
+        let mag = Math.min(40, Math.max(18, len * 0.15)) + extra  // extra: чтобы дуга обходила числа на сторонах
         for (let j = 0; j < i; j++) {
-            const c = PTS[path[j]], d = PTS[path[j + 1]]
+            const c = PP[path[j]], d = PP[path[j + 1]]
             const onLine = (q: Pt) => Math.abs((q.x - a.x) * uy - (q.y - a.y) * ux) < 2
             if (!onLine(c) || !onLine(d)) continue
             const pr = (q: Pt) => (q.x - a.x) * ux + (q.y - a.y) * uy
@@ -744,7 +780,12 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     const leg = Math.max(0, path.length - 1)
     const stage: 'from' | 'to' = fromClicked ? 'to' : 'from'
     const lettersMode = !trial.lens
-    const plans = planArcs(trial.tri, path)
+    const P = rotPts(trial.rot ?? 0)
+    const plans = planArcs(trial.tri, path, P, trial.lens ? 16 : 0)
+    const [dimLabels, setDimLabels] = useState<string[]>([])
+    const segKeyNow = legsDone > 0 ? segKey(path[legsDone - 1], path[legsDone]) : ''
+    const hasFigLabel = !!trial.labels?.some((l) => l.key === segKeyNow)
+    const flyText = legsDone > 0 ? (trial.lens ? trial.lens[segKeyNow]?.label ?? '?' : path[legsDone - 1] + path[legsDone]) : ''
     // всё по очереди: текст → заклинание → три дроби
     useEffect(() => {
         if (!(walking && walkTyped)) return
@@ -768,22 +809,13 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     useEffect(() => {
         if (anim === 'arc') {
             const t = setTimeout(() => {
-                if (lettersMode) setAnim('label')
-                else finishLeg()
+                if (trial.lens && hasFigLabel) startFly(`[data-lenlabel="${segKeyNow}"]`)  // число с рисунка летит само
+                else setAnim('label')                                                       // иначе сначала подписываем сторону
             }, 1100)
             return () => clearTimeout(t)
         }
         if (anim === 'label') {
-            const t = setTimeout(() => {
-                const box = boxRef.current
-                const src = box?.querySelector('[data-sidelabel]') as Element | null
-                const dst = box?.querySelector(`[data-slot="${legsDone - 1}"]`) as Element | null
-                if (box && src && dst) {
-                    const b = box.getBoundingClientRect(), r1 = src.getBoundingClientRect(), r2 = dst.getBoundingClientRect()
-                    setFly({ from: { x: r1.left + r1.width / 2 - b.left, y: r1.top + r1.height / 2 - b.top }, to: { x: r2.left + r2.width / 2 - b.left, y: r2.top + r2.height / 2 - b.top } })
-                }
-                setAnim('fly')
-            }, 1000)
+            const t = setTimeout(() => startFly('[data-sidelabel]'), 1000)
             return () => clearTimeout(t)
         }
         if (anim === 'fly') {
@@ -792,6 +824,18 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [anim])
+    // меряем, откуда и куда лететь; старое число на рисунке остаётся бледным
+    const startFly = (srcSel: string) => {
+        const box = boxRef.current
+        const src = box?.querySelector(srcSel) as Element | null
+        const dst = box?.querySelector(`[data-slot="${legsDone - 1}"]`) as Element | null
+        if (box && src && dst) {
+            const b = box.getBoundingClientRect(), r1 = src.getBoundingClientRect(), r2 = dst.getBoundingClientRect()
+            setFly({ from: { x: r1.left + r1.width / 2 - b.left, y: r1.top + r1.height / 2 - b.top }, to: { x: r2.left + r2.width / 2 - b.left, y: r2.top + r2.height / 2 - b.top } })
+        }
+        if (trial.lens && hasFigLabel) setDimLabels((d) => [...d, segKeyNow])
+        setAnim('fly')
+    }
     const finishLeg = () => {
         setAnim(null)
         setFilled(legsDone)
@@ -830,11 +874,11 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
         setPath([...path, id]); setFromClicked(false); setAnim('arc')
     }
     const arcs: ArcSpec[] = plans.map((pl, i) => ({
-        from: path[i], to: path[i + 1], color: FR_COLORS[Math.floor(i / 2)], bend: pl.bend,
+        from: path[i], to: path[i + 1], color: FR_COLORS[Math.floor(i / 2)], bend: pl.bend, pts: P,
         dim: !done && Math.floor(i / 2) < Math.floor(Math.max(0, leg - (anim ? 1 : 0)) / 2) && !anim,
     }))
-    const sideLabel = anim === 'label' && lettersMode && plans[legsDone - 1]
-        ? { text: path[legsDone - 1] + path[legsDone], color: FR_COLORS[Math.floor((legsDone - 1) / 2)], at: plans[legsDone - 1].label, key: `tl${legsDone}` } : null
+    const sideLabel = anim === 'label' && plans[legsDone - 1]
+        ? { text: flyText, color: FR_COLORS[Math.floor((legsDone - 1) / 2)], at: plans[legsDone - 1].label, key: `tl${legsDone}` } : null
     const product = trial.lens && done
         ? [0, 1, 2].reduce((acc, k) => acc * trial.lens![segKey(path[2 * k], path[2 * k + 1])].v / trial.lens![segKey(path[2 * k + 1], path[2 * k + 2])].v, 1)
         : 1
@@ -843,10 +887,10 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
     return (
         <div ref={boxRef} className="relative w-full flex flex-col gap-4">
             <Center>
-                <Figure wide fill={trial.tri === LEFT ? 'left' : 'right'}
+                <Figure wide rot={trial.rot ?? 0} dimLabels={dimLabels} fill={trial.tri === LEFT ? 'left' : 'right'}
                     vertices={walking ? trial.tri.vertices : []} points={walking ? pointsOf(trial.tri) : []}
                     picked={pickingV || pickingP ? pickedV : []} pickedP={pickingV || pickingP ? pickedP : []}
-                    letters lengths={trial.labels} arcs={arcs} sideLabel={sideLabel}
+                    letters={lettersMode} lengths={trial.labels} arcs={arcs} sideLabel={sideLabel}
                     onPick={typed && !done && !anim ? click : undefined} flash={flash} hits={hits}
                     current={walking && path.length > 0 && !done && !anim ? path[path.length - 1] : null} />
             </Center>
@@ -854,8 +898,8 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                 <TypedRich small parts={trial.intro} readMs={250}
                     onDone={() => { if (trial.intro2) setLine2(true); else { setTyped(true); if (!trial.pickFirst) setWalkTyped(true) } }} />
             )}
-            {!trial.pickFirst && trial.intro2 && line2 && (
-                <TypedRich small parts={trial.intro2} readMs={250} onDone={() => { setTyped(true); setWalkTyped(true) }} />
+            {trial.intro2 && line2 && (pickingV || !trial.pickFirst) && (
+                <TypedRich small parts={trial.intro2} readMs={250} onDone={() => { setTyped(true); if (!trial.pickFirst) setWalkTyped(true) }} />
             )}
             {trial.pickFirst && pickingP && (
                 <TypedRich small parts={[{ t: 'А теперь выбери ' }, { t: 'точки', c: P_COLOR }]} onDone={() => setPointsTyped(true)} readMs={100} />
@@ -863,7 +907,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
             {trial.pickFirst && walking && (
                 <TypedRich small parts={[{ t: 'А теперь колдуй' }]} onDone={() => setWalkTyped(true)} readMs={500} />
             )}
-            {showWalkUI && tplOn && <TrialTemplate leg={Math.min(5, tplLeg)} stage={tplStage} />}
+            {showWalkUI && tplOn && !trial.noHint && <TrialTemplate leg={Math.min(5, tplLeg)} stage={tplStage} />}
             {showWalkUI && spellOn && <Spell big slots={slotsOf(path.slice(0, filled + 1), trial.lens)} showOne={done} />}
             {msg && !done && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{msg}</div>}
             {done && trial.lens && (
@@ -874,7 +918,7 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                     }).join(' · ')} = {Math.round(product * 100) / 100} ✅
                 </motion.div>
             )}
-            {fly && <FlyingLabel key={`tf${legsDone}`} text={path[legsDone - 1] + path[legsDone]} color={FR_COLORS[Math.floor((legsDone - 1) / 2)]} from={fly.from} to={fly.to} />}
+            {fly && <FlyingLabel key={`tf${legsDone}`} text={flyText} color={FR_COLORS[Math.floor((legsDone - 1) / 2)]} from={fly.from} to={fly.to} />}
         </div>
     )
 }
