@@ -2,6 +2,7 @@
 
 // components/trainer-question.tsx
 
+import { cn } from '@/lib/utils'
 import TrainerProgressBar, { streakMode, COMBO_BLUE_GRADIENT } from '@/components/trainer-progress-bar'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
@@ -667,7 +668,7 @@ export default function TrainerQuestion({
     // источника разные, но эффект один и тот же, поэтому фикс — на самом
     // внешнем контейнере экрана, а не точечно под каждую анимацию (тот же
     // приём, что уже применялся для LearnWrapper, см. CLAUDE.md).
-    <div className="min-h-screen overflow-x-hidden bg-[#151F24] text-[#F2F7FB] flex flex-col">
+    <div className={cn("min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col", question.questionType === 'TTPWALK' ? "overflow-x-clip" : "overflow-x-hidden")}>
       {/* Облачко-мем после ответа в пошаговых разборах (showAnswerMeme). */}
       <AnswerMemeLayer />
       <FiztechDictLayer />
@@ -725,7 +726,7 @@ export default function TrainerQuestion({
           // РЕАЛЬНЫЙ скроллбар именно на этом контейнере. Explicit
           // overflow-x-hidden отключает эту ось явно, оставляя overflow-y
           // рабочим как и раньше.
-          className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-3 flex flex-col"
+          className={cn("flex-1 px-4 pb-3 flex flex-col", question.questionType === 'TTPWALK' ? "overflow-x-clip" : "overflow-y-auto overflow-x-hidden")}
           key={`${roundKey}-${questions.indexOf(question)}`}
           // У пошаговых разборов (одна «сцена» на весь урок) слайд справа не нужен — только появление.
           initial={{ opacity: 0, x: STEP_BY_STEP_CHALLENGE_TYPES.has(question.questionType) ? 0 : 100 }}

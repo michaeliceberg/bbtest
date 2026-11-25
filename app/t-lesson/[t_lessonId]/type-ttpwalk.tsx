@@ -55,7 +55,7 @@ const Sticker = ({ value, color, border }: { value: React.ReactNode; color: stri
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
         className="inline-block rounded-[3px] px-[3px] font-extrabold align-middle"
-        style={{ background: border ?? color, color: inkFor(border ?? color), lineHeight: 1.15 }}
+        style={{ background: border ?? color, color: inkFor(border ?? color), lineHeight: 1.15, boxShadow: (border ?? color) === '#0A1013' ? 'inset 0 0 0 1px rgba(242,247,251,0.3)' : undefined }}
     >
         {value}
     </motion.span>
@@ -175,6 +175,9 @@ const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сам
 const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
 const SHADOW_BAND = '#000' // тень — одним чёрным цветом с небольшой прозрачностью (SHADOW_OP)
 const SHADOW_OP = 0.78
+// Цвет слова «тень/проекция» в тексте — тот же тёмный, что и сама тень на чертеже (текст на нём белый)
+const SHADOW_MARK = '#0A1013'
+const SHD = { color: SHADOW_MARK, bg: SHADOW_MARK, border: SHADOW_MARK }
 const SHADOW_W = 10
 const PERP_WHITE = 'rgba(242,247,251,0.78)' // перпендикуляр и прямой угол у H — белый, чуть прозрачный
 // Плоскость — песочная (выбрано на /test-ttp-colors): овал, почти прозрачная заливка и тот же песочный маркер слова «плоскость»
@@ -312,7 +315,7 @@ const Dot = ({ x, y, color, fresh, delay = 0 }: { x: number; y: number; color: s
 )
 
 // Тег-слово («линия») — как SvgTag, но шире под длину слова.
-const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0 }: { x: number; y: number; text: string; color: string; delay?: number; angle?: number }) => {
+const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0, ink = MARK_INK }: { x: number; y: number; text: string; color: string; delay?: number; angle?: number; ink?: string }) => {
     const w = text.length * 8.6 + 18
     return (
         <g transform={`translate(${x},${y}) rotate(${angle.toFixed(1)})`}>
@@ -321,7 +324,7 @@ const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0 }: { x: number; y:
                 transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
             >
                 <rect x={-w / 2} y={-12} width={w} height={24} rx={3} fill={color} />
-                <text x={0} y={5} textAnchor="middle" fontSize={14} fontWeight={800} fill={MARK_INK}>{text}</text>
+                <text x={0} y={5} textAnchor="middle" fontSize={14} fontWeight={800} fill={ink}>{text}</text>
             </motion.g>
         </g>
     )
@@ -381,7 +384,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
         const id = setInterval(() => { const e = performance.now() - t0; setT(e); if (e > 2600) clearInterval(id) }, 16)
         return () => clearInterval(id)
     }, [fly])
-    const flight = spearFlight(t)
+    // fly включили, а таймер ещё не тикнул — стрелы пока нет (иначе мигнёт на месте)
+    const flight = spearFlight(fly && t > 1e8 ? -1 : t)
 
     const Op = P3(O3.x, O3.y, 0)
     const planePts = PLANE_OVAL_PTS
@@ -470,20 +474,14 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {showProj && (
                     <>
                         {!shadowOn && <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={hexToRgba(SHADOW_BAND, SHADOW_OP)} w={SHADOW_W} fresh={false} dur={0.9} />}
-                        <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
+                        {/* подпись лежит на самой тени и пишется белым по тёмной полосе */}
+                        <g transform={groundMatrix(O3.x, O3.y + s / 2)}>
                             <motion.g
                                 key={school ? 's' : 'l'}
                                 initial={fresh4 || freshWords ? { opacity: 0, scale: 2 } : { opacity: 1, scale: 1 }} animate={{ opacity: 1, scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 320, damping: 15, delay: fresh4 ? 0.9 : freshWords ? 0.3 : 0 }}
                             >
-                                {school ? (
-                                    <text x={0} y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={PROJ_COLOR}>проекция a</text>
-                                ) : (
-                                    <>
-                                        <rect x={-22} y={-11} width={44} height={22} rx={3} fill={SH.border} />
-                                        <text x={0} y={5} textAnchor="middle" fontSize={13} fontWeight={800} fill={MARK_INK}>тень</text>
-                                    </>
-                                )}
+                                <text x={0} y={2.6} textAnchor="middle" fontSize={12} fontWeight={800} fill={X_COLOR}>{school ? 'проекция a' : 'тень'}</text>
                             </motion.g>
                         </g>
                     </>
@@ -632,151 +630,10 @@ type SceneProps = { onSettled?: (nextLabel?: string) => void; leaving?: boolean;
 
 const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
 
-// Угол линии на плоскости в первых сценах: перпендикулярна будущей стреле (φ = 0) (потом ученик сам её повернёт).
-const GROUND_PHI = 0
-
-// «Представим, что у нас есть плоскость» → плоскость → «И на плоскости проведена линия» → линия рисуется.
-const GroundScene = ({ onSettled }: SceneProps) => {
-    const { setPhi } = useContext(PickCtx)
-    useEffect(() => { setPhi(GROUND_PHI) }, [setPhi])
-    const [plane, setPlane] = useState(false)
-    const [lineText, setLineText] = useState(false)
-    const [line, setLine] = useState(false)
-    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-    useEffect(() => () => timers.current.forEach(clearTimeout), [])
-    return (
-        <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Это ' }, { sticker: 'плоскость', color: PLANE_MARK }]} onSettled={() => setPlane(true)} />
-            {plane && (
-                <DiagramBlock onSettled={() => timers.current.push(setTimeout(() => setLineText(true), 1200))}>
-                    <Figure scene={0} pick={null} phi={GROUND_PHI} forceLine={line} lineFresh />
-                </DiagramBlock>
-            )}
-            {lineText && (
-                <TypedLineWithParts
-                    parts={[{ text: 'И на ' }, { sticker: 'плоскости', color: PLANE_MARK }, { text: ' проведена ' }, { sticker: 'линия', color: B_COLOR }]}
-                    onSettled={() => { setLine(true); timers.current.push(setTimeout(() => onSettled?.('Вижу 👀 плоскость и линию на ней'), 1500)) }}
-                />
-            )}
-        </SceneBox>
-    )
-}
-
-// Лучник (Lottie, зеркально и чуть наклонён вверх) стоит неподвижной картинкой, кнопка запускает ОДИН цикл выстрела.
-// Потом лучник уезжает вправо, плоскость возвращается на место, справа сверху прилетает стрела и втыкается в линию.
+// Лучник (Lottie): один цикл выстрела — кадры BOW_FROM…BOW_TO.
 const BOW_FROM = 109, BOW_TO = 214
-const SpearScene = ({ onSettled }: SceneProps) => {
-    const { phi } = useContext(PickCtx)
-    // 0 лучник стоит · 1 стреляет · 2 лучник уехал, плоскость на месте · 3 стрела летит · 4 подпись
-    const [phase, setPhase] = useState(0)
-    const [btn, setBtn] = useState(false)
-    const lottieRef = useRef<LottieRefCurrentProps>(null)
-    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
-    useEffect(() => { later(() => setBtn(true), 700); return () => timers.current.forEach(clearTimeout) }, [])
-    const shotDone = useRef(false)
-    const afterShot = () => {
-        if (shotDone.current) return
-        shotDone.current = true
-        later(() => setPhase(2), 300)
-        later(() => setPhase(3), 1700)
-        later(() => setPhase(4), 1700 + 450 + FLY_MS + 1300)
-    }
-    const shoot = () => {
-        setBtn(false)
-        setPhase(1)
-        lottieRef.current?.playSegments([BOW_FROM, BOW_TO], true)
-        // ждём, пока отыграет весь цикл (кадры BOW_FROM…BOW_TO при 60 к/с), и только потом уводим лучника
-        later(afterShot, ((BOW_TO - BOW_FROM) / 60) * 1000 + 300)
-    }
-    return (
-        <SceneBox>
-            <div className="relative w-full max-w-[448px] mx-auto" style={{ aspectRatio: '340 / 290', overflowX: 'clip' }}>
-                <motion.div className="absolute inset-0" initial={false} animate={{ opacity: phase >= 2 ? 1 : 0 }} transition={{ duration: 0.6, delay: phase >= 2 ? 0.7 : 0 }}>
-                    {phase >= 3
-                        ? <Figure key="shot" scene={1} pick={null} fly phi={phi} forceLine />
-                        : <Figure key="idle" scene={1} pick={null} spearOn={false} phi={phi} forceLine />}
-                </motion.div>
-                <motion.div
-                    className="absolute bottom-0 w-[46%]" style={{ left: '27%' }}
-                    initial={{ opacity: 0, scale: 0.7 }}
-                    animate={phase >= 2 ? { opacity: 1, scale: 1, x: '260%' } : { opacity: 1, scale: 1, x: 0 }}
-                    transition={phase >= 2 ? { duration: 0.7, ease: 'easeIn' } : { type: 'spring', bounce: 0.4, duration: 0.6 }}
-                >
-                    <div style={{ transform: 'rotate(25deg) scaleX(-1)' }}>
-                        <Lottie
-                            lottieRef={lottieRef} animationData={bowAnim}
-                            autoplay={false} loop={false} onDOMLoaded={() => lottieRef.current?.goToAndStop(BOW_FROM, true)}
-                        />
-                    </div>
-                </motion.div>
-            </div>
-            {btn && (
-                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="w-full">
-                    <button type="button" onClick={shoot} className={cn('w-full', walkthroughButtonClass(true))} style={walkthroughButtonStyle(true)}>
-                        Лучник, огонь!
-                    </button>
-                </motion.div>
-            )}
-            {phase >= 4 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Стрела воткнулась в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT }, { text: '.' }]}
-                    onSettled={() => onSettled?.('Стрела попала в линию')}
-                />
-            )}
-        </SceneBox>
-    )
-}
-
-const LineScene = ({ onSettled, onAutoNext }: SceneProps) => {
-    const { phi: ctxPhi, setPhi } = useContext(PickCtx)
-    const [typed, setTyped] = useState(false)
-    const [locked, setLocked] = useState(false)
-    // стартовый угол — случайный и НЕ перпендикулярный (32–58° в любую сторону)
-    const [initial] = useState(() => (Math.abs(ctxPhi) >= 15 ? ctxPhi : GROUND_PHI))
-    const [target, setTarget] = useState(initial)
-    const shown = useEasedAngle(target, initial)
-    const [moved, setMoved] = useState(false)
-    useEffect(() => { setPhi(initial) }, [setPhi, initial])
-    return (
-        <SceneBox>
-            <TypedLineWithParts
-                parts={[
-                    { text: 'И пусть через ' }, { bold: 'ЭТУ' }, { text: ' точку проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '.' }, { break: true },
-                    { bold: 'Крути её так, чтобы она ПРИМЕРНО стала ' }, { sticker: 'перпендикулярна', color: MARK_COLOR }, { text: ' ' },
-                    { sticker: 'стреле', color: A_COLOR }, { text: '.' },
-                ]}
-                onSettled={() => setTyped(true)}
-            />
-            {typed && (
-                <>
-                    <DiagramBlock>
-                        <Figure
-                            scene={2} pick={null} phi={shown}
-                            rotate={{ locked, onRotate: (raw) => { setTarget(detent(raw)); setMoved(true) } }}
-                        />
-                    </DiagramBlock>
-                    {!locked && (
-                        <>
-                            {!moved && <p className="text-sm text-[#9AA7B0]">👆 тяни за зелёный кружок</p>}
-                            {/* анимируем обёртку, кнопка внутри статична (иначе CSS-transition дерётся с framer) */}
-                            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="mx-auto">
-                                <button
-                                    type="button"
-                                    onClick={() => { setLocked(true); setPhi(target); onSettled?.(); setTimeout(() => onAutoNext?.(), 300) }}
-                                    className="h-[52px] rounded-lg bg-[#A1D151] px-8 text-lg font-bold text-[#151F24] active:translate-y-1"
-                                    style={walkthroughButtonStyle(true)}
-                                >
-                                    Примерно так 👌
-                                </button>
-                            </motion.div>
-                        </>
-                    )}
-                </>
-            )}
-        </SceneBox>
-    )
-}
+// Угол линии на плоскости в первых сценах: перпендикулярна будущей стреле (φ = 0).
+const GROUND_PHI = 0
 
 const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onClick: () => void; color: string }) => (
     <button type="button" onClick={onClick} className="flex-1 rounded-xl border-2 px-3 py-3 text-base font-black active:translate-y-[2px]"
@@ -785,218 +642,242 @@ const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onC
     </button>
 )
 
-// Пауза-«многоточие»: . → .. → ... (два круга), потом остаётся «...»
-const ThinkingDots = ({ done, onDone }: { done: boolean; onDone: () => void }) => {
-    const [n, setN] = useState(1)
-    useEffect(() => {
-        if (done) return
-        let k = 1
-        const id = setInterval(() => {
-            k += 1
-            if (k > 6) { clearInterval(id); setN(3); onDone(); return }
-            setN(((k - 1) % 3) + 1)
-        }, 450)
-        return () => clearInterval(id)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-    return (
-        <div className="h-8 text-3xl font-black leading-none text-[#F2F7FB] tracking-[0.2em]">
-            {'.'.repeat(done ? 3 : n)}
-        </div>
-    )
-}
-
-const QuestionScene = ({ onSettled }: SceneProps) => {
-    const { phi } = useContext(PickCtx)
-    return (
-        <SceneBox>
-            <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
-            <TypedLineWithParts
-                parts={[{ text: 'А ' }, { bold: 'перпендикулярно' }, { text: ' ли ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
-                onSettled={() => setTimeout(() => onSettled?.('Интересненько'), 500)}
-            />
-        </SceneBox>
-    )
-}
-
-// Правило: смотрим на ТЕНЬ стрелы. Две маленькие картинки: тень ⟂ линии → стрела ⟂; тень не ⟂ → стрела не ⟂.
-const MiniCase = ({ phi, ok, delay }: { phi: number; ok: boolean; delay: number }) => (
-    <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay, type: 'spring', bounce: 0.4 }}
-        className="flex-1 min-w-0 flex flex-col items-center gap-1 rounded-2xl border-2 p-2"
-        style={{ borderColor: ok ? hexToRgba('#A1D151', 0.7) : hexToRgba('#DC605B', 0.7), backgroundColor: hexToRgba(ok ? '#A1D151' : '#DC605B', 0.07) }}>
-        <div className="w-full"><Figure scene={5} pick={DEFAULT_PICK} phi={phi} /></div>
-        <p className="text-center text-xs md:text-sm font-black leading-tight" style={{ color: ok ? '#A1D151' : '#DC605B' }}>
-            {ok ? 'тень ⟂ линии → стрела ⟂ линии ✅' : 'тень НЕ ⟂ линии → стрела НЕ ⟂ ❌'}
-        </p>
+// Кнопка-подтверждение внутри единой сцены: подпись повторяет тезис.
+const AckBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
+    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="w-full">
+        <button type="button" onClick={onClick} className={cn('w-full', walkthroughButtonClass(true))} style={walkthroughButtonStyle(true)}>
+            {label}
+        </button>
     </motion.div>
 )
-const RuleScene = ({ onSettled }: SceneProps) => {
-    const [step, setStep] = useState(0)
-    return (
-        <SceneBox>
-            <TypedLineWithParts
-                parts={[{ text: 'Чтобы понять, надо ответить: а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' стрелы этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
-                onSettled={() => setStep(1)}
-            />
-            {step >= 1 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂.' }]}
-                    onSettled={() => setStep(2)}
-                />
-            )}
-            {step >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' НЕ ⟂ — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' НЕ ⟂.' }]}
-                    onSettled={() => { setStep(3); setTimeout(() => onSettled?.(), 1600) }}
-                />
-            )}
-            {step >= 2 && (
-                <div className="w-full flex gap-2">
-                    <MiniCase phi={0} ok delay={0} />
-                    {step >= 3 && <MiniCase phi={40} ok={false} delay={0} />}
-                </div>
-            )}
-        </SceneBox>
-    )
-}
-
-const ShadowScene = ({ onSettled }: SceneProps) => {
-    const { pick, setPick, phi } = useContext(PickCtx)
-    const [typed, setTyped] = useState(false)
-    const [pre, setPre] = useState(0)
-    const [beat, setBeat] = useState(0)
-    const [askOk, setAskOk] = useState(false) // кнопка «Агась» после перпендикуляра
-    const [found, setFound] = useState(false) // нажали «Агась» → рисуем тень OH
-    // сцена начинается заново — прошлый выбор точки сбрасываем
-    useEffect(() => { setPick(null) }, [setPick])
-    // после печати — сразу можно выбирать точку на стреле, из которой опустим отвес
-    useEffect(() => {
-        if (!typed) return
-        const t3 = setTimeout(() => setPre(3), 600)
-        return () => clearTimeout(t3)
-    }, [typed])
-    // выбрали точку: перпендикуляр на землю → точка H и прямой угол (белым) → «Агась»
-    useEffect(() => {
-        if (pick == null) return
-        const t1 = setTimeout(() => setBeat(1), 150)
-        const t2 = setTimeout(() => setBeat(2), 1100)
-        const t3 = setTimeout(() => setAskOk(true), 1900)
-        return () => { [t1, t2, t3].forEach(clearTimeout) }
-    }, [pick])
-    const onAgree = () => { setAskOk(false); setFound(true); setBeat(3) }
-    return (
-        <SceneBox>
-            <TypedLineWithParts
-                parts={[{ text: 'Давай узнаем в ' }, { bold: 'нашем случае' }, { text: ' 🔍' }]}
-                onSettled={() => setTyped(true)}
-            />
-            {typed && (
-                <DiagramBlock>
-                    <Figure scene={4} pick={pick} beat={beat} phi={phi} pre={pre} onPick={(s) => setPick(s)} />
-                </DiagramBlock>
-            )}
-            {pre >= 3 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Опустим из любой точки ' }, { sticker: 'стрелы', color: A_COLOR }, { bold: ' ПЕРПЕНДИКУЛЯР' }, { text: ' на землю — как отвес 👇' }, { break: true }, { text: 'Нажми на точку на стреле' }]}
-                />
-            )}
-            {askOk && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto">
-                    <button type="button" onClick={onAgree}
-                        className="h-[52px] rounded-lg bg-[#A1D151] px-8 text-lg font-bold text-[#151F24] active:translate-y-1"
-                        style={walkthroughButtonStyle(true)}>
-                        Агась
-                    </button>
-                </motion.div>
-            )}
-            {found && (
-                <TypedLineWithParts
-                    parts={[
-                        { bold: 'УРА! Вот она!' }, { break: true },
-                        { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'тень', ...SH }, { text: ' от «стрелы»' },
-                    ]}
-                    onSettled={() => setTimeout(() => onSettled?.('Изи катка'), 600)}
-                />
-            )}
-        </SceneBox>
-    )
-}
-
-const NinetyScene = ({ onSettled }: SceneProps) => {
-    const { pick, phi: phi0 } = useContext(PickCtx)
-    const off = Math.abs(phi0) > 1
-    const angleBetween = Math.round(90 - Math.abs(phi0))
-    const [typed, setTyped] = useState(false)
-    const [msg, setMsg] = useState(false)
-    const [fix, setFix] = useState(false)
-    const [final, setFinal] = useState(false)
-    const [party, setParty] = useState(false)
-    const shown = useEasedAngle(fix ? 0 : phi0, phi0)
-    return (
-        <SceneBox>
-            <TypedLineWithParts
-                parts={[{ text: 'Смотрим, какой угол между ' }, { sticker: 'тенью', ...SH }, { text: ' и ' }, { sticker: 'линией', color: B_COLOR }, { text: '…' }]}
-                onSettled={() => setTyped(true)}
-            />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => setMsg(true), 1100)}><Figure scene={5} pick={pick} phi={shown} /></DiagramBlock>}
-            {msg && (
-                <TypedLineWithParts
-                    parts={off
-                        ? [{ text: `Получилось ${angleBetween}° — не 90°! Подкрутим линию до прямого угла 🔧` }]
-                        : [{ text: 'Ровно ' }, { sticker: '90°', color: MARK_COLOR }, { text: '! Глаз — алмаз 🎯' }]}
-                    onSettled={() => { setFix(true); setTimeout(() => setFinal(true), off ? 1700 : 300) }}
-                />
-            )}
-            {final && (
-                <>
-                    <TypedLineWithParts
-                        parts={[
-                            { text: 'Теперь ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR },
-                            { text: ' — значит и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' },
-                        ]}
-                        onSettled={() => { setParty(true); onSettled?.() }}
-                    />
-                    {party && <LocalAnswerConfetti />}
-                </>
-            )}
-        </SceneBox>
-    )
-}
 
 // «А теперь по-школьному»: те же объекты, но с настоящими названиями.
 const SCHOOL_ROWS: { life: string; lifeColor: string; school: string; schoolColor: string }[] = [
     { life: 'земля', lifeColor: PLANE_MARK, school: 'плоскость α', schoolColor: PLANE_MARK },
     { life: 'стрела', lifeColor: A_COLOR, school: 'наклонная a', schoolColor: A_COLOR },
     { life: 'линия', lifeColor: B_COLOR, school: 'прямая b', schoolColor: B_COLOR },
-    { life: 'тень', lifeColor: PROJ_COLOR, school: 'проекция a', schoolColor: PROJ_COLOR },
+    { life: 'тень', lifeColor: SHADOW_MARK, school: 'проекция a', schoolColor: SHADOW_MARK },
 ]
-const SchoolScene = ({ onSettled }: SceneProps) => {
-    const { pick } = useContext(PickCtx)
-    const [typed, setTyped] = useState(false)
+
+// ЕДИНАЯ сцена: один чертёж сверху (прилипает к верху экрана), дальше он только дорисовывается:
+// плоскость → линия → выстрел лучника → стрела → перпендикуляр от оперения → точка H → тень → угол 90° → «по-школьному».
+// Тексты и кнопки идут ниже по очереди; прошлые бледнеют после каждого подтверждения.
+// Номера st: 0 «плоскость» · 1 чертёж · 2 «линия» · 3 кнопка · 4 лучник · 5 кнопка · 6 вопрос · 7-9 правило · 10 кнопка ·
+// 11 перпендикуляр · 12 точка H · 13 «Агась» · 14 тень · 15 угол · 16 ровно 90° · 17 вывод · 18 кнопка · 19 «по-школьному».
+const ACK_STAGES = [4, 6, 11, 14, 19]
+const MainScene = ({ onSettled }: SceneProps) => {
+    const [st, setSt] = useState(0)
+    const [line, setLine] = useState(false)
+    // -1 лучника нет · 0 стоит · 1 стреляет · 2 уехал · 3 стрела летит · 4 воткнулась
+    const [bow, setBow] = useState(-1)
+    const [shootBtn, setShootBtn] = useState(false)
+    const [pickS, setPickS] = useState<number | null>(null)
+    const [beat, setBeat] = useState(0)
+    const [angle, setAngle] = useState(false)
+    const [party, setParty] = useState(false)
+    const [school, setSchool] = useState(false)
     const [rows, setRows] = useState(0)
+    const lottieRef = useRef<LottieRefCurrentProps>(null)
+    const endRef = useRef<HTMLDivElement>(null)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+    const go = (n: number, ms = 0) => later(() => setSt((s) => Math.max(s, n)), ms)
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
+    // новый текст/кнопка — прокручиваем так, чтобы они были видны под чертежом
     useEffect(() => {
-        if (!typed) return
-        const timers = SCHOOL_ROWS.map((_, i) => setTimeout(() => setRows(i + 1), 900 + i * 1000))
-        const done = setTimeout(() => onSettled?.(), 900 + SCHOOL_ROWS.length * 1000 + 600)
-        return () => { [...timers, done].forEach(clearTimeout) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [typed])
+        const t = setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 350)
+        return () => clearTimeout(t)
+    }, [st, bow, shootBtn, rows])
+
+    const past = (n: number) => ACK_STAGES.some((a) => a > n && st >= a)
+    const Blk = ({ n, children }: { n: number; children: React.ReactNode }) => (
+        <div className="w-full" style={{ opacity: past(n) ? 0.3 : 1, filter: past(n) ? 'grayscale(1)' : undefined, transition: 'opacity 0.4s' }}>{children}</div>
+    )
+
+    const shotDone = useRef(false)
+    const afterShot = () => {
+        if (shotDone.current) return
+        shotDone.current = true
+        later(() => setBow(2), 300)
+        later(() => setBow(3), 1700)
+        later(() => setBow(4), 1700 + 450 + FLY_MS + 1300)
+    }
+    const shoot = () => {
+        setShootBtn(false)
+        setBow(1)
+        lottieRef.current?.playSegments([BOW_FROM, BOW_TO], true)
+        later(afterShot, ((BOW_TO - BOW_FROM) / 60) * 1000 + 300)
+    }
+    const startBow = () => {
+        setSt(4); setBow(0)
+        later(() => setShootBtn(true), 700)
+    }
+    const startPerp = () => {
+        setPickS(S_HIGH); setBeat(1)
+        later(() => setBeat(2), 1100)
+        later(() => setSt((s) => Math.max(s, 12)), 1900)
+    }
+    const startSchool = () => {
+        setSchool(true)
+        SCHOOL_ROWS.forEach((_, i) => later(() => setRows(i + 1), 900 + i * 1000))
+        later(() => onSettled?.(), 900 + SCHOOL_ROWS.length * 1000 + 600)
+    }
+    const scene = school ? 6 : angle ? 5 : st >= 11 ? 4 : bow >= 3 ? 1 : 0
+
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'А теперь — ' }, { bold: 'по-школьному 🎓' }]} onSettled={() => setTyped(true)} />
-            {typed && <DiagramBlock><Figure scene={6} pick={pick} phi={0} /></DiagramBlock>}
+            <Blk n={0}>
+                <TypedLineWithParts parts={[{ text: 'Это ' }, { sticker: 'плоскость', color: PLANE_MARK }]} onSettled={() => { setSt((s) => Math.max(s, 1)); go(2, 1300) }} />
+            </Blk>
+            {st >= 1 && (
+                <div className="sticky top-0 z-20 w-full bg-[#161F23] pb-4">
+                    <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }} className="w-full">
+                        <div className="relative mx-auto w-full max-w-[448px]" style={{ aspectRatio: '340 / 290', overflowX: 'clip' }}>
+                            <motion.div className="absolute inset-0" initial={false} animate={{ opacity: bow >= 0 && bow < 2 ? 0.3 : 1 }} transition={{ duration: 0.6, delay: bow >= 2 ? 0.7 : 0 }}>
+                                <Figure scene={scene} pick={pickS} beat={beat} phi={GROUND_PHI} forceLine={line} lineFresh fly={bow >= 3} spearOn={bow >= 3} />
+                            </motion.div>
+                            {bow >= 0 && (
+                                <motion.div
+                                    className="absolute bottom-0 w-[46%]" style={{ left: '27%' }}
+                                    initial={{ opacity: 0, scale: 0.7 }}
+                                    animate={bow >= 2 ? { opacity: 1, scale: 1, x: '260%' } : { opacity: 1, scale: 1, x: 0 }}
+                                    transition={bow >= 2 ? { duration: 0.7, ease: 'easeIn' } : { type: 'spring', bounce: 0.4, duration: 0.6 }}
+                                >
+                                    <div style={{ transform: 'rotate(25deg) scaleX(-1)' }}>
+                                        <Lottie lottieRef={lottieRef} animationData={bowAnim} autoplay={false} loop={false} onDOMLoaded={() => lottieRef.current?.goToAndStop(BOW_FROM, true)} />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+            {st >= 2 && (
+                <Blk n={2}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'И на ' }, { sticker: 'плоскости', color: PLANE_MARK }, { text: ' проведена ' }, { sticker: 'линия', color: B_COLOR }]}
+                        onSettled={() => { setLine(true); go(3, 1700) }}
+                    />
+                </Blk>
+            )}
+            {st === 3 && <AckBtn label="Вижу 👀 плоскость и линию на ней" onClick={startBow} />}
+            {shootBtn && <AckBtn label="Лучник, огонь!" onClick={shoot} />}
+            {bow >= 4 && (
+                <Blk n={4}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Стрела воткнулась в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT }, { text: '.' }]}
+                        onSettled={() => go(5)}
+                    />
+                </Blk>
+            )}
+            {st === 5 && <AckBtn label="Стрела попала в линию" onClick={() => setSt(6)} />}
+            {st >= 6 && (
+                <Blk n={6}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'А ' }, { bold: 'перпендикулярно' }, { text: ' ли ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
+                        onSettled={() => go(7, 700)}
+                    />
+                </Blk>
+            )}
+            {st >= 7 && (
+                <Blk n={7}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Чтобы понять, надо ответить: а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SHD }, { text: ' стрелы этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
+                        onSettled={() => go(8, 600)}
+                    />
+                </Blk>
+            )}
+            {st >= 8 && (
+                <Blk n={8}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Если ' }, { sticker: 'тень', ...SHD }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂.' }]}
+                        onSettled={() => go(9, 500)}
+                    />
+                </Blk>
+            )}
+            {st >= 9 && (
+                <Blk n={9}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Если ' }, { sticker: 'тень', ...SHD }, { text: ' НЕ ⟂ — то и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' НЕ ⟂.' }]}
+                        onSettled={() => go(10, 600)}
+                    />
+                </Blk>
+            )}
+            {st === 10 && <AckBtn label="Понял, смотрим на тень" onClick={() => setSt(11)} />}
+            {st >= 11 && (
+                <Blk n={11}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Из конца ' }, { sticker: 'стрелы', color: A_COLOR }, { text: ' опускаем ' }, { bold: 'перпендикуляр' }, { text: ' на землю 👇' }]}
+                        onSettled={startPerp}
+                    />
+                </Blk>
+            )}
+            {st >= 12 && (
+                <Blk n={12}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Он упал в точку ' }, { sticker: 'H', color: X_COLOR }]}
+                        onSettled={() => go(13, 600)}
+                    />
+                </Blk>
+            )}
+            {st === 13 && <AckBtn label="Агась" onClick={() => { setBeat(3); setSt(14) }} />}
+            {st >= 14 && (
+                <Blk n={14}>
+                    <TypedLineWithParts
+                        parts={[{ bold: 'УРА! Вот она!' }, { break: true }, { sticker: 'OH', ...SHD }, { text: ' — ' }, { sticker: 'тень', ...SHD }, { text: ' от «стрелы»' }]}
+                        onSettled={() => go(15, 900)}
+                    />
+                </Blk>
+            )}
+            {st >= 15 && (
+                <Blk n={15}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Смотрим, какой угол между ' }, { sticker: 'тенью', ...SHD }, { text: ' и ' }, { sticker: 'линией', color: B_COLOR }, { text: '…' }]}
+                        onSettled={() => { later(() => setAngle(true), 300); go(16, 1500) }}
+                    />
+                </Blk>
+            )}
+            {st >= 16 && (
+                <Blk n={16}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Ровно ' }, { sticker: '90°', color: MARK_COLOR }, { text: '! Глаз — алмаз 🎯' }]}
+                        onSettled={() => go(17, 900)}
+                    />
+                </Blk>
+            )}
+            {st >= 17 && (
+                <Blk n={17}>
+                    <TypedLineWithParts
+                        parts={[
+                            { text: 'Теперь ' }, { sticker: 'тень', ...SHD }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR },
+                            { text: ' — значит и ' }, { sticker: 'стрела', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' },
+                        ]}
+                        onSettled={() => { setParty(true); go(18, 500) }}
+                    />
+                    {party && <LocalAnswerConfetti />}
+                </Blk>
+            )}
+            {st === 18 && <AckBtn label="Изи катка" onClick={() => setSt(19)} />}
+            {st >= 19 && (
+                <Blk n={19}>
+                    <TypedLineWithParts parts={[{ text: 'А теперь — ' }, { bold: 'по-школьному 🎓' }]} onSettled={startSchool} />
+                </Blk>
+            )}
             <div className="w-full flex flex-col gap-2">
                 {SCHOOL_ROWS.slice(0, rows).map((r) => (
                     <motion.div key={r.life} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-base md:text-lg">
-                        <span className="justify-self-end"><Sticker value={r.life} {...(r.life === 'тень' ? SH : { color: r.lifeColor })} /></span>
+                        <span className="justify-self-end"><Sticker value={r.life} {...(r.life === 'тень' ? SHD : { color: r.lifeColor })} /></span>
                         <span className="font-black text-[#9AA7B0]">→</span>
-                        <span className="justify-self-start"><Sticker value={r.school} {...(r.life === 'тень' ? SH : { color: r.schoolColor })} /></span>
+                        <span className="justify-self-start"><Sticker value={r.school} {...(r.life === 'тень' ? SHD : { color: r.schoolColor })} /></span>
                     </motion.div>
                 ))}
             </div>
+            <div ref={endRef} className="h-1 w-full" />
         </SceneBox>
     )
 }
+
+
 
 // ===== Итог: ТТП ещё раз на чертеже (по шагам) =====
 // «Наклонная ⟂ прямой» → наклонная (+подпись), прямая (+подпись), угол 90° между ними →
@@ -1045,8 +926,8 @@ export const TheoremFigure = ({ stage }: { stage: number }) => {
             </g>
             {stage >= 4 && (
                 <>
-                    <DrawPath d={`M${Op.x},${Op.y} L${Hf.x},${Hf.y}`} color={PROJ_COLOR} w={5} fresh dur={0.8} />
-                    <SvgWordTag x={pTag.x} y={pTag.y} angle={pTag.ang} text="проекция" color={PROJ_COLOR} delay={0.6} />
+                    <DrawPath d={`M${Op.x},${Op.y} L${Hf.x},${Hf.y}`} color={hexToRgba(SHADOW_BAND, SHADOW_OP)} w={SHADOW_W} fresh dur={0.8} />
+                    <SvgWordTag x={pTag.x} y={pTag.y} angle={pTag.ang} text="проекция" color={SHADOW_MARK} ink="#F2F7FB" delay={0.6} />
                 </>
             )}
             {stage >= 2 && (
@@ -1096,7 +977,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { bold: 'ТОЛЬКО' }, { break: true },
-                        { text: 'если ' }, { sticker: 'проекция', ...SH }, { text: ' перпендикулярна ' }, { sticker: 'прямой', color: B_COLOR },
+                        { text: 'если ' }, { sticker: 'проекция', ...SHD }, { text: ' перпендикулярна ' }, { sticker: 'прямой', color: B_COLOR },
                     ]}
                     onSettled={() => {
                         setStage(4)
@@ -1115,7 +996,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const CONCEPT_SCENES = [GroundScene, SpearScene, QuestionScene, RuleScene, ShadowScene, NinetyScene, SchoolScene, TheoremScene]
+const CONCEPT_SCENES = [MainScene, TheoremScene]
 
 const ConceptPhase = ({ onDone, scenes = CONCEPT_SCENES }: { onDone: () => void; scenes?: ((p: SceneProps) => JSX.Element)[] }) => {
     const [step, setStep] = useState(0)
