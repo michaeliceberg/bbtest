@@ -143,8 +143,8 @@ const ArcLeg = ({ from, to, color, bend, dim }: ArcSpec) => {
     )
 }
 // Слова «вершина / точка» во время путешествия (рядом с буквой, у каждой точки своё место).
-const LETTER_OFF_WIDE: Record<Id, Pt> = { ...LETTER_OFF, D: { x: 16, y: -14 } }
-const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -44, y: -2 }, E: { x: 52, y: -16 } }
+const LETTER_OFF_WIDE: Record<Id, Pt> = { ...LETTER_OFF, D: { x: -38, y: -22 } }
+const TWORD_OFF: Record<Id, Pt> = { A: { x: 44, y: -6 }, B: { x: -38, y: -8 }, C: { x: 44, y: 14 }, F: { x: 38, y: -4 }, D: { x: -46, y: 8 }, E: { x: 52, y: -16 } }
 
 type FigureProps = {
     wide?: boolean
@@ -414,10 +414,11 @@ const VerticesScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+const RoleWord = ({ v }: { v: boolean }) => <span style={{ color: v ? V_COLOR : P_COLOR }}>{v ? 'вершина' : 'точка'}</span>
 // ===== 3. Заклинание =====
 const SpellScene = ({ onSettled }: SceneProps) => {
     const { phase, next } = useSteps()
-    const W = ({ v }: { v: boolean }) => <span style={{ color: v ? V_COLOR : P_COLOR }}>{v ? 'вершина' : 'точка'}</span>
+    const W = RoleWord
     return (
         <>
             <TypedBig small text="Сама теорема — это волшебное заклинание 🪄" onDone={next(1)} readMs={300} />
@@ -499,7 +500,10 @@ const TravelScene = ({ onSettled }: SceneProps) => {
         if (phase < 5 || leg > 5) return
         const from = PATH_LEFT[leg], to = PATH_LEFT[leg + 1]
         const go = (n: number, ms: number) => { const t = setTimeout(() => setLs(n), ms); return () => clearTimeout(t) }
-        if (ls === 0) { bounceWord(from); return go(1, 1000) }
+        if (ls === 0) {
+            const t1 = setTimeout(() => bounceWord(from), 900), t2 = setTimeout(() => setLs(1), 1900)
+            return () => { clearTimeout(t1); clearTimeout(t2) }
+        }
         if (ls === 1) return go(2, 1600)
         if (ls === 2) { bounceWord(to); return go(3, 1000) }
         if (ls === 3) return go(4, 1500)
@@ -534,13 +538,9 @@ const TravelScene = ({ onSettled }: SceneProps) => {
     }))
     const sideLabel = leg <= 5 && phase >= 5 && (ls === 3 || ls === 4) && !fly
         ? { text: PATH_LEFT[leg] + PATH_LEFT[leg + 1], color: FR_COLORS[curFrac], at: SIDE_LABEL_AT[leg], key: `sl${leg}` } : null
-    const wordLine = leg <= 5 && phase >= 5 && ls < 5
-        ? `${PATH_LEFT[leg]} → ${PATH_LEFT[leg + 1]}: ${LEFT.vertices.includes(PATH_LEFT[leg]) ? 'вершина' : 'точка'} → ${LEFT.vertices.includes(PATH_LEFT[leg + 1]) ? 'вершина' : 'точка'}`
-        : null
-
     return (
         <div ref={boxRef} className="relative w-full flex flex-col gap-4">
-            <TypedBig small text="Подпишем: вершины A, B, C, а точки D, E, F" onDone={next(1)} readMs={200} />
+            <TypedRich small parts={[{ t: 'Подпишем: ' }, { t: 'вершины A, B, C', c: V_COLOR }, { t: ', а ' }, { t: 'точки D, E, F', c: P_COLOR }]} onDone={next(1)} readMs={200} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(next(2), 500)}>
                     <Center><Figure wide fill="left" vertices={vShown} points={pShown} letters lettersFor={[...vShown, ...pShown]}
@@ -549,14 +549,19 @@ const TravelScene = ({ onSettled }: SceneProps) => {
                 </DiagramBlock>
             )}
             {phase === 3 && <StepButton label="Точки поставили" onClick={next(4)} />}
-            {phase >= 4 && <TypedBig small text="Стартуем из вершины A и колдуем!" onDone={next(5)} readMs={300} />}
-            {phase >= 5 && <Spell big slots={slotsOf(PATH_LEFT.slice(0, filled + 1))} showOne={leg > 5} />}
-            {wordLine && (
-                <motion.div key={leg} className="w-full text-center font-bold text-base md:text-lg"
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ color: FR_COLORS[Math.floor(leg / 2)] }}>
-                    {wordLine}
+            {phase >= 4 && <TypedRich small parts={[{ t: 'Стартуем из ' }, { t: 'вершины A', c: V_COLOR }, { t: ' и колдуем!' }]} onDone={next(5)} readMs={300} />}
+            {phase >= 5 && leg <= 5 && (
+                <motion.div className="w-full flex flex-col items-center gap-1 rounded-2xl border-2 px-3 py-3" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+                    style={{ borderColor: 'rgba(232,182,54,0.6)', backgroundColor: '#161F23' }}>
+                    <div className="text-xs font-black uppercase tracking-wide text-[#F2C35B]">Заклинание</div>
+                    <div className="text-xl md:text-2xl font-black text-[#F2F7FB]">
+                        <Frac color={FR_COLORS[curFrac]} dimNum={leg % 2 === 1} dimDen={leg % 2 === 0}
+                            num={<><RoleWord v /> → <RoleWord v={false} /></>} den={<><RoleWord v={false} /> → <RoleWord v /></>} />
+                    </div>
                 </motion.div>
             )}
+            {phase >= 5 && <Spell big slots={slotsOf(PATH_LEFT.slice(0, filled + 1))} showOne={leg > 5} />}
             {phase >= 5 && leg <= 5 && ls === 6 && <StepButton key={`done${leg}`} label={FRAC_DONE_LABELS[curFrac]} onClick={fractionDone} />}
             {phase >= 6 && <TypedBig small text="Вернулись в A — заклинание сработало! Всегда ровно 1 ✨" onDone={() => onSettled?.()} readMs={300} />}
             {fly && <FlyingLabel key={`fl${leg}`} text={PATH_LEFT[leg] + PATH_LEFT[leg + 1]} color={FR_COLORS[curFrac]} from={fly.from} to={fly.to} />}
@@ -591,11 +596,11 @@ const SCENE_TITLES = ['Картинка', 'Левый или правый', 'В�
 const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
 
 // ===== Тренировка =====
-type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: string }
+type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[] }
 const TRIALS: Trial[] = [
-    { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: 'Теперь берём ПРАВЫЙ треугольник. Нажми 3 его вершины 👆' },
-    { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: 'Левый треугольник, но теперь с длинами. Пройди заклинание — соберём числа' },
-    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: 'Правый треугольник с длинами. Внимательно: некоторые отрезки состоят из двух кусочков 😏' },
+    { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
+    { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами. Пройди заклинание — соберём числа' }] },
+    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами. Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
 ]
 const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -665,13 +670,10 @@ const PathTrial = ({ trial, onMistake, onSolved }: { trial: Trial; onMistake: ()
                     onPick={typed && !done ? click : undefined} flash={flash}
                     current={!picking && path.length > 0 && !done ? path[path.length - 1] : null} />
             </Center>
-            <p className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] text-center">
-                <Typewriter text={trial.intro} onDone={() => setTyped(true)} />
-            </p>
+            <TypedRich small parts={trial.intro} onDone={() => setTyped(true)} readMs={100} />
             {!picking && trial.pickFirst && (
-                <p className="w-full text-lg md:text-xl font-bold text-center text-[#A1D151]">
-                    <Typewriter text="Есть! Вершины B, D, F. Значит A, E, C — точки. Теперь колдуй: нажимай по пути 👆" onDone={() => setWalkTyped(true)} />
-                </p>
+                <TypedRich small onDone={() => setWalkTyped(true)} readMs={100}
+                    parts={[{ t: 'Есть! ' }, { t: 'Вершины B, D, F', c: V_COLOR }, { t: '. Значит ' }, { t: 'A, E, C — точки', c: P_COLOR }, { t: '. Теперь колдуй: нажимай по пути 👆' }]} />
             )}
             {!picking && <Spell big slots={slotsOf(path, trial.lens)} showOne={done} />}
             {msg && !done && <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{msg}</div>}
