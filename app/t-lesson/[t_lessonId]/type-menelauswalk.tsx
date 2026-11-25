@@ -61,13 +61,13 @@ const sideOfPoint = (t: Tri, p: Id) => t.sides.find((s) => s.point === p)!.ends
 
 // Поворот всей фигуры (для «непривычных» заданий): вокруг центра рисунка (150, 135)
 type Pts = Record<Id, Pt>
-const rotPts = (deg: 0 | 90 | 180): Pts => {
+const rotPts = (deg: 0 | 90 | 180 | 270): Pts => {
     if (deg === 0) return PTS
     const out = {} as Pts
     for (const id of IDS_ALL) out[id] = rotPt(PTS[id], deg)
     return out
 }
-const rotPt = (p: Pt, deg: 0 | 90 | 180): Pt => deg === 0 ? p : deg === 180 ? { x: 300 - p.x, y: 270 - p.y } : { x: 285 - p.y, y: p.x + 15 }
+const rotPt = (p: Pt, deg: 0 | 90 | 180 | 270): Pt => deg === 0 ? p : deg === 180 ? { x: 300 - p.x, y: 270 - p.y } : deg === 270 ? { x: 15 + p.y, y: 315 - p.x } : { x: 285 - p.y, y: p.x + 15 }
 const IDS_ALL: Id[] = ['A', 'B', 'C', 'D', 'E', 'F']
 const poly = (ids: Id[], pts: Pts = PTS) => ids.map((i) => `${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`).join(' ')
 const segKey = (a: Id, b: Id) => [a, b].sort().join('')
@@ -197,7 +197,7 @@ type FigureProps = {
     flash?: { id: Id; ok: boolean } | null
     current?: Id | null
     picked?: Id[]
-    rot?: 0 | 90 | 180
+    rot?: 0 | 90 | 180 | 270
     dimLabels?: string[]   // ключи подписей длин, которые стали бледными (число улетело в дробь)
     pickedP?: Id[]   // выбранные учеником точки (зелёные)
     hits?: Partial<Record<Id, number>>   // сколько раз верно нажали на точку: новый hit — сильный отскок
@@ -666,11 +666,11 @@ const SCENE_TITLES = ['Картинка', 'Левый или правый', 'В�
 const NEXT_LABELS = ['Телега, понял', 'Левый, ок', 'Вершины и точки — ясно', 'Колдуем!', 'Магия работает', 'ЛЕТС ГООУ']
 
 // ===== Тренировка =====
-type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[]; intro2?: Part[]; rot?: 0 | 90 | 180; noHint?: boolean }
+type Trial = { tag: string; tri: Tri; mode: 'letters' | 'numbers'; pickFirst?: boolean; lens?: Record<string, Len>; labels?: SegLabel[]; intro: Part[]; intro2?: Part[]; rot?: 0 | 90 | 180 | 270; noHint?: boolean }
 const TRIALS: Trial[] = [
     { tag: 'Правый треугольник', tri: RIGHT, mode: 'letters', pickFirst: true, intro: [{ t: 'Теперь берём ПРАВЫЙ треугольник. Нажми на 3 его ' }, { t: 'вершины', c: V_COLOR }, { t: ' 👆' }] },
     { tag: 'Длины сторон', tri: LEFT, mode: 'numbers', lens: LEN_LEFT, labels: LABELS_LEFT, intro: [{ t: 'Левый треугольник, но теперь с длинами' }], intro2: [{ t: 'Пройди заклинание — соберём числа' }] },
-    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, intro: [{ t: 'Правый треугольник с длинами' }], intro2: [{ t: 'Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
+    { tag: 'Длины сторон', tri: RIGHT, mode: 'numbers', lens: LEN_RIGHT, labels: LABELS_RIGHT, rot: 270, intro: [{ t: 'Правый треугольник с длинами' }], intro2: [{ t: 'Внимательно: некоторые отрезки состоят из двух кусочков 😏' }] },
     { tag: 'Фигура вверх ногами', tri: LEFT, mode: 'numbers', pickFirst: true, lens: LEN_LEFT2, labels: LABELS_LEFT2, rot: 180,
         intro: [{ t: 'Фигура перевёрнута' }], intro2: [{ t: 'Нажми на 3 ' }, { t: 'вершины', c: V_COLOR }, { t: ' закрашенного треугольника' }] },
     { tag: 'Фигура набок, без подсказки', tri: RIGHT, mode: 'numbers', pickFirst: true, lens: LEN_RIGHT2, labels: LABELS_RIGHT2, rot: 90, noHint: true,
