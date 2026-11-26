@@ -32,12 +32,12 @@ import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, preloadSound, CASE_PRIZE_SOUND, CAT_MEW_SOUNDS, CAT_PURR_SOUND, FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME } from '@/lib/sound'
 
 const CAT_PURR_CHANCE = 0.75
-type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'eat' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
+type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'eat' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy' | 'sit-thin'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
 const CAT_PX: Record<Pose, [number, number]> = {
     peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], eat: [719, 533], jump: [750, 715], land: [825, 671], sun: [892, 581], 'sun-wink': [891, 640], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
-    sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
+    sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635], 'sit-thin': [540, 751],
 }
 // Ходьба — 3 кадра Leonardo (docs/hangar/leonardo/cat-walk2-*): лапа вперёд → широкий шаг → лапы собраны.
 // Кадры выровнены по голове, поэтому голова не дёргается — двигаются только лапы.
@@ -115,16 +115,18 @@ function useBlink(active: boolean): Pose {
 // Худоба котика (lib/catFood.ts catThinLevel): пока нет картинок худых котиков (промпты — docs/hangar/cat-thin-prompts.md),
 // котик сплющивается по ширине: 1 — худенький, 2 — высушенный. Когда картинки будут — подменять src по уровню здесь.
 const ThinCtx = createContext<CatThin>(0)
+// уровень 1 — своя картинка худенького котика (cat-sit-thin.webp, Leonardo), уровень 2 — она же, ещё уже; остальные позы — обычные, сплющенные
 const THIN_SX = [1, 0.84, 0.66]
+const THIN_SIT_SX = [1, 1, 0.86]
 function CatImg({ pose, poses, flip }: { pose: Pose; poses: Pose[]; flip?: boolean }) {
-    const sx = THIN_SX[useContext(ThinCtx)]
+    const thin = useContext(ThinCtx)
     return (
         <>
             {poses.map((p) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={p} src={src(p)} alt="" draggable={false}
                     className="pointer-events-none absolute inset-0 h-full w-full select-none"
-                    style={{ opacity: p === pose ? 1 : 0, transform: flip || sx !== 1 ? `scaleX(${flip ? -sx : sx})` : undefined }} />
+                    style={{ opacity: p === pose ? 1 : 0, transform: flip || (p === 'sit-thin' ? THIN_SIT_SX : THIN_SX)[thin] !== 1 ? `scaleX(${(flip ? -1 : 1) * (p === 'sit-thin' ? THIN_SIT_SX : THIN_SX)[thin]})` : undefined }} />
             ))}
         </>
     )
@@ -253,7 +255,7 @@ const bedOf = (b: Place) => ({ x: b.x - 6, y: b.y - 52, k: BED_K * (b.w / 150) }
 // Полоска сытости ставится по ним, а не по центру картинки (у сидящего котика хвост слева, голова правее середины).
 const HEAD: Partial<Record<Pose, [number, number]>> = {
     sit: [0.57, 0], 'sit-half': [0.57, 0], 'sit-closed': [0.57, 0], happy: [0.57, 0], 'sit-shy': [0.6, 0], meow: [0.5, 0], pet: [0.58, 0],
-    sniff: [0.52, 0], sun: [0.73, 0], 'sun-wink': [0.66, 0], land: [0.73, 0], eat: [0.82, 0], sleep: [0.78, 0.05],
+    sniff: [0.52, 0], 'sit-thin': [0.59, 0], sun: [0.73, 0], 'sun-wink': [0.66, 0], land: [0.73, 0], eat: [0.82, 0], sleep: [0.78, 0.05],
 }
 /** Точка над ушами котика в координатах сцены: поза, место (низ по центру), масштаб, отражение, наклон и сплющивание (на бочке). */
 function headTop(pose: Pose, at: { x: number; y: number; k: number }, flip = false, tilt = 0, sy = 1) {
@@ -522,6 +524,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // сытость считаем только в браузере (время клиента) и раз в минуту обновляем
     const [satiety, setSatiety] = useState<number | null>(null)
     const [thin, setThin] = useState<CatThin>(0)
+    const thinRef = useRef<CatThin>(0)
+    thinRef.current = thin
     useEffect(() => {
         if (stage < 2) return
         const upd = () => { setSatiety(satietyAt(fedAt)); setThin(catThinLevel(fedAt)) }
@@ -760,7 +764,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         // Прогулка по шагам на одной шкале времени: t — когда начать следующий шаг (мс от начала прогулки).
         const go = (eatOnly = false, resume = false, from: { x: number; y: number } | null = null) => {
             // есть бочка — котик почти всегда идёт гулять (к ней), иначе через раз остаётся дома
-            if (!from && !eatOnly && (busyRef.current || (!demo && Math.random() < (barrelRef.current ? 0.15 : 0.5)))) { later(20000 + Math.random() * 15000, () => go()); return }
+            if (!from && !eatOnly && (thinRef.current > 0 || busyRef.current || (!demo && Math.random() < (barrelRef.current ? 0.15 : 0.5)))) { later(20000 + Math.random() * 15000, () => go()); return }
             const bed = bedRef.current
             if (!bed) return
             const BEDp = { x: bed.x, y: bed.y }
@@ -993,7 +997,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const BEDF = { ...BED, k: BED.k * fatK }
     const strollK = (stroll ? stroll.k ?? kAt(stroll.ky ?? stroll.y) : BED_K) * fatK
     const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[strollBox][1] * strollK - 6 } : { x: BED.x, y: BED.y - 96 * fatK }
-    const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
+    const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep', 'sit-thin']
+    // худой котик (не ел 3+ суток) на коробке: вместо сидячих поз — его картинка
+    const bedPose: Pose = thin > 0 && ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow'].includes(pose) ? 'sit-thin' : pose
     return (
         <ThinCtx.Provider value={stage >= 2 ? thin : 0}>
             <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : asleep || away ? () => { playJustClick(); setLockSay(away ? 'Котик поймал мышку! Сначала порадуйся за него' : 'Тсс! Мыши в деле — подожди'); setTimeout(() => setLockSay(null), 2600) } : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
@@ -1063,9 +1069,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             ) : sbox !== 'idle' || away ? null : (
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
-                style={{ ...box(pose, BEDF), zIndex: catZ }}
+                style={{ ...box(bedPose, BEDF), zIndex: catZ }}
                 onClick={() => { if (night) { playJustClick(); if (dreamOn) nextDream(); else openDream(); return } if (asleep) return; petCat() }}>
-                <CatImg pose={pose} poses={allSit} />
+                <CatImg pose={bedPose} poses={allSit} />
             </button>
             )}
             {meal && <MealBowl meal={meal} />}
@@ -1077,7 +1083,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     return <SatietyBar x={t.x} y={t.y} v={shownSatiety} />
                 })()
                 
-                : sbox === 'idle' && !away && (() => { const t = headTop(pose, BEDF); return <SatietyBar x={t.x} y={t.y} v={shownSatiety} /> })())}
+                : sbox === 'idle' && !away && (() => { const t = headTop(bedPose, BEDF); return <SatietyBar x={t.x} y={t.y} v={shownSatiety} /> })())}
             {stroll?.perch && !stroll.jump && (
                 // котик на бочке греется: тёплое пятно солнца на нём
                 <div className="pointer-events-none absolute rounded-full" style={{ left: pct(stroll.x - 70), top: pct(stroll.y - 120), width: pct(140), height: pct(150),
