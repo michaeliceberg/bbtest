@@ -16,7 +16,7 @@ import { buyCatFood, buyFatPotion, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
 import { FeedDesignC, FEED_SCENE } from '@/components/cat-feed-designs'
-import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatSizeM, fmtLengthM, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatSizeM, catFatStage, fmtLengthM, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
@@ -320,7 +320,7 @@ export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, ca
                 {/* кормление: пока сытость меньше 90%; каждая порция добавляет свои проценты; серия — по дням */}
                 <div className="mt-3">
                     <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)}
-                        ruler={<GrowthRuler cat={view.cat} scaleM={view.ref} />} catScale={view.cat / view.ref} growText={grew} flask={<PotionFlask can={full && fat < FAT_MAX && !potionBusy} busy={potionBusy} onClick={() => void drink()} />} note={potionMsg} />
+                        ruler={<GrowthRuler cat={view.cat} scaleM={view.ref} />} catScale={view.cat / view.ref} fatStage={catFatStage(fat)} growText={grew} flask={<PotionFlask can={full && fat < FAT_MAX && !potionBusy} busy={potionBusy} onClick={() => void drink()} />} note={potionMsg} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">

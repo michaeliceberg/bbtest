@@ -43,9 +43,13 @@ export const FAT_BASE_M = 0.35 // обычный котик, м
 export const FAT_GROWTH = 1.15
 const MOON_M = 3_474_000
 export const FAT_MAX = Math.ceil(Math.log(MOON_M / FAT_BASE_M) / Math.log(FAT_GROWTH)) // 116
-export const FAT_VISUAL_MAX = 2.1
+export const FAT_VISUAL_MAX = 1.7
+/** С какого числа зелий котик «пухлый» (1) и «шарик» (2): свои картинки сидячей позы, и он не гуляет по ангару. */
+export const FAT_STAGE_AT: [number, number] = [10, 30]
+export type CatFatStage = 0 | 1 | 2
+export const catFatStage = (n: number): CatFatStage => (n >= FAT_STAGE_AT[1] ? 2 : n >= FAT_STAGE_AT[0] ? 1 : 0)
 export const catFatSizeM = (n: number) => FAT_BASE_M * Math.pow(FAT_GROWTH, Math.max(0, Math.min(FAT_MAX, n)))
-export const catFatVisualScale = (n: number) => Math.min(FAT_VISUAL_MAX, 1 + 0.05 * Math.max(0, n))
+export const catFatVisualScale = (n: number) => Math.min(FAT_VISUAL_MAX, 1 + 0.03 * Math.max(0, n))
 const FAT_LADDER: [number, string][] = [
     [0, 'котик как котик'], [0.8, 'с овчарку'], [2, 'с пони'], [4, 'со слона'], [10, 'с автобус'], [30, 'с синего кита'], [70, 'с самолёт'],
     [300, 'с Эйфелеву башню'], [1500, 'с небоскрёб'], [8848, 'с Эверест'], [100_000, 'с остров'], [1_000_000, 'с Луну поменьше'], [MOON_M * 0.98, 'с Луну'],

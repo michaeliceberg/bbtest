@@ -47,3 +47,8 @@ Avoid: `rib cage, skeleton, skull, bones sticking out, blood, wounds, corpse, de
 Для каждого уровня достаточно трёх поз, остальные код возьмёт из нормальных (сплющенных): `sit`, `sit-closed` (моргание), `meow` (слабое «мяу»).
 Для `meow`: в конец промпта уровня добавить `head slightly raised, mouth open in a weak small meow`.
 Для остальных поз (`walk-1…3`, `sleep`, `eat`, `sun`…) код пока оставит обычную картинку, сплющенную по ширине; при желании их можно сделать позже по тому же рецепту.
+
+
+## Толстый котик (2026-11-27)
+
+Вариант Б: 2 картинки сидячей позы, `docs/hangar/leonardo/cat-sit-fat1.jpg` (пухлый, с 10 зелий) и `cat-sit-fat2.jpg` (шарик, с 30 зелий) → `public/hangar/life/cat-sit-fat1.webp`, `cat-sit-fat2.webp`. Подключены в `hangar-cat.tsx` (`bedPose`) и в сцене кормления. Толстый котик не гуляет, только сидит на коробке. Худой имеет приоритет над толстым.
