@@ -34,7 +34,13 @@ function Seg({ v, color, vertical, style, className }: { v: number; color: strin
 }
 
 /** Кнопка-номер (как KeyBadge в ангаре) с индикатором прогресса вокруг. size — сторона кнопки в px; поле вокруг даёт запас под индикатор. */
-function Badge({ n, p, variant, size = 28, color }: { n: number; p: number; variant: Variant; size?: number; color: string }) {
+type Plate = 'none' | 'blur' | 'dark'
+/** Подложка под кнопкой и индикатором: blur — размытие фона под ней + тёмная вуаль; dark — только мягкая тёмная плашка без размытия (дешевле для телефона). */
+const plateStyle = (plate: Plate): React.CSSProperties | null =>
+    plate === 'blur' ? { background: 'rgba(24,18,12,0.42)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', boxShadow: '0 0 0 1px rgba(255,255,255,0.10)' }
+    : plate === 'dark' ? { background: 'rgba(24,18,12,0.62)', boxShadow: '0 0 0 1px rgba(255,255,255,0.08)' } : null
+
+function Badge({ n, p, variant, size = 28, color, plate = 'none' }: { n: number; p: number; variant: Variant; size?: number; color: string; plate?: Plate }) {
     const b = size, t = Math.max(3, Math.round(b * 0.15)), g = Math.max(2, Math.round(b * 0.1)), pad = t + g + 2
     const W = b + pad * 2, H = variant === 'under' ? b + pad + t + g + 4 : b + pad * 2
     const off = pad
@@ -104,9 +110,19 @@ function Badge({ n, p, variant, size = 28, color }: { n: number; p: number; vari
             <Seg v={part(p, 3)} color={color} style={{ left: o + t + 1, top: o + w - t, width: L, height: t, borderRadius: 2 }} />
         </>)
     }
-    return <span className="relative inline-block shrink-0" style={{ width: W, height: H }}>{btn}{ind}</span>
+    const ps = plateStyle(plate)
+    return <span className="relative inline-block shrink-0" style={{ width: W, height: H }}>{ps && <span className="absolute rounded-[10px]" style={{ left: 1, top: 1, right: 1, bottom: 1, ...ps }} />}{btn}{ind}</span>
 }
 
+// фоны для проверки читаемости: жёлтый пол и прочие места ангара (куски bg.webp) и плоская охра
+const HB = (x: number, y: number, z = 320): React.CSSProperties => ({ backgroundImage: 'url(/hangar/bg.webp)', backgroundSize: `${z}%`, backgroundPosition: `${x}% ${y}%` })
+const BGS: { name: string; style: React.CSSProperties }[] = [
+    { name: 'жёлтый', style: { background: '#D9B25A' } },
+    { name: 'пол', style: HB(55, 96) },
+    { name: 'стена', style: HB(8, 45) },
+    { name: 'окно', style: HB(50, 28) },
+    { name: 'ящики', style: HB(92, 80) },
+]
 const STEPS = [0, 0.1, 0.25, 0.5, 0.75, 1]
 
 export default function Page() {
@@ -130,6 +146,39 @@ export default function Page() {
                         ))}
                     </div>
                 </div>
+
+                <section className="mt-4 rounded-2xl border-2 border-[#F2C35B] bg-[#161F23] p-3">
+                    <div className="text-base font-black">Подложка: уголки (В) и точки (Г)</div>
+                    <div className="text-xs font-bold text-[#9AA7B0]">Три подложки под кнопкой и индикатором: без, с размытием фона (backdrop blur) и тёмная плашка без размытия. На разных фонах ангара и на жёлтом. Реальный размер 27px, справа крупно. Ползунок сверху меняет процент.</div>
+                    <div className="mt-2 space-y-2">
+                        {(['corners', 'pips'] as Variant[]).map((v) => (
+                            <div key={v}>
+                                <div className="mb-1 text-sm font-black">{v === 'corners' ? 'В. Уголки' : 'Г. Точки'}</div>
+                                <div className="grid grid-cols-[auto_repeat(3,1fr)] items-center gap-1.5 text-[11px] font-bold text-[#9AA7B0]">
+                                    <span />{(['none', 'blur', 'dark'] as Plate[]).map((pl) => <span key={pl} className="text-center">{pl === 'none' ? 'без подложки' : pl === 'blur' ? 'размытие' : 'тёмная плашка'}</span>)}
+                                    {BGS.map((bg) => (
+                                        <div key={bg.name} className="contents">
+                                            <span className="pr-1">{bg.name}</span>
+                                            {(['none', 'blur', 'dark'] as Plate[]).map((pl) => (
+                                                <div key={pl} className="flex h-[88px] items-center justify-around overflow-hidden rounded-xl" style={bg.style}>
+                                                    <Badge n={4} p={p} variant={v} size={27} color={color} plate={pl} />
+                                                    <Badge n={9} p={Math.max(0, p - 0.4)} variant={v} size={27} color={color} plate={pl} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-4">
+                                    {(['none', 'blur', 'dark'] as Plate[]).map((pl) => (
+                                        <div key={pl} className="flex h-[120px] w-[130px] items-center justify-center rounded-xl" style={BGS[0].style}>
+                                            <Badge n={4} p={p} variant={v} size={56} color={color} plate={pl} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
 
                 <div className="mt-4 space-y-3">
                     {VARIANTS.map((v) => (
