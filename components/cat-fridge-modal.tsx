@@ -16,9 +16,43 @@ import { buyCatFood, buyFatPotion, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
 import { FeedDesignC } from '@/components/cat-feed-designs'
-import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatLabel, catFatSizeText, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatSizeText, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
+
+/** Шкала роста слева от котика: сколько сейчас (35 см, 1,2 м, 4 км…); столбик растёт с каждым зельем (корень, чтобы первые зелья были заметны). */
+function GrowthRuler({ fat }: { fat: number }) {
+    const fill = Math.min(1, Math.sqrt(fat / FAT_MAX))
+    return (
+        <div className="flex h-full w-10 flex-col items-center" title="Рост котика">
+            <span className="text-[9px] font-black uppercase leading-none text-[#8C6A44]">Рост</span>
+            <div className="relative mt-1 w-3 flex-1 overflow-hidden rounded-full border-2 border-[#3A2A1E] bg-[#EADCBF]">
+                <div className="absolute inset-x-0 bottom-0 rounded-full bg-[#9B6FD6]" style={{ height: `${Math.max(6, fill * 100)}%`, transition: 'height .5s' }} />
+                {[0.25, 0.5, 0.75].map((t) => <span key={t} className="absolute inset-x-0 h-px bg-[#3A2A1E]/40" style={{ bottom: `${t * 100}%` }} />)}
+            </div>
+            <span className="mt-1 whitespace-nowrap text-[11px] font-black leading-none text-[#3A2A1E]">{catFatSizeText(fat)}</span>
+        </div>
+    )
+}
+
+/** Флакон зелья толстости в углу сцены кормления. Пока рисуется кодом; картинка Leonardo — public/hangar/life/cat-fat-potion.webp
+ *  (промпт в docs/hangar/cat-fat-potion-prompts.md). Дать можно, когда котик сыт: нажал — списываются FAT_POTION_PRICE монет. */
+function PotionFlask({ can, busy, onClick }: { can: boolean; busy: boolean; onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick} disabled={!can} aria-label="Напоить зельем толстости" title={can ? 'Зелье толстости' : 'Зелье можно дать, когда котик сыт'}
+            className="flex flex-col items-center active:translate-y-px" style={{ opacity: can ? 1 : 0.5 }}>
+            <svg viewBox="0 0 40 48" className="h-11 w-9" aria-hidden>
+                <rect x="15" y="2" width="10" height="7" rx="2" fill="#B8864E" stroke="#3A2A1E" strokeWidth="1.6" />
+                <path d="M16 9 H24 V17 L35 38 Q37 45 30 45 H10 Q3 45 5 38 L16 17 Z" fill="#F3E8FF" stroke="#3A2A1E" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M10 30 H30 L35 38 Q37 45 30 45 H10 Q3 45 5 38 Z" fill="#B968E8" />
+                <circle cx="15" cy="37" r="2.2" fill="#E9C4FF" /><circle cx="24" cy="34" r="1.6" fill="#E9C4FF" /><circle cx="22" cy="40" r="1.3" fill="#E9C4FF" />
+            </svg>
+            <span className="-mt-0.5 flex items-center gap-0.5 rounded-md border-b-2 border-[#B8862E] bg-[#F2C35B] px-1 text-[11px] font-black leading-[15px] text-[#3A2A08]">
+                {busy ? '…' : FAT_POTION_PRICE}
+            </span>
+        </button>
+    )
+}
 
 // Контур камеры холодильника, снятый с самой картинки (в %): затемнение при мигании лампы не вылезает за скруглённые углы.
 const FRIDGE_CHAMBER_CLIP = 'polygon(13.7% 43.8%, 13.9% 37.2%, 14.4% 16.4%, 15.8% 14.2%, 19.1% 13.3%, 80.9% 13.3%, 84.2% 14.2%, 85.4% 16.4%, 85.9% 35.0%, 86.0% 43.8%, 86.0% 56.9%, 85.9% 63.5%, 85.7% 67.8%, 85.4% 74.4%, 85.1% 78.8%, 84.9% 81.0%, 81.3% 86.2%, 79.2% 86.8%, 75.0% 87.2%, 70.7% 87.5%, 66.5% 87.7%, 60.1% 88.0%, 55.9% 88.1%, 45.3% 88.1%, 41.0% 88.0%, 30.4% 87.5%, 28.3% 87.4%, 24.0% 87.1%, 21.9% 86.9%, 19.8% 86.5%, 17.7% 86.0%, 14.7% 81.0%, 14.3% 74.4%, 13.9% 63.5%, 13.7% 56.9%)'
@@ -29,7 +63,7 @@ const FLAKES = Array.from({ length: 16 }, (_, i) => ({
 }))
 
 export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, catName, satiety = 0, feedStreak = 0, onFed }: {
-    /** Сытость котика сейчас, 0…1: кормить можно, пока меньше половины. */
+    /** Сытость котика сейчас, 0…1: кормить можно, пока меньше 90%. */
     satiety?: number
     /** Сколько дней подряд кормили. */
     feedStreak?: number
@@ -238,24 +272,10 @@ export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, ca
                     <div className="pointer-events-none absolute transition-opacity duration-75"
                         style={{ inset: 0, clipPath: FRIDGE_CHAMBER_CLIP, background: 'rgba(12,20,32,0.55)', opacity: dark, zIndex: 30 }} />
                 </div>
-                {/* кормление: пока сытость меньше половины; каждая порция добавляет свои проценты; серия — по дням */}
+                {/* кормление: пока сытость меньше 90%; каждая порция добавляет свои проценты; серия — по дням */}
                 <div className="mt-3">
-                    <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)} />
-                </div>
-                {/* зелье толстости: появляется, когда котик сытый */}
-                <div className="mt-3 flex items-center gap-2 rounded-2xl border-2 border-[#7A4FB0] bg-[#2A1B3D] p-2.5 text-[#F3E8FF]">
-                    <div className="min-w-0 flex-1">
-                        <div className="text-base font-black leading-tight">Зелье толстости</div>
-                        <div className="text-xs font-bold leading-tight text-[#C9B2E8]">
-                            {full ? `Сейчас: ${catFatSizeText(fat)}, ${catFatLabel(fat)}. Сытость не меняется` : 'Дать можно, когда котик сытый'}
-                        </div>
-                        {potionMsg && <div className="mt-0.5 text-xs font-bold text-[#FF9C93]">{potionMsg}</div>}
-                    </div>
-                    <button type="button" onClick={() => void drink()} disabled={!full || potionBusy || fat >= FAT_MAX} aria-label="Напоить зельем толстости"
-                        className="flex shrink-0 items-center gap-0.5 rounded-xl border-b-4 border-[#B8862E] bg-[#F2C35B] py-1 pl-3 pr-1 text-base font-black text-[#3A2A08] active:border-b-0 disabled:opacity-40">
-                        {FAT_POTION_PRICE}
-                        <Lottie animationData={LottieCoins} loop autoplay className="-my-2 h-8 w-8 -translate-y-[14%]" />
-                    </button>
+                    <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)}
+                        ruler={<GrowthRuler fat={fat} />} flask={<PotionFlask can={full && fat < FAT_MAX && !potionBusy} busy={potionBusy} onClick={() => void drink()} />} note={potionMsg} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">

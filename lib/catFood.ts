@@ -12,8 +12,8 @@ export const CAT_FOOD: Record<CatFood, { title: string; price: number; src: stri
     fish: { title: 'Рыбка', price: 375, gain: 75, src: '/hangar/life/cat-fish.webp' },
 }
 // gain — на сколько процентов порция поднимает сытость (полоска над котиком убывает от 100% до 0 за CAT_SATIETY_DAYS суток).
-// Кормить можно, пока сытость меньше CAT_FEED_BELOW.
-export const CAT_FEED_BELOW = 0.5
+// Кормить можно, пока сытость меньше CAT_FEED_BELOW (90%); выше — «котик сыт». Больше 100% не бывает.
+export const CAT_FEED_BELOW = 0.9
 /** За сколько суток полная сытость (100%) падает до нуля (раньше было 1 сутки). */
 export const CAT_SATIETY_DAYS = 3
 export const CAT_SATIETY_MS = CAT_SATIETY_DAYS * 86_400_000
@@ -35,7 +35,7 @@ export function catThinLevel(fedAt: string | null | undefined, now = Date.now())
 }
 
 // ── Зелье толстости (actions/cat.ts buyFatPotion, user_progress.cat_fat) ──
-// Сытому котику (сытость ≥ CAT_FEED_BELOW — тому, кого кормить уже нельзя) за 500 монет можно дать зелье: он вырастает
+// Сытому котику (сытость ≥ CAT_FEED_BELOW, 90% — тому, кого кормить уже нельзя) за 500 монет можно дать зелье: он вырастает
 // в размере. Накопительно, на сытость не влияет. Реальный размер растёт в FAT_GROWTH раз за зелье и за FAT_MAX зелий
 // доходит до размера Луны; в ангаре картинка растёт плавно, но не больше FAT_VISUAL_MAX (иначе не влезет на экран).
 export const FAT_POTION_PRICE = 500

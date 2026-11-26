@@ -17,6 +17,11 @@ export type FeedDesignProps = {
     feedStreak: number
     eating: CatFood | null
     onFeed: (k: CatFood) => void
+    /** Шкала роста слева от котика и флакон зелья в правом верхнем углу сцены (design C). */
+    ruler?: React.ReactNode
+    flask?: React.ReactNode
+    /** Подпись под едой (ошибка покупки зелья и т.п.). */
+    note?: string | null
 }
 
 const BROWN = '#3A2A1E'
@@ -26,8 +31,7 @@ type Mood = { pose: string; phrase: string; color: string }
 /** Настроение котика по сытости: поза (public/hangar/life/cat-<pose>.webp), реплика и цвет полоски. */
 function moodOf(sat: number, eating: boolean): Mood {
     if (eating) return { pose: 'eat', phrase: 'Ням-ням-ням', color: '#8FD460' }
-    if (sat >= 0.9) return { pose: 'happy', phrase: 'Мурр, я самый сытый', color: '#8FD460' }
-    if (sat >= CAT_FEED_BELOW) return { pose: 'sit', phrase: 'Пока не голодный', color: '#B7D84B' }
+    if (sat >= CAT_FEED_BELOW) return { pose: 'happy', phrase: 'Котик сыт и доволен', color: '#8FD460' }
     if (sat >= 0.2) return { pose: 'meow', phrase: 'Мяу! Хочу кушать', color: '#F5A524' }
     return { pose: 'sit-shy', phrase: 'Мне совсем грустно без еды', color: '#E5533D' }
 }
@@ -154,20 +158,22 @@ export function FeedDesignC(p: FeedDesignProps) {
         <Shell>
             <div className="relative flex h-[130px] items-end justify-center overflow-hidden rounded-xl bg-[#F3E2BE]">
                 <div className="absolute inset-x-0 bottom-0 h-5 bg-[#D9B883]" />
+                {/* слева шкала роста, правее котик, рядом с ним небольшая миска; в углу — флакон зелья толстости */}
+                {p.ruler && <div className="absolute bottom-2 left-1.5 top-2">{p.ruler}</div>}
                 <motion.img key={m.pose} src={`/hangar/life/cat-${m.pose === 'eat' ? 'sit' : m.pose}.webp`} alt="" draggable={false}
                     initial={{ y: 6 }} animate={{ y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
-                    className="absolute bottom-1 left-3 h-[112px] select-none" />
-                <div className="absolute bottom-1 right-4 w-[120px]">
+                    className="absolute bottom-1 left-[52px] h-[104px] select-none" />
+                <div className="absolute bottom-1 left-[142px] w-[80px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/life/cat-bowl.webp" alt="" draggable={false} className="w-full select-none" />
                     {p.eating && (
                         <motion.img key={p.eating} src={CAT_FOOD[p.eating].src} alt="" draggable={false}
-                            initial={{ y: -90, x: 30, opacity: 0, scale: 0.6 }} animate={{ y: -18, x: 0, opacity: 1, scale: 1 }}
+                            initial={{ y: -80, x: 24, opacity: 0, scale: 0.6 }} animate={{ y: -12, x: 0, opacity: 1, scale: 1 }}
                             transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-                            className="absolute left-1/2 top-0 h-12 w-12 -translate-x-1/2 select-none object-contain" />
+                            className="absolute left-1/2 top-0 h-10 w-10 -translate-x-1/2 select-none object-contain" />
                     )}
                 </div>
-                <div className="absolute left-2 top-2 rounded-lg bg-white/90 px-2 py-0.5 text-xs font-black">{m.phrase}</div>
+                {p.flask && <div className="absolute right-1.5 top-1.5">{p.flask}</div>}
             </div>
             <div className="mt-2.5 flex items-center gap-2">
                 <span className="text-xs font-black text-[#8C6A44]">Сытость</span>
@@ -187,8 +193,10 @@ export function FeedDesignC(p: FeedDesignProps) {
                     </button>
                 ))}
             </div>
-            {p.satiety >= CAT_FEED_BELOW
-                ? <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Покорми, когда сытость станет меньше половины</div>
+            {p.note
+                ? <div className="mt-1 text-center text-xs font-bold text-[#B23A32]">{p.note}</div>
+                : p.satiety >= CAT_FEED_BELOW
+                ? <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">{m.phrase}</div>
                 : CAT_FOODS.every((k) => p.stock[k] <= 0) && <div className="mt-1 text-center text-xs font-bold text-[#8C6A44]">Купи еду на полках выше</div>}
         </Shell>
     )
