@@ -312,9 +312,17 @@ function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; on
 }
 
 /** Табличка с именем котика — стоит на крыше холодильника на двух ножках. Нет имени — «Назови котика ✏️». */
-function NameSign({ fr, name, onClick }: { fr: Place; name: string | null; onClick?: () => void }) {
+function NameSign({ fr, name, onClick, rank = null, onRank }: { fr: Place; name: string | null; onClick?: () => void; rank?: number | null; onRank?: () => void }) {
     return (
         <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(Math.min(Math.max(fr.x - 6, 105), 919)), top: pct(fr.y - fr.h + 12), zIndex: zOf(fr) + 1 }}>
+            {/* место котика в рейтинге: кубок и номер кнопкой над табличкой, нажал — таблица рейтинга */}
+            {rank !== null && onRank && (
+                <button type="button" onClick={onRank} aria-label={`Рейтинг котиков, место ${rank}`}
+                    className="mx-auto mb-[0.7cqw] flex cursor-pointer items-center gap-[0.5cqw] rounded-[1cqw] border-[0.3cqw] border-[#B8862E] bg-[#FFE9A8] px-[1.4cqw] py-[0.3cqw] font-black leading-none text-[#5A3A22] active:translate-y-[3px] active:!shadow-none"
+                    style={{ fontSize: '2.4cqw', boxShadow: '0 0.7cqw 0 #B8862E' }}>
+                    <Trophy className="h-[1.15em] w-[1.15em] text-[#D9A21B]" fill="#F2C35B" />{rank}
+                </button>
+            )}
             <button type="button" disabled={!onClick} onClick={onClick} aria-label={name ? `Котика зовут ${name}` : 'Назови котика'}
                 className={`flex flex-col items-center ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}>
                 <span className="whitespace-nowrap rounded-[0.8cqw] border-[0.35cqw] border-[#5A3A22] px-[1.2cqw] py-[0.35cqw] font-black leading-none shadow-md"
@@ -1017,15 +1025,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     }}
                     onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }}
                     onPotion={(n) => { setFood((f) => ({ ...f, fat: n })); setShopOpen(false); doReact('happy'); if (!onHome) router.refresh() }} />, document.body)}
-            {!bare && fridgeOk && rank && (
-                <button type="button" onClick={() => { playJustClick(); setRatingOpen(true) }} aria-label={`Рейтинг котиков, место ${rank.place}`}
-                    className="absolute flex -translate-x-1/2 items-center gap-[0.5cqw] whitespace-nowrap rounded-[1cqw] border-[0.3cqw] border-b-[0.8cqw] border-[#B8862E] bg-[#FFE9A8] px-[1.2cqw] py-[0.4cqw] font-black leading-none text-[#5A3A22] active:border-b-[0.3cqw]"
-                    style={{ left: pct(frP.x), top: pct(frP.y + 6), zIndex: zOf(frP) + 2, fontSize: '2cqw' }}>
-                    <Trophy className="h-[1.1em] w-[1.1em] text-[#D9A21B]" fill="#F2C35B" />Место {rank.place}
-                </button>
-            )}
             {ratingOpen && createPortal(<CatRatingModal onClose={() => setRatingOpen(false)} />, document.body)}
-            <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
+            <NameSign fr={frP} name={name} rank={!bare && fridgeOk && rank ? rank.place : null} onRank={() => { playJustClick(); setRatingOpen(true) }} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard p={boxP} />
