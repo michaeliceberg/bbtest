@@ -50,14 +50,15 @@ const FAT_LADDER: [number, string][] = [
     [0, 'котик как котик'], [0.8, 'с овчарку'], [2, 'с пони'], [4, 'со слона'], [10, 'с автобус'], [30, 'с синего кита'], [70, 'с самолёт'],
     [300, 'с Эйфелеву башню'], [1500, 'с небоскрёб'], [8848, 'с Эверест'], [100_000, 'с остров'], [1_000_000, 'с Луну поменьше'], [MOON_M * 0.98, 'с Луну'],
 ]
-/** «1,4 м», «23 км» — размер котика словами для рейтинга. */
-export function catFatSizeText(n: number): string {
-    const m = catFatSizeM(n)
+/** Длина в метрах словами: «35 см», «1,4 м», «23 км». */
+export function fmtLengthM(m: number): string {
+    const num = (v: number) => (v < 10 && Math.abs(v - Math.round(v)) > 0.05 ? v.toFixed(1).replace('.', ',') : Math.round(v).toLocaleString('ru-RU'))
     if (m < 1) return `${Math.round(m * 100)} см`
-    if (m < 1000) return `${m < 10 ? m.toFixed(1).replace('.', ',') : Math.round(m)} м`
-    const km = m / 1000
-    return km < 100 ? `${km.toFixed(1).replace('.', ',')} км` : `${Math.round(km).toLocaleString('ru-RU')} км`
+    if (m < 1000) return `${num(m)} м`
+    return `${num(m / 1000)} км`
 }
+/** Размер котика с n зельями словами для рейтинга и линейки. */
+export const catFatSizeText = (n: number) => fmtLengthM(catFatSizeM(n))
 export const catFatLabel = (n: number) => FAT_LADDER.reduce((acc, [m, t]) => (catFatSizeM(n) >= m ? t : acc), FAT_LADDER[0][1])
 // fedDate — день последнего кормления (YYYY-MM-DD по Москве), streak — сколько дней подряд кормили
 export type CatFoodStock = Record<CatFood, number> & { fedDate?: string | null; streak?: number; fat?: number }

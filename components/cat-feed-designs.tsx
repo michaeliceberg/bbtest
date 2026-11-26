@@ -17,13 +17,15 @@ export type FeedDesignProps = {
     feedStreak: number
     eating: CatFood | null
     onFeed: (k: CatFood) => void
-    /** Шкала роста слева от котика и флакон зелья в правом верхнем углу сцены (design C). */
+    /** Линейка роста на всю сцену (как фон для опознания) и флакон зелья в правом верхнем углу сцены (design C). */
     ruler?: React.ReactNode
     flask?: React.ReactNode
     /** Подпись под едой (ошибка покупки зелья и т.п.). */
     note?: string | null
 }
 
+/** Сцена кормления (design C): высота, высота картинки котика и отступ его лап от низа — по ним строится линейка роста в cat-fridge-modal. */
+export const FEED_SCENE = { h: 130, catH: 104, base: 4 }
 const BROWN = '#3A2A1E'
 const CREAM = '#FFF6E4'
 
@@ -159,7 +161,7 @@ export function FeedDesignC(p: FeedDesignProps) {
             <div className="relative flex h-[130px] items-end justify-center overflow-hidden rounded-xl bg-[#F3E2BE]">
                 <div className="absolute inset-x-0 bottom-0 h-5 bg-[#D9B883]" />
                 {/* слева шкала роста, правее котик, рядом с ним небольшая миска; в углу — флакон зелья толстости */}
-                {p.ruler && <div className="absolute bottom-2 left-1.5 top-2">{p.ruler}</div>}
+                {p.ruler && <div className="pointer-events-none absolute inset-0">{p.ruler}</div>}
                 <motion.img key={m.pose} src={`/hangar/life/cat-${m.pose === 'eat' ? 'sit' : m.pose}.webp`} alt="" draggable={false}
                     initial={{ y: 6 }} animate={{ y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
                     className="absolute bottom-1 left-[52px] h-[104px] select-none" />

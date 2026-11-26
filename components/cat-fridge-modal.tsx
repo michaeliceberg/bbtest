@@ -15,23 +15,41 @@ import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { buyCatFood, buyFatPotion, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
-import { FeedDesignC } from '@/components/cat-feed-designs'
-import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatSizeText, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { FeedDesignC, FEED_SCENE } from '@/components/cat-feed-designs'
+import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatSizeM, fmtLengthM, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
-/** Шкала роста слева от котика: сколько сейчас (35 см, 1,2 м, 4 км…); столбик растёт с каждым зельем (корень, чтобы первые зелья были заметны). */
+/** Линейка роста как на фото для опознания: горизонтальные линии через всю сцену, слева подписи, красная линия точно по макушке
+ *  котика с его настоящим ростом. Масштаб подбирается под размер котика (шаг линий 1/2/5 × 10^k), так что котик всегда стоит
+ *  вровень со своей линией, а чем он больше, тем крупнее единицы на линейке (см → м → км). */
 function GrowthRuler({ fat }: { fat: number }) {
-    const fill = Math.min(1, Math.sqrt(fat / FAT_MAX))
+    const { h, catH, base } = FEED_SCENE
+    const sizeM = catFatSizeM(fat)
+    const pxPerM = catH / sizeM
+    const raw = (sizeM * 24) / catH // шаг, при котором линии идут примерно через 24px
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)))
+    const step = [1, 2, 5, 10].map((k) => k * mag).find((v) => v >= raw) ?? raw
+    const catTop = base + catH
+    const lines: { y: number; major: boolean; label: string }[] = []
+    for (let k = 1; base + k * step * pxPerM < h - 6; k++) {
+        const y = base + k * step * pxPerM
+        if (Math.abs(y - catTop) < 11) continue // рядом с красной линией подпись не нужна
+        lines.push({ y, major: k % 5 === 0, label: fmtLengthM(k * step) })
+    }
     return (
-        <div className="flex h-full w-10 flex-col items-center" title="Рост котика">
-            <span className="text-[9px] font-black uppercase leading-none text-[#8C6A44]">Рост</span>
-            <div className="relative mt-1 w-3 flex-1 overflow-hidden rounded-full border-2 border-[#3A2A1E] bg-[#EADCBF]">
-                <div className="absolute inset-x-0 bottom-0 rounded-full bg-[#9B6FD6]" style={{ height: `${Math.max(6, fill * 100)}%`, transition: 'height .5s' }} />
-                {[0.25, 0.5, 0.75].map((t) => <span key={t} className="absolute inset-x-0 h-px bg-[#3A2A1E]/40" style={{ bottom: `${t * 100}%` }} />)}
+        <>
+            {lines.map((l) => (
+                <div key={l.label} className="absolute inset-x-0" style={{ bottom: l.y }}>
+                    <div className="absolute inset-x-0 bottom-0" style={{ height: l.major ? 2 : 1, background: l.major ? 'rgba(58,42,30,0.55)' : 'rgba(58,42,30,0.28)' }} />
+                    <span className="absolute bottom-0.5 left-1 text-[9px] font-black leading-none text-[#6B4F36]">{l.label}</span>
+                </div>
+            ))}
+            <div className="absolute inset-x-0" style={{ bottom: catTop }} title="Рост котика">
+                <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#D9433A]" />
+                <span className="absolute bottom-0.5 left-1 rounded bg-[#D9433A] px-1 text-[10px] font-black leading-[13px] text-white">{fmtLengthM(sizeM)}</span>
             </div>
-            <span className="mt-1 whitespace-nowrap text-[11px] font-black leading-none text-[#3A2A1E]">{catFatSizeText(fat)}</span>
-        </div>
+        </>
     )
 }
 
