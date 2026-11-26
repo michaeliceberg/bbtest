@@ -109,6 +109,13 @@ const LottieOrVideoScreen = ({ animationData, onNext, milestone, theme = 'metal'
             className="max-h-[66vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
             style={{ aspectRatio: '9 / 16', border: `3px solid ${copy.accent}` }}
           />
+          <button
+            type="button"
+            onClick={() => { videoRef.current?.pause(); finishVideo() }}
+            className="rounded-2xl border-2 border-b-4 border-[#2A363C] bg-[#1C272D] px-6 py-2.5 text-base font-black uppercase tracking-wide text-[#E6EDF1] active:border-b-0"
+          >
+            Пропустить
+          </button>
         </div>
       </div>
     )
