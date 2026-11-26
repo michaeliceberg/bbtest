@@ -34,6 +34,7 @@ import { ZaNaukuArchive } from '@/components/za-nauku-archive'
 import { HangarQuotesButton } from '@/components/hangar-quotes-info'
 import { pickHangarJoke } from '@/lib/hangarJokes'
 import Confetti from 'react-confetti'
+import { ProgressCorners } from '@/components/hangar-progress-corners'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
 export type SceneItem = {
@@ -78,9 +79,11 @@ const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 2
 // Значок задания — жёлтая плашка с номером (как номер задания на карточке юнита /trainer), без ключика и подложки.
 // Раздел решён — плашка подпрыгивает. Наводишь или жмёшь — предмет, который починится, подсвечивается;
 // по нажатию — окошко «Перейти в задачник».
-function KeyBadge({ x, y, n, ready, active, locked = false, label, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; label?: string; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
+function KeyBadge({ x, y, n, ready, active, locked = false, label, progress, onHover, onOpen }: { progress?: number; x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; label?: string; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
     return (
         <span className="absolute -translate-x-1/2 -translate-y-[12px]" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+            {/* прогресс раздела: четыре уголка на тёмной подложке-уголком (components/hangar-progress-corners.tsx) */}
+            {progress !== undefined && <ProgressCorners p={progress} />}
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
@@ -585,7 +588,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                             )}
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
                             {((i.locked && !done) || flying === i.num) && <Tarp item={id} shadow={floorShadow} flying={flying === i.num} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
-                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} label={i.canUnveil ? 'Снять брезент' : undefined} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {!done && !bare && <KeyBadge progress={i.progress} x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} label={i.canUnveil ? 'Снять брезент' : undefined} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
@@ -611,7 +614,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                         onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
                 {fan && goldWaiting(fan) && !bare && <GoldBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} onOpen={() => openTask(FAN_NUM)} />}
-                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready' || !!fan.canUnveil} locked={!!fan.locked && !fan.canUnveil} label={fan.canUnveil ? 'Снять брезент' : undefined} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
+                {fan && fan.state !== 'fixed' && !bare && <KeyBadge progress={fan.progress} x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready' || !!fan.canUnveil} locked={!!fan.locked && !fan.canUnveil} label={fan.canUnveil ? 'Снять брезент' : undefined} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"

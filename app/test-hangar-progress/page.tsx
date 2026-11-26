@@ -6,6 +6,7 @@
 // Блоки изначально бледные и закрашиваются по мере решения: каждый блок = 25% раздела, текущий закрашивается частично.
 // Выберем вариант — внедрим в ангар. Только transform/opacity, без анимации box-shadow.
 import { useState } from 'react'
+import { ProgressCorners } from '@/components/hangar-progress-corners'
 
 type Variant = 'bars' | 'ring' | 'corners' | 'pips' | 'frame' | 'under'
 const VARIANTS: { id: Variant; title: string; note: string }[] = [
@@ -74,20 +75,8 @@ function Badge({ n, p, variant, size = 28, color, plate = 'none' }: { n: number;
             </svg>
         )
     } else if (variant === 'corners') {
-        const L = b * 0.4, o = g + 1 // длина плеча уголка и отступ от кнопки
-        const x0 = off - o - t / 2, y0 = off - o - t / 2, x1 = off + b + o + t / 2, y1 = off + b + o + t / 2
-        const d = [
-            `M ${x0} ${y0 + L} V ${y0} H ${x0 + L}`, // левый верхний
-            `M ${x1 - L} ${y0} H ${x1} V ${y0 + L}`, // правый верхний
-            `M ${x1} ${y1 - L} V ${y1} H ${x1 - L}`, // правый нижний
-            `M ${x0 + L} ${y1} H ${x0} V ${y1 - L}`, // левый нижний
-        ]
-        ind = (
-            <svg className="absolute inset-0" width={W} height={H} viewBox={`0 0 ${W} ${H}`} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth={t}>
-                {d.map((s, i) => <path key={`b${i}`} d={s} stroke={PALE} />)}
-                {d.map((s, i) => { const v = part(p, i); return v > 0 ? <path key={`f${i}`} d={s} stroke={color} pathLength={1} strokeDasharray={`${v} 1`} /> : null })}
-            </svg>
-        )
+        // как в ангаре: components/hangar-progress-corners.tsx (тёмная подложка-уголок встроена, размер — от стороны кнопки)
+        ind = <span className="absolute" style={{ left: off, top: off, width: b, height: b }}><ProgressCorners p={p} color={color} /></span>
     } else if (variant === 'pips') {
         const d = t + 2, o = g + 1
         const pos = [
@@ -111,7 +100,7 @@ function Badge({ n, p, variant, size = 28, color, plate = 'none' }: { n: number;
         </>)
     }
     const ps = plateStyle(plate)
-    return <span className="relative inline-block shrink-0" style={{ width: W, height: H }}>{ps && <span className="absolute rounded-[10px]" style={{ left: 1, top: 1, right: 1, bottom: 1, ...ps }} />}{btn}{ind}</span>
+    return <span className="relative inline-block shrink-0" style={{ width: W, height: H }}>{ps && variant !== 'corners' && <span className="absolute rounded-[10px]" style={{ left: 1, top: 1, right: 1, bottom: 1, ...ps }} />}{ind}{btn}</span>
 }
 
 // фоны для проверки читаемости: жёлтый пол и прочие места ангара (куски bg.webp) и плоская охра

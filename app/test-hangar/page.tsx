@@ -37,7 +37,8 @@ export default function Page() {
     const [catKey, setCatKey] = useState(0)
     useEffect(() => { getHangarLayout().then(setLayout).catch(() => setLayout(null)) }, [])
 
-    const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? 0 : 1, href: null, locked: tarp && st[n] === 'broken' && n !== 11, canUnveil: tarp && canUnveil && st[n] === 'broken' && n !== 11 }))
+    // у сломанных — разный процент, чтобы видеть уголки прогресса
+    const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? ((n * 37) % 100) / 100 : 1, href: null, locked: tarp && st[n] === 'broken' && n !== 11, canUnveil: tarp && canUnveil && st[n] === 'broken' && n !== 11 }))
     const all = (s: St) => setSt(Object.fromEntries(NUMS.map((n) => [n, s])))
     // ракета чинится по порядку — как в приложении «следующая деталь» одна
     const setNum = (n: number, s: St) => setSt((o) => ({ ...o, [n]: s }))
