@@ -1300,6 +1300,8 @@ body {
 /* МФТИ ночью — неон: по буквам пробегает ток, буквы вспыхивают, держатся и гаснут, потом долгая пауза */
 @keyframes hangar-neon { 0% { opacity: 0; } 1.5% { opacity: 1; } 2.5% { opacity: 0.25; } 3.5% { opacity: 1; } 17% { opacity: 1; } 18% { opacity: 0.2; } 19% { opacity: 0.9; } 21%, 100% { opacity: 0; } }
 .hangar-neon { animation: hangar-neon 11s linear infinite; opacity: 0; }
+/* клик по буквам МФТИ: тот же ток по буквам один раз (отсчёт задержек — у вложенных .hangar-neon, внутри обёртка гасит их сама) */
+.hangar-neon-once .hangar-neon { animation-iteration-count: 1; animation-fill-mode: both; }
 @media (prefers-reduced-motion: reduce) { .hangar-badge-peek, .hangar-tarp-rustle, .hangar-neon { animation: none; } }
 
 /* Кнопка PRO в сайдбаре (components/pro-sidebar-button.tsx): золотой вариант .btn-magic — переливается, блик, искры */

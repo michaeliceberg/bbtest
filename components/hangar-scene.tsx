@@ -211,6 +211,8 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
     const [openNum, setOpenNum] = useState<number | null>(null)
     // подсветка предмета; под брезентом — не подсвечиваем: что там, пока секрет
     const lit = (n: number) => (hover === n || openNum === n) && !items.find((i) => i.num === n)?.locked
+    // ракета подсвечивается и для заданий под брезентом (14, 15, 16, 18): у остальных предметов под брезентом секрет, у ракеты нет
+    const rocketLit = (n: number) => hover === n || openNum === n
     // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
@@ -546,9 +548,13 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                             background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.32), transparent 75%)' }} />
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
-                    onClick={() => { if (!bare) toggleTray() }}
-                    style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className="pointer-events-none absolute select-none"
+                    style={{ ...placeStyle(R), filter: floorShadow, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && rocketLit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                {/* зона нажатия ракеты — уже картинки (слева не задевает букву «И» МФТИ на заднем плане) */}
+                {!bare && (
+                    <div aria-label="Ракета" className="absolute cursor-pointer" onClick={toggleTray}
+                        style={{ ...placeStyle(R), clipPath: 'polygon(16% 0, 86% 0, 86% 100%, 16% 100%)' }} />
+                )}
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} sboxDone={catSboxDone} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome}
                     asleep={raidOn} away={catchOn} returnFrom={(() => { const c = placeAnyState(layout, 'b', MICE_DECOR[1]); return { x: c.x, y: c.y } })()} fedAt={catFedAt} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
@@ -628,7 +634,7 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                     {/* без AnimatePresence (в проекте не всегда доигрывает уход) — лоток всегда в DOM, едет вверх/вниз */}
                     <div className={trayOpen && !openItem ? 'pointer-events-auto' : ''}
                         style={{ transform: `translateY(${trayOpen && !openItem ? '26%' : '105%'})`, transition: 'transform .32s cubic-bezier(.2,.9,.3,1.1)' }}>
-                        <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
+                        <RocketTray parts={rocketParts} lit={rocketLit} onHover={setHover}
                             onPick={(n) => { setTrayOpen(false); setHover(null); openTask(n) }} onClose={toggleTray} />
                     </div>
                 </div>

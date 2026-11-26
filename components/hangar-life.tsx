@@ -93,6 +93,8 @@ function MiptNeon() {
 }
 
 export function MiptSilhouette({ night = false }: { night?: boolean }) {
+    // клик по буквам (днём и ночью) — вспышка неона, как ночью по расписанию; key перезапускает анимацию
+    const [flash, setFlash] = useState(0)
     const fill = night ? '#1B2238' : '#5E8C93'
     const h = (MIPT.w * 80) / 100
     return (
@@ -110,6 +112,9 @@ export function MiptSilhouette({ night = false }: { night?: boolean }) {
             <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={500} fontSize="16" letterSpacing="3"
                 fill={night ? '#323E62' : '#40686F'}>МФТИ</text>
             {night && <MiptNeon />}
+            {flash > 0 && <g key={flash} className="hangar-neon-once"><MiptNeon /></g>}
+            <rect x="18" y="3" width="64" height="18" fill="transparent" onClick={() => setFlash((n) => n + 1)}
+                style={{ pointerEvents: 'all', cursor: 'pointer' }} />
             {night && (
                 <g fill="#FFD27A" opacity={0.85}>
                     {[[14, 44], [22, 52], [78, 46], [86, 54], [16, 62], [82, 64]].map(([x, y], i) => (
