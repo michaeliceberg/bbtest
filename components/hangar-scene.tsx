@@ -61,6 +61,7 @@ const UNLOCK_HINT: Record<number, string> = {
 const ARCHIVE_ITEM = 7 // компьютер
 const ROBOT_ITEM = 13 // робот (бывший «автомат»)
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
+const FLAG_ITEM = 6 // id картинки флага (задание №2)
 const WALL = new Set([2, 6, 8]) // id предметов на стене (стенд с ключами, флаг, лампа)
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
@@ -575,6 +576,13 @@ export function HangarScene({ items: itemsProp, layout, onFix, time: forcedTime,
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) && floorShadow ? { filter: floorShadow } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                            {done && !bare && id === FLAG_ITEM && (
+                                // повешенный флаг висит под потолком за вентилятором / над ракетой — отдельная невидимая зона нажатия
+                                // выше всех предметов (картинка флага остаётся на своём слое); нажатие — войти в раздел
+                                <button type="button" aria-label={`Раздел ${i.num} — открыть`} className="absolute cursor-pointer"
+                                    style={{ left: pct(p.x - p.w / 2), top: pct(p.y - p.h), width: pct(p.w), height: pct(p.h), zIndex: 1050 }}
+                                    onClick={() => { if (onGoTask) onGoTask(i.num); else router.push(`/learn?task=${i.num}`) }} />
+                            )}
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
                             {((i.locked && !done) || flying === i.num) && <Tarp item={id} shadow={floorShadow} flying={flying === i.num} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready' || !!i.canUnveil} locked={!!i.locked && !i.canUnveil} label={i.canUnveil ? 'Снять брезент' : undefined} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
