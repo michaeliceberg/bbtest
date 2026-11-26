@@ -89,6 +89,8 @@ export const userProgress = pgTable('user_progress', {
 	catFedAt: timestamp('cat_fed_at', { withTimezone: true }),
 	catFeedStreak: integer('cat_feed_streak').notNull().default(0),
 	catFeedBest: integer('cat_feed_best').notNull().default(0),
+	// Зелья толстости, выпитые котиком (actions/cat.ts buyFatPotion): размер котика и место в рейтинге (lib/catFood.ts)
+	catFat: integer('cat_fat').notNull().default(0),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),
 	hearts: integer('hearts').notNull().default(500),

@@ -11,7 +11,7 @@
 // Картинки — public/hangar/life/cat-*.webp (Leonardo, исходники docs/hangar/leonardo/cat-*.png), все в одном масштабе:
 // размер позы в сцене = исходный размер (CAT_PX) × масштаб глубины. Координаты сцены — 1024×1024, точка = низ по центру.
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CAT_DECOR, L, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
@@ -23,8 +23,10 @@ import { CatDreamModal } from '@/components/cat-dream-modal'
 import { getCatDreamState, seeCatDream, type CatDreamState } from '@/actions/cat-dreams'
 import { CAT_DREAMS, CAT_DREAM_BY_ID, CAT_DREAMS_OVER, CAT_DREAMS_PER_NIGHT, type CatDream } from '@/lib/catDreams'
 import { reportAchievement } from '@/lib/achievementsClient'
-import { CAT_FOOD, liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/lib/catFood'
-import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
+import { CAT_FOOD, catThinLevel, catFatVisualScale, liveFeedStreak, moscowToday, satietyAt, type CatFood, type CatFoodStock, type CatThin } from '@/lib/catFood'
+import { bringCatHome, fixCatFridge, getCatRating, setCatName } from '@/actions/cat'
+import { CatRatingModal } from '@/components/cat-rating-modal'
+import { Trophy } from 'lucide-react'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, preloadSound, CASE_PRIZE_SOUND, CAT_MEW_SOUNDS, CAT_PURR_SOUND, FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME } from '@/lib/sound'
@@ -110,14 +112,19 @@ function useBlink(active: boolean): Pose {
 }
 
 /** Все позы лежат друг на друге, видна одна — смена позы без загрузки и мигания. */
+// Худоба котика (lib/catFood.ts catThinLevel): пока нет картинок худых котиков (промпты — docs/hangar/cat-thin-prompts.md),
+// котик сплющивается по ширине: 1 — худенький, 2 — высушенный. Когда картинки будут — подменять src по уровню здесь.
+const ThinCtx = createContext<CatThin>(0)
+const THIN_SX = [1, 0.84, 0.66]
 function CatImg({ pose, poses, flip }: { pose: Pose; poses: Pose[]; flip?: boolean }) {
+    const sx = THIN_SX[useContext(ThinCtx)]
     return (
         <>
             {poses.map((p) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={p} src={src(p)} alt="" draggable={false}
                     className="pointer-events-none absolute inset-0 h-full w-full select-none"
-                    style={{ opacity: p === pose ? 1 : 0, transform: flip ? 'scaleX(-1)' : undefined }} />
+                    style={{ opacity: p === pose ? 1 : 0, transform: flip || sx !== 1 ? `scaleX(${flip ? -sx : sx})` : undefined }} />
             ))}
         </>
     )
@@ -514,9 +521,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [lockSay, setLockSay] = useState<string | null>(null)
     // сытость считаем только в браузере (время клиента) и раз в минуту обновляем
     const [satiety, setSatiety] = useState<number | null>(null)
+    const [thin, setThin] = useState<CatThin>(0)
     useEffect(() => {
         if (stage < 2) return
-        const upd = () => setSatiety(fedAt ? Math.max(0, Math.min(1, 1 - (Date.now() - new Date(fedAt).getTime()) / 86_400_000)) : 0)
+        const upd = () => { setSatiety(satietyAt(fedAt)); setThin(catThinLevel(fedAt)) }
         upd()
         const t = setInterval(upd, 60_000)
         return () => clearInterval(t)
@@ -641,9 +649,16 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // открытый холодильник (окно с полками) и сколько еды куплено
     const [shopOpen, setShopOpen] = useState(false)
     const [food, setFood] = useState<CatFoodStock>(catFood ?? { milk: 0, sausage: 0, sourcream: 0, fish: 0 })
-    useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage, catFood?.fedDate, catFood?.streak])
+    useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage, catFood?.fedDate, catFood?.streak, catFood?.fat])
     useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
     const [name, setName] = useState<string | null>(catName)
+    // рейтинг котиков: место показываем плашкой рядом с холодильником, нажал — таблица (не на тестовых страницах)
+    const [rank, setRank] = useState<{ place: number; total: number } | null>(null)
+    const [ratingOpen, setRatingOpen] = useState(false)
+    useEffect(() => {
+        if (bare || onHome || stage < 2) return
+        getCatRating().then((r) => { if (r.myPlace !== null) setRank({ place: r.myPlace, total: r.total }) }).catch(() => {})
+    }, [bare, onHome, stage, food.fat])
     const [nameOpen, setNameOpen] = useState(false)
     useEffect(() => { if (catName) setName(catName) }, [catName])
     const saveName = async (n: string): Promise<string | null> => {
@@ -973,11 +988,14 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.eat ? 'eat' : stroll.crouch ? 'walk-3' : stroll.jump ? 'jump' : stroll.land ? 'land'
         : stroll.under ? 'sleep' : stroll.perch ? (wink ? 'sun-wink' : 'sun') : 'sit-shy'
     const strollBox: Pose = !stroll ? 'sit' : stroll.walking ? 'walk-1' : strollPose
-    const strollK = stroll ? stroll.k ?? kAt(stroll.ky ?? stroll.y) : BED_K
-    const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[strollBox][1] * strollK - 6 } : { x: BED.x, y: BED.y - 96 }
+    // размер котика растёт от зелий толстости (food.fat): масштаб — в коэффициент картинки, низ по центру остаётся на месте
+    const fatK = catFatVisualScale(food.fat ?? 0)
+    const BEDF = { ...BED, k: BED.k * fatK }
+    const strollK = (stroll ? stroll.k ?? kAt(stroll.ky ?? stroll.y) : BED_K) * fatK
+    const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[strollBox][1] * strollK - 6 } : { x: BED.x, y: BED.y - 96 * fatK }
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
-        <>
+        <ThinCtx.Provider value={stage >= 2 ? thin : 0}>
             <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : asleep || away ? () => { playJustClick(); setLockSay(away ? 'Котик поймал мышку! Сначала порадуйся за него' : 'Тсс! Мыши в деле — подожди'); setTimeout(() => setLockSay(null), 2600) } : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playSound(FRIDGE_OPEN_SOUND, FRIDGE_OPEN_VOLUME); setNameOpen(false); setShopOpen(true) }} />
             {/* пока мыши грабят или котик держит пойманную мышку — кормить нельзя: досмотри сцену / нажми на котика */}
             {!bare && lockSay && <Bubble wrap x={Math.min(Math.max(frP.x, 230), 800)} y={frP.y - frP.h - 4}>{lockSay}</Bubble>}
@@ -991,7 +1009,16 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                         setTimeout(() => { if (night) doReact('happy'); else if (eatNowRef.current && !stroll && sbox === 'idle') eatNowRef.current(); else doReact('happy') }, 400)
                         if (!onHome) { useAchievementUnlockStore.getState().check(); router.refresh() }
                     }}
-                    onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }} />, document.body)}
+                    onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }}
+                    onPotion={(n) => { setFood((f) => ({ ...f, fat: n })); setShopOpen(false); doReact('happy'); if (!onHome) router.refresh() }} />, document.body)}
+            {!bare && fridgeOk && rank && (
+                <button type="button" onClick={() => { playJustClick(); setRatingOpen(true) }} aria-label={`Рейтинг котиков, место ${rank.place}`}
+                    className="absolute flex -translate-x-1/2 items-center gap-[0.5cqw] whitespace-nowrap rounded-[1cqw] border-[0.3cqw] border-b-[0.8cqw] border-[#B8862E] bg-[#FFE9A8] px-[1.2cqw] py-[0.4cqw] font-black leading-none text-[#5A3A22] active:border-b-[0.3cqw]"
+                    style={{ left: pct(frP.x), top: pct(frP.y + 6), zIndex: zOf(frP) + 2, fontSize: '2cqw' }}>
+                    <Trophy className="h-[1.1em] w-[1.1em] text-[#D9A21B]" fill="#F2C35B" />Место {rank.place}
+                </button>
+            )}
+            {ratingOpen && createPortal(<CatRatingModal onClose={() => setRatingOpen(false)} />, document.body)}
             <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
@@ -1036,7 +1063,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             ) : sbox !== 'idle' || away ? null : (
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
-                style={{ ...box(pose, BED), zIndex: catZ }}
+                style={{ ...box(pose, BEDF), zIndex: catZ }}
                 onClick={() => { if (night) { playJustClick(); if (dreamOn) nextDream(); else openDream(); return } if (asleep) return; petCat() }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
@@ -1049,7 +1076,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     const t = headTop(strollPose, { x: stroll.x, y: stroll.y, k: strollK }, stroll.flip, perch ? BARREL_TILT : 0, perch ? 0.9 : 1)
                     return <SatietyBar x={t.x} y={t.y} v={shownSatiety} />
                 })()
-                : sbox === 'idle' && !away && (() => { const t = headTop(pose, BED); return <SatietyBar x={t.x} y={t.y} v={shownSatiety} /> })())}
+                
+                : sbox === 'idle' && !away && (() => { const t = headTop(pose, BEDF); return <SatietyBar x={t.x} y={t.y} v={shownSatiety} /> })())}
             {stroll?.perch && !stroll.jump && (
                 // котик на бочке греется: тёплое пятно солнца на нём
                 <div className="pointer-events-none absolute rounded-full" style={{ left: pct(stroll.x - 70), top: pct(stroll.y - 120), width: pct(140), height: pct(150),
@@ -1083,6 +1111,6 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 <motion.span className="pointer-events-none absolute font-black text-[#C9D3FF]" style={{ left: pct(BED.x + 30), top: pct(BED.y - 80), zIndex: 1160, fontSize: '3cqw' }}
                     animate={{ y: ['0cqw', '-3cqw'], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>Zzz</motion.span>
             )}
-        </>
+        </ThinCtx.Provider>
     )
 }

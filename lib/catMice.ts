@@ -1,24 +1,27 @@
 // lib/catMice.ts
 //
 // Мыши и сытость котика в ангаре (components/hangar-mice.tsx). Одно событие в день по Москве (таблица cat_mice_events):
-// • raid — котика вчера весь день не кормили: мышка крадёт из сундука. Пицца, если есть кусочек, иначе монеты, иначе гем.
+// • raid — котика вчера весь день не кормили: мышка крадёт ЕДУ КОТИКА (одну порцию случайного вида из холодильника),
+//   а если еды нет — случайное число монет от 90 до 250.
 //   Кража списывается сразу при создании события; сцену ученик увидит, когда зайдёт в ангар (котик спит, сирена).
 // • catch — котика кормили вчера или сегодня: с шансом CATCH_CHANCE котик ловит мышку и держит, пока ученик не нажмёт.
 // • none — в этот день ничего (чтобы не перекидывать кубик на каждом заходе).
-// Сытость убывает за сутки от последнего кормления (cat_fed_at).
+// Сытость убывает за CAT_SATIETY_DAYS суток от последнего кормления (cat_fed_at).
 
 import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
-import { moscowToday } from '@/lib/catFood'
+import { CAT_FOOD, CAT_SATIETY_MS, CAT_FOODS, moscowToday, type CatFood } from '@/lib/catFood'
 
 export type MiceEventKind = 'raid' | 'catch'
-export type MiceLoot = 'pizza' | 'coins' | 'gems' | null
+// pizza и gems — старые события (до 2026-11-26), теперь мышь ворует еду котика или монеты
+export type MiceLoot = CatFood | 'coins' | 'pizza' | 'gems' | null
 export type MiceEvent = { id: number; kind: MiceEventKind; lootKind: MiceLoot; lootAmount: number; resolved: boolean; resolvedAt: string | null }
 export type CatStatus = { hasCat: boolean; event: MiceEvent | null; fedAt: string | null }
 
 const CATCH_CHANCE = 0.7
-const RAID_COINS = 30
+const RAID_COINS: [number, number] = [90, 250] // нет еды у котика — случайное число монет
+const FOOD_COLUMN: Record<CatFood, string> = { milk: 'cat_milk', sausage: 'cat_sausage', sourcream: 'cat_sourcream', fish: 'cat_fish' }
 
 type Row = Record<string, unknown>
 const rows = async (q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as Row[]
@@ -58,9 +61,13 @@ export async function getCatStatus(userId: string): Promise<CatStatus> {
     let amount = 0
     if (hungry) {
         kind = 'raid'
-        if (Number(up.pizza_slices) > 0) { loot = 'pizza'; amount = 1 }
-        else if (Number(up.points) > 0) { loot = 'coins'; amount = Math.min(RAID_COINS, Number(up.points)) }
-        else if (Number(up.gems) > 0) { loot = 'gems'; amount = 1 }
+        const stock = (await rows(sql`SELECT cat_milk, cat_sausage, cat_sourcream, cat_fish FROM user_progress WHERE user_id = ${userId}`))[0]
+        const have = CAT_FOODS.filter((f) => Number(stock?.[FOOD_COLUMN[f]] ?? 0) > 0)
+        if (have.length) { loot = have[Math.floor(Math.random() * have.length)]; amount = 1 }
+        else if (Number(up.points) > 0) {
+            loot = 'coins'
+            amount = Math.min(Number(up.points), RAID_COINS[0] + Math.floor(Math.random() * (RAID_COINS[1] - RAID_COINS[0] + 1)))
+        }
     } else if (fedDate !== null && Math.random() < CATCH_CHANCE) kind = 'catch'
 
     const ins = await rows(sql`INSERT INTO cat_mice_events (user_id, day, kind, loot_kind, loot_amount)
@@ -71,16 +78,18 @@ export async function getCatStatus(userId: string): Promise<CatStatus> {
         return { hasCat: true, event: again ? toEvent(again) : null, fedAt }
     }
     // кража — сразу (не больше, чем есть)
-    if (loot === 'pizza') await db.execute(sql`UPDATE user_progress SET pizza_slices = pizza_slices - 1 WHERE user_id = ${userId} AND pizza_slices > 0`)
+    if (loot && loot in CAT_FOOD) {
+        const col = sql.raw(FOOD_COLUMN[loot as CatFood])
+        await db.execute(sql`UPDATE user_progress SET ${col} = GREATEST(0, ${col} - 1) WHERE user_id = ${userId}`)
+    }
     if (loot === 'coins') await db.execute(sql`UPDATE user_progress SET points = GREATEST(0, points - ${amount}) WHERE user_id = ${userId}`)
-    if (loot === 'gems') await db.execute(sql`UPDATE user_progress SET gems = GREATEST(0, gems - 1) WHERE user_id = ${userId}`)
     return { hasCat: true, event: toEvent(ins[0]), fedAt }
 }
 
-/** Сытость 0…1: полная сразу после кормления, за сутки убывает до нуля. */
+/** Сытость 0…1: полная сразу после кормления, за CAT_SATIETY_DAYS суток убывает до нуля. */
 export function satietyOf(fedAt: string | null, now = Date.now()): number {
     if (!fedAt) return 0
-    return Math.max(0, Math.min(1, 1 - (now - new Date(fedAt).getTime()) / 86_400_000))
+    return Math.max(0, Math.min(1, 1 - (now - new Date(fedAt).getTime()) / CAT_SATIETY_MS))
 }
 export const HUNGRY_BELOW = 0.35
 

@@ -4,7 +4,9 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
 import { checkCatName } from '@/lib/catName'
-import { CAT_FOOD, CAT_FEED_BELOW, type CatFood } from '@/lib/catFood'
+import { CAT_FOOD, CAT_FEED_BELOW, CAT_SATIETY_MS, FAT_MAX, FAT_POTION_PRICE, type CatFood } from '@/lib/catFood'
+
+const SAT_SECS = CAT_SATIETY_MS / 1000 // секунд, за которые сытость падает со 100% до 0
 
 // Котик у входа в ангар пошёл жить на картонку (cat_stage 1 → 2). Ачивку «Кот в ангаре» выдаёт computeStateKeys.
 export async function bringCatHome(): Promise<{ ok: boolean }> {
@@ -70,15 +72,53 @@ export async function feedCat(kind: CatFood): Promise<{ ok: boolean; reason?: 'e
     if (!userId || !(kind in CAT_FOOD)) return { ok: false }
     const today = sql`(now() AT TIME ZONE 'Europe/Moscow')::date`
     const streak = sql`CASE WHEN cat_fed_date = ${today} THEN cat_feed_streak WHEN cat_fed_date = ${today} - 1 THEN cat_feed_streak + 1 ELSE 1 END`
-    const sat = sql`COALESCE(GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / 86400), 0)`
+    const sat = sql`COALESCE(GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / ${SAT_SECS}::float8), 0)`
     const gain = CAT_FOOD[kind].gain / 100
     const col = FOOD_COLUMN[kind]
     const r = (await db.execute(sql`UPDATE user_progress SET ${col} = ${col} - 1, cat_feed_streak = ${streak},
         cat_feed_best = GREATEST(cat_feed_best, ${streak}), cat_fed_date = ${today},
-        cat_fed_at = now() - make_interval(secs => (1 - LEAST(1, ${sat} + ${gain}::float8)) * 86400)
+        cat_fed_at = now() - make_interval(secs => (1 - LEAST(1, ${sat} + ${gain}::float8)) * ${SAT_SECS}::float8)
         WHERE user_id = ${userId} AND ${col} > 0 AND ${sat} < ${CAT_FEED_BELOW}::float8
-        RETURNING cat_feed_streak AS s, ${col} AS n, GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / 86400) AS sat`)) as unknown as { s: number; n: number; sat: number }[]
+        RETURNING cat_feed_streak AS s, ${col} AS n, GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / ${SAT_SECS}::float8) AS sat`)) as unknown as { s: number; n: number; sat: number }[]
     if (r.length > 0) return { ok: true, streak: Number(r[0].s), left: Number(r[0].n), satiety: Number(r[0].sat) }
     const cur = (await db.execute(sql`SELECT ${sat} >= ${CAT_FEED_BELOW}::float8 AS full FROM user_progress WHERE user_id = ${userId}`)) as unknown as { full: boolean }[]
     return { ok: false, reason: cur[0]?.full ? 'full' : 'empty' }
+}
+
+// Зелье толстости: сытому котику (сытость ≥ CAT_FEED_BELOW — кормить уже нельзя) за FAT_POTION_PRICE монет. Одним атомарным UPDATE:
+// не хватает монет, котик голодный или уже огромный (FAT_MAX) — ничего не меняется. На сытость не влияет.
+export async function buyFatPotion(): Promise<{ ok: boolean; fat?: number; reason?: 'coins' | 'hungry' | 'max' }> {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return { ok: false }
+    const sat = sql`COALESCE(GREATEST(0, 1 - EXTRACT(EPOCH FROM (now() - cat_fed_at)) / ${SAT_SECS}::float8), 0)`
+    const r = (await db.execute(sql`UPDATE user_progress SET points = points - ${FAT_POTION_PRICE}, cat_fat = cat_fat + 1
+        WHERE user_id = ${userId} AND cat_stage >= 2 AND points >= ${FAT_POTION_PRICE} AND cat_fat < ${FAT_MAX} AND ${sat} >= ${CAT_FEED_BELOW}::float8
+        RETURNING cat_fat AS n`)) as unknown as { n: number }[]
+    if (r.length > 0) return { ok: true, fat: Number(r[0].n) }
+    const cur = (await db.execute(sql`SELECT points, cat_fat, ${sat} AS sat FROM user_progress WHERE user_id = ${userId}`)) as unknown as { points: number; cat_fat: number; sat: number }[]
+    const c = cur[0]
+    if (!c) return { ok: false }
+    if (Number(c.cat_fat) >= FAT_MAX) return { ok: false, reason: 'max' }
+    if (Number(c.sat) < CAT_FEED_BELOW) return { ok: false, reason: 'hungry' }
+    return { ok: false, reason: 'coins' }
+}
+
+export type CatRatingRow = { place: number; name: string; owner: string; fat: number; me: boolean }
+export type CatRating = { rows: CatRatingRow[]; myPlace: number | null; total: number; myFat: number }
+
+// Рейтинг котиков: самые толстые — выше (по количеству выпитых зелий). Равное число зелий — одно место.
+export async function getCatRating(): Promise<CatRating> {
+    const session = await auth()
+    const userId = session?.user?.id
+    const list = (await db.execute(sql`SELECT user_id, user_name, cat_name, cat_fat,
+        RANK() OVER (ORDER BY cat_fat DESC) AS place, COUNT(*) OVER () AS total
+        FROM user_progress WHERE cat_stage >= 2 ORDER BY cat_fat DESC, cat_fed_at DESC NULLS LAST LIMIT 500`)) as unknown as
+        { user_id: string; user_name: string; cat_name: string | null; cat_fat: number; place: number; total: number }[]
+    const total = list.length ? Number(list[0].total) : 0
+    const mine = list.find((r) => r.user_id === userId)
+    return {
+        rows: list.slice(0, 30).map((r) => ({ place: Number(r.place), name: r.cat_name?.trim() || 'Котик без имени', owner: r.user_name, fat: Number(r.cat_fat), me: r.user_id === userId })),
+        myPlace: mine ? Number(mine.place) : null, total, myFat: mine ? Number(mine.cat_fat) : 0,
+    }
 }

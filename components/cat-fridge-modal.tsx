@@ -12,11 +12,11 @@ import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import Lottie from '@/components/lottie-player'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
-import { buyCatFood, feedCat } from '@/actions/cat'
+import { buyCatFood, buyFatPotion, feedCat } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
 import { catNameGenitive } from '@/lib/catName'
 import { FeedDesignC } from '@/components/cat-feed-designs'
-import { CAT_FOOD, CAT_FEED_BELOW, type CatFood, type CatFoodStock } from '@/lib/catFood'
+import { CAT_FOOD, CAT_FEED_BELOW, FAT_MAX, FAT_POTION_PRICE, catFatLabel, catFatSizeText, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_SOUND, FRIDGE_SPARK_VOLUME, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 
@@ -28,7 +28,7 @@ const FLAKES = Array.from({ length: 16 }, (_, i) => ({
     x: (i * 37) % 100, s: 10 + ((i * 7) % 4) * 4, d: 6 + ((i * 5) % 5), delay: -((i * 1.3) % 8),
 }))
 
-export function CatFridgeModal({ stock, onBought, onClose, offline, catName, satiety = 0, feedStreak = 0, onFed }: {
+export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, catName, satiety = 0, feedStreak = 0, onFed }: {
     /** Сытость котика сейчас, 0…1: кормить можно, пока меньше половины. */
     satiety?: number
     /** Сколько дней подряд кормили. */
@@ -39,6 +39,8 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, sat
     catName?: string | null
     stock: CatFoodStock
     onBought: (kind: CatFood, count: number) => void
+    /** Выпили зелье толстости: сколько зелий всего. */
+    onPotion?: (fat: number) => void
     onClose: () => void
     /** Тестовая страница: покупка без сервера. */
     offline?: boolean
@@ -50,6 +52,19 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, sat
     // что сейчас падает в миску: котик «ест» ~1,1 с, потом окно закрывается и котик доедает в ангаре
     const [eating, setEating] = useState<CatFood | null>(null)
     const full = satiety >= CAT_FEED_BELOW
+    // зелье толстости: сытому котику (кормить уже нельзя) за FAT_POTION_PRICE монет — вырастает, сытость не меняется
+    const fat = stock.fat ?? 0
+    const [potionMsg, setPotionMsg] = useState<string | null>(null)
+    const [potionBusy, setPotionBusy] = useState(false)
+    const drink = async () => {
+        if (potionBusy || !full || fat >= FAT_MAX) return
+        playJustClick(); setPotionBusy(true); setPotionMsg(null)
+        const r = offline ? { ok: true, fat: fat + 1 } : await buyFatPotion()
+        setPotionBusy(false)
+        if (!r.ok || r.fat === undefined) { playSound(WRONG_ANSWER_SOUND); setPotionMsg(r.reason === 'coins' ? 'Не хватает монет' : r.reason === 'hungry' ? 'Сначала накорми котика' : 'Котик и так огромный'); return }
+        playSound(CASE_PRIZE_SOUND)
+        onPotion?.(r.fat)
+    }
     const feed = async (kind: CatFood) => {
         if (feeding || full || stock[kind] <= 0) return
         playJustClick()
@@ -226,6 +241,21 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName, sat
                 {/* кормление: пока сытость меньше половины; каждая порция добавляет свои проценты; серия — по дням */}
                 <div className="mt-3">
                     <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)} />
+                </div>
+                {/* зелье толстости: появляется, когда котик сытый */}
+                <div className="mt-3 flex items-center gap-2 rounded-2xl border-2 border-[#7A4FB0] bg-[#2A1B3D] p-2.5 text-[#F3E8FF]">
+                    <div className="min-w-0 flex-1">
+                        <div className="text-base font-black leading-tight">Зелье толстости</div>
+                        <div className="text-xs font-bold leading-tight text-[#C9B2E8]">
+                            {full ? `Сейчас: ${catFatSizeText(fat)}, ${catFatLabel(fat)}. Сытость не меняется` : 'Дать можно, когда котик сытый'}
+                        </div>
+                        {potionMsg && <div className="mt-0.5 text-xs font-bold text-[#FF9C93]">{potionMsg}</div>}
+                    </div>
+                    <button type="button" onClick={() => void drink()} disabled={!full || potionBusy || fat >= FAT_MAX} aria-label="Напоить зельем толстости"
+                        className="flex shrink-0 items-center gap-0.5 rounded-xl border-b-4 border-[#B8862E] bg-[#F2C35B] py-1 pl-3 pr-1 text-base font-black text-[#3A2A08] active:border-b-0 disabled:opacity-40">
+                        {FAT_POTION_PRICE}
+                        <Lottie animationData={LottieCoins} loop autoplay className="-my-2 h-8 w-8 -translate-y-[14%]" />
+                    </button>
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">

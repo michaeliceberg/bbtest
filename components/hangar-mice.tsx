@@ -19,6 +19,7 @@ import { reportAchievement } from '@/lib/achievementsClient'
 import { playJustClick, playSound, playSoundTracked, preloadSound, CAT_MEW_SOUNDS, MICE_SIREN_SOUND, MICE_SIREN_VOLUME } from '@/lib/sound'
 import { Siren } from 'lucide-react'
 import type { MiceLoot } from '@/lib/catMice'
+import { CAT_FOOD } from '@/lib/catFood'
 import Lottie from '@/components/lottie-player'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
@@ -84,16 +85,22 @@ function boxAt(x: number, y: number, w: number, r: number) {
     return { left: pct(x - w / 2), top: pct(y - w * r), width: pct(w), height: pct(w * r) }
 }
 
-/** Добыча над головой мышки (одна картинка мышки на любую добычу): кусочек пиццы, гем или монета. */
+/** Добыча над головой мышки (одна картинка мышки на любую добычу): еда котика или монеты; старые события — пицца и гем.
+ *  Иконка крупная: еда и монеты увеличены (контейнер добычи шире — см. LOOT_BIG). */
 function Loot({ kind }: { kind: MiceLoot }) {
+    if (kind === 'milk' || kind === 'sausage' || kind === 'sourcream' || kind === 'fish') return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={CAT_FOOD[kind].src} alt="" draggable={false} className="h-full w-full select-none object-contain object-bottom drop-shadow-[0_3px_0_rgba(0,0,0,0.35)]" />
+    )
     if (kind === 'pizza') return (
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/pizzaSVG/pizza_8_1.svg" alt="" draggable={false} className="h-full w-full select-none drop-shadow-[0_3px_0_rgba(0,0,0,0.35)]" />
     )
     // монета в LottieCoins нарисована внизу холста и мелко — увеличиваем и поднимаем
     if (kind === 'gems') return <Lottie animationData={LottieGems} className="h-full w-full" />
-    return <Lottie animationData={LottieCoins} className="h-full w-full" style={{ transform: 'scale(2.2) translateY(-14%)' }} />
+    return <Lottie animationData={LottieCoins} className="h-full w-full" style={{ transform: 'scale(3) translateY(-12%)' }} />
 }
+const LOOT_BIG = (kind: MiceLoot) => kind !== 'pizza' && kind !== 'gems'
 
 export type MiceEventView = { id: number; kind: 'raid' | 'catch'; lootKind: MiceLoot; resolved: boolean; resolvedAt?: string | null }
 
@@ -340,7 +347,7 @@ export function HangarMice({ scene, auto = false, chest: showChest = true, offli
                         )}
                     </div>
                     {loot && (
-                        <motion.div className="pointer-events-none absolute" style={{ left: '-70%', top: '-228%', width: '240%', aspectRatio: '1' }}
+                        <motion.div className="pointer-events-none absolute" style={LOOT_BIG(loot) ? { left: '-110%', top: '-300%', width: '320%', aspectRatio: '1' } : { left: '-70%', top: '-228%', width: '240%', aspectRatio: '1' }}
                             initial={{ scale: 0, y: 10 }} animate={{ scale: 1, y: [0, -10, 0] }} transition={{ y: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', stiffness: 400, damping: 12 } }}>
                             <Loot kind={loot} />
                         </motion.div>

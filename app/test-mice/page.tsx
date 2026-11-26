@@ -24,7 +24,7 @@ export default function Page() {
     // «день»: как в настоящем ангаре — событие дня (кража с сиреной или котик с пойманной мышкой); null — просто сцены
     const [day, setDay] = useState<{ ev: MiceEventView; fedAt: string; key: number } | null>(null)
     const startDay = (kind: 'raid' | 'catch') => setDay((d) => ({
-        ev: { id: -1, kind, lootKind: kind === 'raid' ? 'pizza' : null, resolved: false },
+        ev: { id: -1, kind, lootKind: kind === 'raid' ? 'coins' : null, resolved: false },
         fedAt: new Date(Date.now() - (kind === 'raid' ? 40 : 10) * 3600_000).toISOString(), key: (d?.key ?? 0) + 1 }))
     useEffect(() => { getHangarLayout().then(setLayout).catch(() => setLayout(null)) }, [])
     const btn = (on: boolean) => ({ background: on ? '#53ADEF' : '#26333B', borderBottomColor: on ? '#2C6FA0' : '#141C21', color: on ? '#0F171B' : '#C9D4DA' })
