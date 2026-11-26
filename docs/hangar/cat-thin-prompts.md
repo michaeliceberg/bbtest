@@ -14,7 +14,7 @@
 
 Тот же рецепт, что у нашего котика (`docs/hangar/leonardo-prompts-life.md`, раздел «Котик»): модель **FLUX.1 Kontext**, **Add Image =
 `docs/hangar/leonardo/cat-sit.webp`**, сила высокая (0.8–0.9), чтобы поза, ракурс, цвет шерсти и контуры не сдвинулись.
-Меняется только телосложение. Хвост стиля и «Avoid» — те же, что для всех картинок котика; фон белый, вырежу сам.
+Меняется только телосложение. Хвост стиля и «Avoid» — те же, что для всех картинок котика; фон плоский розовый magenta #FF00FF (убираю сам, Remove Background в Leonardo не нужен).
 
 Главная цель: **хочется срочно накормить**, но без жести. Мультяшно и жалобно, не страшно: никаких торчащих рёбер
 «как на фото», крови, язв, мёртвых глаз. Большие грустные глаза, просящий взгляд.
@@ -24,7 +24,7 @@
 > the same small scruffy ginger tabby kitten, exactly the same pose, same viewpoint, same colours and same outlines, same position and size of the picture;
 > only change the body: the kitten is noticeably skinnier, narrow body, a little hollow belly, thin neck, visible hip bones as soft bumps under the fur,
 > slightly messy fur, thin tail drooping lower than before, ears a bit lowered; big sad pleading green eyes looking up at the viewer, a tiny hopeful frown,
-> cartoon cute and pitiful, not scary
+> cartoon cute and pitiful, not scary, in the same art style as the reference image: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, isolated on a flat solid pure magenta background #FF00FF, no text, no shadow on the ground
 
 Avoid: `rib cage, skeleton, bones sticking out, blood, wounds, sick, dead eyes, scary, horror, realistic photo, 3D render, text, collar, clothes, background scenery`
 
@@ -34,7 +34,7 @@ Avoid: `rib cage, skeleton, bones sticking out, blood, wounds, sick, dead eyes, 
 > only change the body: extremely skinny and dried out, like a funny exaggerated cartoon "raisin kitten": tiny narrow body, sunken belly, head looks too big for the body,
 > huge ears, very thin legs, dull dry fluffy-wispy fur sticking out in tufts, tail like a thin limp string, tiny pale paws;
 > enormous watery sad green eyes with shiny tear highlights, ears drooping, mouth slightly open as if weakly meowing "feed me", exhausted but adorable,
-> comic pitiful look that makes you want to feed it right now, not scary, not realistic
+> comic pitiful look that makes you want to feed it right now, not scary, not realistic, in the same art style as the reference image: cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, single object, full view, centered, isolated on a flat solid pure magenta background #FF00FF, no text, no shadow on the ground
 
 Avoid: `rib cage, skeleton, skull, bones sticking out, blood, wounds, corpse, dead eyes, scary, horror, gore, realistic photo, 3D render, text, collar, clothes, background scenery`
 

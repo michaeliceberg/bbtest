@@ -53,18 +53,14 @@ function GrowthRuler({ fat }: { fat: number }) {
     )
 }
 
-/** Флакон зелья толстости в углу сцены кормления. Пока рисуется кодом; картинка Leonardo — public/hangar/life/cat-fat-potion.webp
+/** Флакон зелья толстости в углу сцены кормления. Картинка Leonardo — public/hangar/life/cat-fat-potion.webp
  *  (промпт в docs/hangar/cat-fat-potion-prompts.md). Дать можно, когда котик сыт: нажал — списываются FAT_POTION_PRICE монет. */
 function PotionFlask({ can, busy, onClick }: { can: boolean; busy: boolean; onClick: () => void }) {
     return (
         <button type="button" onClick={onClick} disabled={!can} aria-label="Напоить зельем толстости" title={can ? 'Зелье толстости' : 'Зелье можно дать, когда котик сыт'}
             className="flex flex-col items-center active:translate-y-px" style={{ opacity: can ? 1 : 0.5 }}>
-            <svg viewBox="0 0 40 48" className="h-11 w-9" aria-hidden>
-                <rect x="15" y="2" width="10" height="7" rx="2" fill="#B8864E" stroke="#3A2A1E" strokeWidth="1.6" />
-                <path d="M16 9 H24 V17 L35 38 Q37 45 30 45 H10 Q3 45 5 38 L16 17 Z" fill="#F3E8FF" stroke="#3A2A1E" strokeWidth="1.8" strokeLinejoin="round" />
-                <path d="M10 30 H30 L35 38 Q37 45 30 45 H10 Q3 45 5 38 Z" fill="#B968E8" />
-                <circle cx="15" cy="37" r="2.2" fill="#E9C4FF" /><circle cx="24" cy="34" r="1.6" fill="#E9C4FF" /><circle cx="22" cy="40" r="1.3" fill="#E9C4FF" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/life/cat-fat-potion.webp" alt="" draggable={false} className="h-11 w-auto select-none drop-shadow-[0_2px_0_rgba(58,42,30,0.35)]" />
             <span className="-mt-0.5 flex items-center gap-0.5 rounded-md border-b-2 border-[#B8862E] bg-[#F2C35B] px-1 text-[11px] font-black leading-[15px] text-[#3A2A08]">
                 {busy ? '…' : FAT_POTION_PRICE}
             </span>
