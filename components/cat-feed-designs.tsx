@@ -20,6 +20,9 @@ export type FeedDesignProps = {
     /** Линейка роста на всю сцену (как фон для опознания) и флакон зелья в правом верхнем углу сцены (design C). */
     ruler?: React.ReactNode
     flask?: React.ReactNode
+    /** Во сколько раз котик сейчас крупнее, чем его нормальный кадр (растёт, когда пьёт зелье), и всплывающая надпись «+5 см». */
+    catScale?: number
+    growText?: { text: string; n: number } | null
     /** Подпись под едой (ошибка покупки зелья и т.п.). */
     note?: string | null
 }
@@ -164,7 +167,13 @@ export function FeedDesignC(p: FeedDesignProps) {
                 {p.ruler && <div className="pointer-events-none absolute inset-0">{p.ruler}</div>}
                 <motion.img key={m.pose} src={`/hangar/life/cat-${m.pose === 'eat' ? 'sit' : m.pose}.webp`} alt="" draggable={false}
                     initial={{ y: 6 }} animate={{ y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
-                    className="absolute bottom-1 left-[52px] h-[104px] select-none" />
+                    className="absolute bottom-1 left-[52px] h-[104px] select-none" style={{ transformOrigin: '50% 100%', scale: p.catScale ?? 1 }} />
+                {p.growText && (
+                    <motion.span key={p.growText.n} className="pointer-events-none absolute left-[78px] top-3 rounded-md bg-[#9B6FD6] px-1.5 text-sm font-black leading-5 text-white"
+                        initial={{ y: 10, opacity: 0, scale: 0.6 }} animate={{ y: [10, 0, -4, -8], opacity: [0, 1, 1, 0], scale: [0.6, 1.15, 1, 1] }} transition={{ duration: 1.6, times: [0, 0.2, 0.7, 1] }}>
+                        {p.growText.text}
+                    </motion.span>
+                )}
                 <div className="absolute bottom-1 left-[142px] w-[80px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/life/cat-bowl.webp" alt="" draggable={false} className="w-full select-none" />

@@ -7,7 +7,7 @@
 // На полках еда (lib/catFood.ts): купленная — цветная со счётчиком, не купленная — силуэт. Под каждой — цена в монетах
 // (Lottie-монета, как в шапке); нажал — покупка на сервере (actions/cat.ts buyCatFood).
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import Lottie from '@/components/lottie-player'
@@ -23,31 +23,32 @@ import { playJustClick, playSound, preloadSound, CASE_PRIZE_SOUND, FRIDGE_SPARK_
 /** Линейка роста как на фото для опознания: горизонтальные линии через всю сцену, слева подписи, красная линия точно по макушке
  *  котика с его настоящим ростом. Масштаб подбирается под размер котика (шаг линий 1/2/5 × 10^k), так что котик всегда стоит
  *  вровень со своей линией, а чем он больше, тем крупнее единицы на линейке (см → м → км). */
-function GrowthRuler({ fat }: { fat: number }) {
+function GrowthRuler({ cat, scaleM: refM }: { cat: number; scaleM: number }) {
+    // cat — рост котика сейчас (м), ref — рост, по которому выбран масштаб линейки; пока котик растёт, ref ещё старый, а потом догоняет
     const { h, catH, base } = FEED_SCENE
-    const sizeM = catFatSizeM(fat)
-    const pxPerM = catH / sizeM
-    const raw = (sizeM * 24) / catH // шаг, при котором линии идут примерно через 24px
+    const pxPerM = catH / refM
+    const raw = (refM * 24) / catH // шаг, при котором линии идут примерно через 24px
     const mag = Math.pow(10, Math.floor(Math.log10(raw)))
     const step = [1, 2, 5, 10].map((k) => k * mag).find((v) => v >= raw) ?? raw
-    const catTop = base + catH
+    const catTop = base + cat * pxPerM
     const lines: { y: number; major: boolean; label: string }[] = []
     for (let k = 1; base + k * step * pxPerM < h - 6; k++) {
         const y = base + k * step * pxPerM
         if (Math.abs(y - catTop) < 11) continue // рядом с красной линией подпись не нужна
         lines.push({ y, major: k % 5 === 0, label: fmtLengthM(k * step) })
     }
+    // линии и красная метка ездят через transform (translateY), а не через bottom
     return (
         <>
             {lines.map((l) => (
-                <div key={l.label} className="absolute inset-x-0" style={{ bottom: l.y }}>
+                <div key={l.label} className="absolute inset-x-0 bottom-0" style={{ transform: `translateY(${-l.y}px)` }}>
                     <div className="absolute inset-x-0 bottom-0" style={{ height: l.major ? 2 : 1, background: l.major ? 'rgba(58,42,30,0.55)' : 'rgba(58,42,30,0.28)' }} />
                     <span className="absolute bottom-0.5 left-1 text-[9px] font-black leading-none text-[#6B4F36]">{l.label}</span>
                 </div>
             ))}
-            <div className="absolute inset-x-0" style={{ bottom: catTop }} title="Рост котика">
+            <div className="absolute inset-x-0 bottom-0" style={{ transform: `translateY(${-Math.min(catTop, h - 3)}px)` }} title="Рост котика">
                 <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#D9433A]" />
-                <span className="absolute bottom-0.5 left-1 rounded bg-[#D9433A] px-1 text-[10px] font-black leading-[13px] text-white">{fmtLengthM(sizeM)}</span>
+                <span className="absolute bottom-0.5 left-1 rounded bg-[#D9433A] px-1 text-[10px] font-black leading-[13px] text-white">{fmtLengthM(cat)}</span>
             </div>
         </>
     )
@@ -106,6 +107,33 @@ export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, ca
     // зелье толстости: сытому котику (кормить уже нельзя) за FAT_POTION_PRICE монет — вырастает, сытость не меняется
     const fat = stock.fat ?? 0
     const [potionMsg, setPotionMsg] = useState<string | null>(null)
+    // Рост на глазах: купили зелье — котик в сцене подрастает (линейка пока старая, голова поднимается над красной линией),
+    // потом линейка перестраивается под новый рост. cat/ref — рост котика и рост, по которому выбран масштаб линейки (м).
+    const [view, setView] = useState({ cat: catFatSizeM(fat), ref: catFatSizeM(fat) })
+    const [grew, setGrew] = useState<{ text: string; n: number } | null>(null)
+    const prevFat = useRef(fat)
+    useEffect(() => {
+        const from = catFatSizeM(prevFat.current), to = catFatSizeM(fat)
+        prevFat.current = fat
+        if (to <= from) { setView({ cat: to, ref: to }); return }
+        setGrew({ text: `+${fmtLengthM(to - from)}`, n: Date.now() })
+        const D1 = 700, GAP = 350, D2 = 900
+        const back = (t: number) => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2) // с лёгким перелётом
+        const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+        const t0 = performance.now()
+        let raf = 0
+        const tick = (now: number) => {
+            const t = now - t0
+            const c = t >= D1 ? to : from + (to - from) * back(t / D1)
+            const r = t < D1 + GAP ? from : t >= D1 + GAP + D2 ? to : from + (to - from) * ease((t - D1 - GAP) / D2)
+            setView({ cat: c, ref: r })
+            if (t < D1 + GAP + D2) raf = requestAnimationFrame(tick)
+            else setView({ cat: to, ref: to })
+        }
+        raf = requestAnimationFrame(tick)
+        const off = setTimeout(() => setGrew(null), D1 + GAP + D2 + 400)
+        return () => { cancelAnimationFrame(raf); clearTimeout(off) }
+    }, [fat])
     const [potionBusy, setPotionBusy] = useState(false)
     const drink = async () => {
         if (potionBusy || !full || fat >= FAT_MAX) return
@@ -292,7 +320,7 @@ export function CatFridgeModal({ stock, onBought, onPotion, onClose, offline, ca
                 {/* кормление: пока сытость меньше 90%; каждая порция добавляет свои проценты; серия — по дням */}
                 <div className="mt-3">
                     <FeedDesignC catName={catName?.trim() || 'Котик'} satiety={satiety} stock={stock} feedStreak={feedStreak} eating={eating} onFeed={(k) => void feed(k)}
-                        ruler={<GrowthRuler fat={fat} />} flask={<PotionFlask can={full && fat < FAT_MAX && !potionBusy} busy={potionBusy} onClick={() => void drink()} />} note={potionMsg} />
+                        ruler={<GrowthRuler cat={view.cat} scaleM={view.ref} />} catScale={view.cat / view.ref} growText={grew} flask={<PotionFlask can={full && fat < FAT_MAX && !potionBusy} busy={potionBusy} onClick={() => void drink()} />} note={potionMsg} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">

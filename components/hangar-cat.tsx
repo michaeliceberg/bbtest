@@ -1024,7 +1024,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                         if (!onHome) { useAchievementUnlockStore.getState().check(); router.refresh() }
                     }}
                     onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }}
-                    onPotion={(n) => { setFood((f) => ({ ...f, fat: n })); setShopOpen(false); doReact('happy'); if (!onHome) router.refresh() }} />, document.body)}
+                    onPotion={(n) => { setFood((f) => ({ ...f, fat: n })); if (!onHome) router.refresh() }} />, document.body)}
             {ratingOpen && createPortal(<CatRatingModal onClose={() => setRatingOpen(false)} />, document.body)}
             <NameSign fr={frP} name={name} rank={!bare && fridgeOk && rank ? rank.place : null} onRank={() => { playJustClick(); setRatingOpen(true) }} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
