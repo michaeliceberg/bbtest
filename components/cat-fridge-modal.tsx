@@ -56,12 +56,15 @@ function GrowthRuler({ fat }: { fat: number }) {
 /** Флакон зелья толстости в углу сцены кормления. Картинка Leonardo — public/hangar/life/cat-fat-potion.webp
  *  (промпт в docs/hangar/cat-fat-potion-prompts.md). Дать можно, когда котик сыт: нажал — списываются FAT_POTION_PRICE монет. */
 function PotionFlask({ can, busy, onClick }: { can: boolean; busy: boolean; onClick: () => void }) {
+    // маленькая плашка: флакон, подпись и цена друг под другом (не налезают), непрозрачная — линейка роста за ней не просвечивает
     return (
         <button type="button" onClick={onClick} disabled={!can} aria-label="Напоить зельем толстости" title={can ? 'Зелье толстости' : 'Зелье можно дать, когда котик сыт'}
-            className="flex flex-col items-center active:translate-y-px" style={{ opacity: can ? 1 : 0.5 }}>
+            className="flex w-[66px] flex-col items-center rounded-xl border-2 border-[#3A2A1E] bg-[#FFF6E4] px-1 pb-1 pt-1 active:translate-y-px"
+            style={{ opacity: can ? 1 : 0.55, boxShadow: '0 2px 0 #CDBB98' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hangar/life/cat-fat-potion.webp" alt="" draggable={false} className="h-11 w-auto select-none drop-shadow-[0_2px_0_rgba(58,42,30,0.35)]" />
-            <span className="-mt-0.5 flex items-center gap-0.5 rounded-md border-b-2 border-[#B8862E] bg-[#F2C35B] px-1 text-[11px] font-black leading-[15px] text-[#3A2A08]">
+            <img src="/hangar/life/cat-fat-potion.webp" alt="" draggable={false} className="h-9 w-auto select-none" />
+            <span className="mt-0.5 text-center text-[9px] font-black leading-[10px] text-[#3A2A1E]">Зелье<br />толстости</span>
+            <span className="mt-0.5 rounded-md border-b-2 border-[#B8862E] bg-[#F2C35B] px-1.5 text-[11px] font-black leading-[15px] text-[#3A2A08]">
                 {busy ? '…' : FAT_POTION_PRICE}
             </span>
         </button>
