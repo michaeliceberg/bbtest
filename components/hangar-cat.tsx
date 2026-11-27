@@ -638,7 +638,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         for (const w of wiresPl) if (Math.abs(cx - w.x) <= w.w / 2 + 40) z = Math.max(z, zOf(w) + 1)
         return z
     }
-    const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
+    const catZ = Math.max(zOf(boxP), zOf(frP), wiresOver(boxP.x)) + 1 // котик на коробке — всегда впереди неё, холодильника и проводов (объект 5)
     // реакция + фраза одним махом; голодный котик (холодильник сломан) иногда просит молока
     const doReact = (r: 'pet' | 'meow' | 'happy') => {
         reactKey.current++
