@@ -1250,7 +1250,7 @@ export default function TQuiz({
 
   return (
     <>
-      {stormInfo && <StormPill storm={stormInfo} compact className="fixed bottom-[calc(13.5rem+env(safe-area-inset-bottom))] left-3 z-40 md:bottom-44" />}
+      {stormInfo && <StormPill storm={stormInfo} compact className="fixed bottom-[calc(11.5rem+env(safe-area-inset-bottom))] left-3 z-40 md:bottom-40" />}
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
         <LightningStrike key={lightningStrikeKey} variant={lightningVariant} label={lightningLabel} onDone={() => setLightningStrikeActive(false)} />

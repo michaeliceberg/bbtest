@@ -29,11 +29,10 @@ export const StormPill = ({ storm, className, compact }: { storm: StormInfo | nu
     const need = Math.max(0, storm.goal - storm.lessons)
     // Компактная — в самом уроке: огонь, время и сколько уроков набрано.
     if (compact) return (
-        <div className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-black text-white shadow-[0_3px_0_#8A2A10]', className)}
-            style={{ background: 'linear-gradient(90deg, #FF5A1F, #FF9A1F)' }}>
-            <BurnLottie kind="oclock" className="-my-1 -ml-1 h-7 w-7 shrink-0" />
+        <div className={cn('pointer-events-none flex items-center gap-1 rounded-full bg-white/[0.07] px-2 py-0.5 text-xs font-bold text-white/45', className)}>
+            <BurnLottie kind="oclock" className="-my-1 -ml-0.5 h-5 w-5 shrink-0 opacity-50 grayscale" />
             <span className="tabular-nums">{fmtLeft(left)}</span>
-            {!storm.rewarded && <span className="opacity-90">· {storm.lessons}/{storm.goal}</span>}
+            {!storm.rewarded && <span>· {storm.lessons}/{storm.goal}</span>}
         </div>
     )
     return (
