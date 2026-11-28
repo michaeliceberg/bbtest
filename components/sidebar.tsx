@@ -204,11 +204,14 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
           {navItems.map((item) => {
             const isActive = pathname === item.href
             if (item.disabled) return (
-              <Button key={item.href} variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+              <div key={item.href}>
+              <Button variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
                 {navIconEl(item, false)}
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
               </Button>
+              <p className="-mt-0.5 px-4 pb-1 text-[11px] font-bold leading-tight text-[#7E8B94]">{item.href === '/pro' ? 'Скоро' : `Откроется после 3 первых разборов${learnSubject === 'math' ? ' тригонометрии' : ' электродинамики'}`}</p>
+              </div>
             )
             return (
               <TransitionLink key={item.href} href={item.href}>
@@ -248,11 +251,14 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
         {navItems.map((item) => {
           const isActive = pathname === item.href
           if (item.disabled) return (
-            <Button key={item.href} variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+            <div key={item.href}>
+            <Button variant='sidebar' disabled title={item.href === '/pro' ? 'Скоро' : learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
               {navIconEl(item, false)}
               <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
               <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
             </Button>
+            <p className="-mt-0.5 px-4 pb-1 text-[11px] font-bold leading-tight text-[#7E8B94]">{item.href === '/pro' ? 'Скоро' : `Откроется после 3 первых разборов${learnSubject === 'math' ? ' тригонометрии' : ' электродинамики'}`}</p>
+            </div>
           )
           return (
             <TransitionLink key={item.href} href={item.href}>
