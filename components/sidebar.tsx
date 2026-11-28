@@ -190,9 +190,11 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
   if (courses.length === 0) {
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
-        <div className='pt-8 pb-7 flex items-center justify-center'>
-          <AnimatedLogo className="w-[140px] lg:w-[210px]" />
-        </div>
+        <Link href='/trainer'>
+          <div className='pt-8 pb-7 flex items-center justify-center cursor-pointer'>
+            <AnimatedLogo className="w-[140px] lg:w-[210px]" />
+          </div>
+        </Link>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
             const isActive = pathname === item.href
