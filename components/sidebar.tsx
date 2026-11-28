@@ -8,7 +8,7 @@ import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession } from 'next-auth/react'
@@ -74,6 +74,13 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
   const navIcon = (isActive: boolean) => (cozy ? { color: isActive ? '#E2C7A5' : COZY.textSoft } : undefined)
   const pathname = usePathname()
   const router = useRouter()
+  // Клик по логотипу: сначала играет выстрел (AnimatedLogo), потом переход в тренажёр
+  const homeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const goHome = () => {
+    if (homeTimer.current) return
+    router.prefetch('/trainer')
+    homeTimer.current = setTimeout(() => { homeTimer.current = null; router.push('/trainer') }, 900)
+  }
   const { data: session } = useSession()
   const [isCoursesOpen, setIsCoursesOpen] = useState(false)
   const [, startTransition] = useTransition()
@@ -190,11 +197,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
   if (courses.length === 0) {
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
-        <Link href='/trainer'>
-          <div className='pt-8 pb-7 flex items-center justify-center cursor-pointer'>
-            <AnimatedLogo className="w-[140px] lg:w-[210px]" />
-          </div>
-        </Link>
+        <div onClick={goHome} className='pt-8 pb-7 flex items-center justify-center cursor-pointer'>
+          <AnimatedLogo className="w-[140px] lg:w-[210px]" />
+        </div>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -223,11 +228,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, className, userNa
   
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
-      <Link href='/trainer'>
-        <div className='pt-8 pb-4 flex items-center justify-center cursor-pointer'>
-          <AnimatedLogo className="w-[140px] lg:w-[210px]" />
-        </div>
-      </Link>
+      <div onClick={goHome} className='pt-8 pb-4 flex items-center justify-center cursor-pointer'>
+        <AnimatedLogo className="w-[140px] lg:w-[210px]" />
+      </div>
 
       {/* Простая тонкая линия: отделяет логотип от выбора курса. */}
       <div className='px-4 pb-4'>
