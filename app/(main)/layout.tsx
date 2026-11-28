@@ -10,6 +10,7 @@ import { cookies } from 'next/headers'
 import { getUiTheme } from '@/lib/uiThemeServer'
 import { isLearnUnlocked, learnSubjectOf } from '@/lib/learn-unlock'
 import { LearnUnlockCelebration } from '@/components/learn-unlock-celebration'
+import { PwaInstallBanner } from '@/components/pwa-install-banner'
 import { AchievementClaimInit } from '@/components/achievement-claim-init'
 import { countUnclaimedAchievements } from '@/lib/achievements'
 
@@ -143,7 +144,7 @@ const MainLayout = async ({ children }: Props) => {
                 isAdmin={userProgressRow?.isAdmin === 1} isPro={proBought}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
-                <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
+                <div className='max-w-[1056px] mx-auto pt-6 h-full'><PwaInstallBanner />{children}</div>
             </main>
             <AchievementClaimInit count={achievementsToClaim} />
             {learnDone && <LearnUnlockCelebration subject={learnSubject} />}
