@@ -71,7 +71,22 @@ export async function planLessonCase(t_lessonId: number): Promise<PlannedLessonC
 		return base;
 	}
 	if (flags.isMythic) {
-		return { ...base, key: await grantCaseKey(userId, 'mythic', 'mythic-stage', ref) };
+		// Мифический ключ за «мифическую контрольную» — один раз за всё время на ученика и урок. Раньше ссылка включала
+		// дату (`lesson:id:день`), и ключ можно было получать каждый день снова и снова. Старые записи с датой тоже считаем.
+		const mref = `lesson:${t_lessonId}`;
+		const prev = await db.execute(sql`
+			SELECT id, tier, used_at FROM case_keys
+			WHERE user_id = ${userId} AND source = 'mythic-stage' AND (source_ref = ${mref} OR source_ref LIKE ${mref + ':%'})
+			ORDER BY used_at IS NULL DESC, id LIMIT 1
+		`);
+		const row = prev[0] as { id: number | string; tier: string; used_at: unknown } | undefined;
+		if (row) {
+			// Не открытый ещё мифический ключ отдаём как есть; если уже был — повторное прохождение даёт обычный ключ
+			// (раз в день на урок, общий дневной лимит ключей действует).
+			if (!row.used_at) return { ...base, key: { keyId: Number(row.id), tier: row.tier as LessonCaseTier } };
+			return { ...base, key: await grantCaseKey(userId, 'common', 'mythic-repeat', ref) };
+		}
+		return { ...base, key: await grantCaseKey(userId, 'mythic', 'mythic-stage', mref) };
 	}
 
 	const setCourse = isSetCourse(lesson.t_unit.t_course?.title);
