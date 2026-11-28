@@ -117,9 +117,10 @@ export async function getBallometerData(userId: string, weeks = 2): Promise<Ball
     const weekEq = Number(tk?.wk ?? 0) + LESSON_EQ * Number(ls?.wk ?? 0)
 
     // темп в сетах в неделю; perWeek (первичные в неделю) = сеты × сколько первичных даёт один сет — для прогноза дат
-    const mv = map.move
-    const moveGain = mv ? mv.toPrimary - mv.fromPrimary : 0
-    const setGain = moveGain > 0.03 ? Math.min(0.6, moveGain) : DEFAULT_SET_GAIN
+    // Сколько первичных даёт один сет — постоянная. Раньше бралось из «следующего хода» карты (map.move): после каждого
+    // решённого сета ход менялся на менее выгодный, прирост падал, и норма «сетов в неделю» росла прямо после занятия
+    // (баг, заметил ученик Гоша 2026-11-28).
+    const setGain = DEFAULT_SET_GAIN
     let perWeek: number | null = null
     if (first?.first_at) {
         const span = (Date.now() - new Date(String(first.first_at)).getTime()) / 86400000
