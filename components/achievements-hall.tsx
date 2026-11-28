@@ -77,17 +77,22 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
         <>
             {unclaimed > 0 && (
                 <div className="pointer-events-none sticky top-[60px] z-30 mb-5 flex justify-center lg:top-3">
-                    <motion.button
-                        type="button"
-                        onClick={scrollToNext}
+                    {/* прыжок — на обёртке: inline-transform кнопки перебивал бы стандартное нажатие (грань исчезает, кнопка опускается) */}
+                    <motion.div
                         animate={{ y: [0, -9, 0, -4, 0] }}
                         transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 3 }}
-                        className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-[#FFC53D] px-4 py-2 text-sm font-black text-[#4A3206] shadow-[0_6px_0_#C99412,0_8px_24px_rgba(255,197,61,0.45)] active:translate-y-[2px]"
+                        className="pointer-events-none"
+                    >
+                    <button
+                        type="button"
+                        onClick={scrollToNext}
+                        className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-[#FFC53D] px-4 py-2 text-sm font-black text-[#4A3206] shadow-[0_6px_0_#C99412,0_8px_24px_rgba(255,197,61,0.45)] active:translate-y-[6px]"
                     >
                         <Gift className="h-4 w-4" />
                         Ждут награды: {unclaimed}
                         <ChevronDown className="h-4 w-4" />
-                    </motion.button>
+                    </button>
+                    </motion.div>
                 </div>
             )}
             <div className="space-y-8">

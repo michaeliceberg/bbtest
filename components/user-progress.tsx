@@ -54,16 +54,16 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 				следующего уровня, в цвете, не занятом соседними currency-
 				иконками (orange/red/rose); ведёт на /progress — там теперь
 				есть полноразмерный блок уровня (components/level-card.tsx). */}
-			<Link href='/progress'>
+			<div>
 				<div className={cn('flex flex-col items-center px-2 text-violet-400', ghostHover)}>
 					<span className='text-xs font-bold leading-none'>Ур. {level}</span>
 					<div className='w-9 h-1 rounded-full bg-current/20 mt-1 overflow-hidden' style={{ backgroundColor: 'rgba(167,139,250,0.2)' }}>
 						<div className='h-full rounded-full bg-violet-400' style={{ width: `${progressPercent}%` }} />
 					</div>
 				</div>
-			</Link>
+			</div>
 
-			<Link href='/shop' className='pt-3'>
+			<div className='pt-3'>
 				<Button variant='ghost' className={cn('text-orange-500', ghostHover)}>
 
 					<Lottie className="h-14 w-14 mr-2 pb-2"
@@ -74,10 +74,10 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 					{/* <Image src='/points.svg' height={28} width={28} alt='Points' className='mr-2' /> */}
 					{/* {points} */}
 				</Button>
-			</Link>
+			</div>
 
 
-			<Link href='/shop' className='pt-2'>
+			<div className='pt-2'>
 				<Button variant='ghost' className={cn('text-red-500', ghostHover)}>
 
 					<Lottie className="h-10 w-10 mr-2 pb-2"
@@ -85,7 +85,7 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 					/>
 					{gems}
 				</Button>
-			</Link>
+			</div>
 
 
 
@@ -97,12 +97,12 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 				{ggStickers}
 			</Button>
 
-			<Link href='/shop'>
+			<div>
 				<Button variant='ghost' className={cn('text-rose-500', ghostHover)}>
 					<Image src='/heart.svg' height={22} width={22} alt='Hearts' className='mr-2' />
 					{hasActiveSubscription ? <InfinityIcon className='h-4 w-4 stroke-[3]' /> : hearts}
 				</Button>
-			</Link>
+			</div>
 		</div>
 	);
 };
