@@ -2,6 +2,8 @@
 // Анимированный логотип: слои (public/logo-anim) — надпись, гусь (отдача при выстреле), монстр, вспышка.
 // Сам по себе стреляет раз в 16 с (globals.css, .logo-anim-*). Нажатие — сразу выстрел (.logo-anim-*-once),
 // наведение — золотое свечение. Только transform/opacity (свечение — filter только при наведении).
+// Слои внутри — pointer-events-none: при нажатии они пересоздаются (key), и если нажатие пришлось на удалённый слой,
+// браузер не присылает click — переход по логотипу не срабатывал. Нажатие принимает сама обёртка.
 // Статичная версия целиком — public/ggege-logo-v5.webp.
 import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -24,7 +26,7 @@ export const AnimatedLogo = ({ className, dir = '/logo-anim' }: { className?: st
     const loopStyle = !once && clicked ? { animationDelay: '-2.2s' } : undefined
     return (
         <span
-            className={cn('logo-anim relative block aspect-[640/400]', className)}
+            className={cn('logo-anim relative block aspect-[640/400] [&_*]:pointer-events-none', className)}
             role="img" aria-label="ggege" onPointerDown={fire}
         >
             {/* eslint-disable-next-line @next/next/no-img-element */}
